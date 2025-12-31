@@ -1,6 +1,6 @@
-import api from '@/config/api'
-import type { ApiResponse } from '@/config/api'
-import type { UserRole } from '@/services/user'
+import api from "@/config/api"
+import type { ApiResponse } from "@/config/api"
+import type { UserRole } from "@/services/user"
 
 export interface PaginationMeta {
   page: number
@@ -67,7 +67,7 @@ export interface AdminWallpaper {
   description?: string | null
   fileUrl: string
   thumbnailUrl?: string | null
-  category: 'general' | 'anime' | 'people'
+  category: "general" | "anime" | "people"
   status?: number
   width: number
   height: number
@@ -90,29 +90,29 @@ export interface AdminWallpaperQuery {
   limit?: number
   search?: string
   status?: number
-  category?: 'general' | 'anime' | 'people'
+  category?: "general" | "anime" | "people"
   uploaderId?: number
 }
 
 export interface UpdateAdminWallpaper {
   title?: string
   description?: string
-  category?: 'general' | 'anime' | 'people'
+  category?: "general" | "anime" | "people"
 }
 
 export interface UpdateWallpaperTags {
   tags?: string[]
 }
 
-export type ReportStatusValue = 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+export type ReportStatusValue = "pending" | "reviewing" | "resolved" | "dismissed"
 export type ReportReasonValue =
-  | 'spam'
-  | 'inappropriate'
-  | 'harassment'
-  | 'violence'
-  | 'copyright'
-  | 'misinformation'
-  | 'other'
+  | "spam"
+  | "inappropriate"
+  | "harassment"
+  | "violence"
+  | "copyright"
+  | "misinformation"
+  | "other"
 
 export interface Report {
   id: number
@@ -123,7 +123,7 @@ export interface Report {
     id: number
     username: string
   }
-  targetType?: 'post' | 'comment'
+  targetType?: "post" | "comment"
   targetId?: number
   createdAt: string
   updatedAt?: string
@@ -174,7 +174,9 @@ export interface RecentActivityItem {
 class AdminService {
   // 用户管理
   async adminGetUsers(query: AdminUserQuery) {
-    return api.get('/admin/users', { params: query }) as Promise<ApiResponseWithPagination<AdminUser[]>>
+    return api.get("/admin/users", { params: query }) as Promise<
+      ApiResponseWithPagination<AdminUser[]>
+    >
   }
 
   async adminGetUserById(id: number) {
@@ -182,7 +184,7 @@ class AdminService {
   }
 
   async adminCreateUser(data: CreateAdminUser) {
-    return api.post('/admin/users', data)
+    return api.post("/admin/users", data)
   }
 
   async adminUpdateUser(id: number, data: UpdateAdminUser) {
@@ -199,7 +201,9 @@ class AdminService {
 
   // 壁纸管理
   async adminGetWallpapers(query: AdminWallpaperQuery) {
-    return api.get('/admin/wallpapers', { params: query }) as Promise<ApiResponseWithPagination<AdminWallpaper[]>>
+    return api.get("/admin/wallpapers", { params: query }) as Promise<
+      ApiResponseWithPagination<AdminWallpaper[]>
+    >
   }
 
   async adminGetWallpaperDetail(id: number) {
@@ -220,7 +224,9 @@ class AdminService {
 
   // 举报管理
   async getReports(query: GetReportsQuery) {
-    return api.get('/admin/reports', { params: query }) as Promise<ApiResponseWithPagination<Report[]>>
+    return api.get("/admin/reports", { params: query }) as Promise<
+      ApiResponseWithPagination<Report[]>
+    >
   }
 
   async getReportById(id: number) {
@@ -228,7 +234,7 @@ class AdminService {
   }
 
   async getReportStats() {
-    return api.get('/admin/reports/stats/overview') as Promise<ApiResponse<ReportStats>>
+    return api.get("/admin/reports/stats/overview") as Promise<ApiResponse<ReportStats>>
   }
 
   async updateReportStatus(id: number, data: UpdateReportStatus) {
@@ -237,11 +243,13 @@ class AdminService {
 
   // 仪表盘
   async getDashboardStats() {
-    return api.get('/admin/dashboard/stats') as Promise<ApiResponse<DashboardStats>>
+    return api.get("/admin/dashboard/stats") as Promise<ApiResponse<DashboardStats>>
   }
 
   async getRecentActivity(limit = 8) {
-    return api.get('/admin/dashboard/activity', { params: { limit } }) as Promise<ApiResponse<RecentActivityItem[]>>
+    return api.get("/admin/dashboard/activity", { params: { limit } }) as Promise<
+      ApiResponse<RecentActivityItem[]>
+    >
   }
 }
 

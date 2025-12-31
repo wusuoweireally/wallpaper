@@ -279,12 +279,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import tagService, { type Tag } from '@/services/tag'
+import { computed, onUnmounted, ref, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import tagService, { type Tag } from "@/services/tag"
 
 interface Filters {
-  sortBy: 'latest' | 'popular' | 'random'
+  sortBy: "latest" | "popular" | "random"
   category: string
   resolution: string
   ratio: string
@@ -296,8 +296,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'update:modelValue', filters: Filters): void
-  (e: 'filter-change'): void
+  (e: "update:modelValue", filters: Filters): void
+  (e: "filter-change"): void
 }
 
 const props = defineProps<Props>()
@@ -308,47 +308,47 @@ const router = useRouter()
 
 // 筛选选项
 const sortOptions: Array<{
-  value: 'latest' | 'popular' | 'random'
+  value: "latest" | "popular" | "random"
   label: string
 }> = [
-  { value: 'latest', label: '最新上传' },
-  { value: 'popular', label: '最受欢迎' },
-  { value: 'random', label: '随机推荐' },
+  { value: "latest", label: "最新上传" },
+  { value: "popular", label: "最受欢迎" },
+  { value: "random", label: "随机推荐" },
 ]
 
 const categories = [
-  { value: 'general', label: '综合' },
-  { value: 'anime', label: '动漫' },
-  { value: 'people', label: '人物' },
+  { value: "general", label: "综合" },
+  { value: "anime", label: "动漫" },
+  { value: "people", label: "人物" },
 ]
 
 const resolutions = [
-  '1920x1080',
-  '2560x1440',
-  '3840x2160',
-  '5120x2880',
-  '1080x1920',
-  '1440x2560',
-  '2160x3840',
+  "1920x1080",
+  "2560x1440",
+  "3840x2160",
+  "5120x2880",
+  "1080x1920",
+  "1440x2560",
+  "2160x3840",
 ]
 
-const ratios = ['16:9', '16:10', '4:3', '21:9', '1:1', '9:16']
+const ratios = ["16:9", "16:10", "4:3", "21:9", "1:1", "9:16"]
 
 // 计算属性
 const getSortLabel = computed(() => {
-  return sortOptions.find((opt) => opt.value === props.modelValue.sortBy)?.label || '最新上传'
+  return sortOptions.find((opt) => opt.value === props.modelValue.sortBy)?.label || "最新上传"
 })
 
 const getCategoryLabel = computed(() => {
-  return categories.find((c) => c.value === props.modelValue.category)?.label || '全部'
+  return categories.find((c) => c.value === props.modelValue.category)?.label || "全部"
 })
 
 const getResolutionLabel = computed(() => {
-  return props.modelValue.resolution || '全部'
+  return props.modelValue.resolution || "全部"
 })
 
 const getRatioLabel = computed(() => {
-  return props.modelValue.ratio || '全部'
+  return props.modelValue.ratio || "全部"
 })
 
 const hasActiveFilters = computed(() => {
@@ -375,11 +375,11 @@ const showSuggestionPanel = computed(() => {
 // 方法
 const updateFilters = (updates: Partial<Filters>) => {
   const newFilters = { ...props.modelValue, ...updates }
-  emit('update:modelValue', newFilters)
-  emit('filter-change')
+  emit("update:modelValue", newFilters)
+  emit("filter-change")
 }
 
-const updateSort = (sortBy: 'latest' | 'popular' | 'random') => {
+const updateSort = (sortBy: "latest" | "popular" | "random") => {
   updateFilters({ sortBy })
 
   // 更新路由查询参数
@@ -408,7 +408,7 @@ const handleSearch = () => {
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
-  emit('filter-change')
+  emit("filter-change")
 }
 
 // 搜索防抖处理
@@ -429,7 +429,7 @@ const handleSearchInput = (value: string) => {
   }
 
   searchTimeout = setTimeout(() => {
-    emit('filter-change')
+    emit("filter-change")
   }, 500)
 }
 
@@ -439,12 +439,12 @@ const fetchTagSuggestions = async (keyword: string) => {
     const response = await tagService.getTags({
       keyword,
       limit: 6,
-      sortBy: 'usageCount',
-      sortOrder: 'DESC',
+      sortBy: "usageCount",
+      sortOrder: "DESC",
     })
     tagSuggestions.value = response.data || []
   } catch (error) {
-    console.error('加载标签建议失败:', error)
+    console.error("加载标签建议失败:", error)
     tagSuggestions.value = []
   } finally {
     searchLoading.value = false
@@ -453,10 +453,10 @@ const fetchTagSuggestions = async (keyword: string) => {
 
 const resetFilters = () => {
   updateFilters({
-    category: '',
-    resolution: '',
-    ratio: '',
-    search: '',
+    category: "",
+    resolution: "",
+    ratio: "",
+    search: "",
   })
   tagSuggestions.value = []
 }
@@ -464,12 +464,12 @@ const resetFilters = () => {
 const applyTagSuggestion = (tagName: string) => {
   updateFilters({ search: tagName })
   tagSuggestions.value = []
-  emit('filter-change')
+  emit("filter-change")
 }
 
 const clearSearch = () => {
   if (!props.modelValue.search) return
-  updateFilters({ search: '' })
+  updateFilters({ search: "" })
   tagSuggestions.value = []
 }
 
@@ -483,8 +483,8 @@ const handleSearchInputEvent = (event: Event) => {
 watch(
   () => route.query.sort,
   (newSort) => {
-    if (newSort && ['latest', 'popular', 'random'].includes(newSort as string)) {
-      const newSortValue = newSort as 'latest' | 'popular' | 'random'
+    if (newSort && ["latest", "popular", "random"].includes(newSort as string)) {
+      const newSortValue = newSort as "latest" | "popular" | "random"
       if (props.modelValue.sortBy !== newSortValue) {
         updateFilters({ sortBy: newSortValue })
       }

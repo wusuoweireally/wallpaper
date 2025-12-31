@@ -234,7 +234,7 @@
                   </div>
                   <div class="space-y-1">
                     <p class="text-base-content/90 text-lg font-semibold">
-                      {{ isDragging ? '释放以上传壁纸' : '拖拽或点击上传' }}
+                      {{ isDragging ? "释放以上传壁纸" : "拖拽或点击上传" }}
                     </p>
                     <p class="text-base-content/60 text-sm">支持 JPG / PNG / WEBP，最大 50MB</p>
                   </div>
@@ -408,9 +408,7 @@
                       viewBox="0 0 24 24"
                       fill="currentColor"
                     >
-                      <path
-                        d="M3 5h18v2H3V5zm0 6h12v2H3v-2zm0 6h18v2H3v-2z"
-                      />
+                      <path d="M3 5h18v2H3V5zm0 6h12v2H3v-2zm0 6h18v2H3v-2z" />
                     </svg>
                   </div>
                   <label class="text-base-content/80 text-sm font-semibold">作品标题</label>
@@ -452,9 +450,7 @@
                       viewBox="0 0 24 24"
                       fill="currentColor"
                     >
-                      <path
-                        d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z"
-                      />
+                      <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z" />
                     </svg>
                   </div>
                   <label class="text-base-content/80 text-sm font-semibold">作品描述</label>
@@ -470,10 +466,7 @@
                 placeholder="补充风格、拍摄灵感或适用场景..."
                 class="border-base-content/30 bg-base-100/90 focus:ring-secondary/30 textarea w-full rounded-2xl border-2 p-4 shadow-sm transition-all hover:bg-base-100 focus:border-secondary focus:ring-4"
               ></textarea>
-              <p
-                v-if="errors.description"
-                class="flex items-center gap-1 text-sm text-error"
-              >
+              <p v-if="errors.description" class="flex items-center gap-1 text-sm text-error">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="h-4 w-4"
@@ -802,7 +795,7 @@
                   />
                 </svg>
                 <span class="text-base">
-                  {{ loading ? '上传中...' : '立即上传' }}
+                  {{ loading ? "上传中..." : "立即上传" }}
                 </span>
               </button>
               <button
@@ -851,21 +844,21 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
-import { wallpaperService } from '@/services/wallpaper'
-import tagService, { type Tag } from '@/services/tag'
-import { useUserStore } from '@/stores/index'
-import { cancelRequest } from '@/config/api'
+import { ref, reactive, computed, onMounted, watch } from "vue"
+import axios from "axios"
+import { wallpaperService } from "@/services/wallpaper"
+import tagService, { type Tag } from "@/services/tag"
+import { useUserStore } from "@/stores/index"
+import { cancelRequest } from "@/config/api"
 
 const userStore = useUserStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
 const isDragging = ref(false)
-const previewImage = ref<string>('')
+const previewImage = ref<string>("")
 const uploadProgress = ref<number>(0)
 const isUploading = ref<boolean>(false)
-const currentRequestId = ref<string>('')
+const currentRequestId = ref<string>("")
 const uploadStatus = ref<{ type: string; message: string } | null>(null)
 
 // 当前用户ID
@@ -874,9 +867,9 @@ const currentUserId = computed(() => userStore.user?.id || 0)
 // 表单数据
 const formData = reactive({
   imageFile: null as File | null,
-  title: '',
-  description: '',
-  category: 'general',
+  title: "",
+  description: "",
+  category: "general",
   tags: [] as string[],
 })
 
@@ -891,41 +884,41 @@ const imageInfo = ref<{
 
 // 错误信息
 const errors = reactive({
-  image: '',
-  title: '',
-  description: '',
-  category: '',
-  tags: '',
+  image: "",
+  title: "",
+  description: "",
+  category: "",
+  tags: "",
 })
 
 // 可用标签
 const defaultTagSeeds = [
-  '4K',
-  '8K',
-  '高清',
-  '超清',
-  '风景',
-  '星空',
-  '海洋',
-  '森林',
-  '城市',
-  '动漫',
-  '游戏',
-  '电影',
-  '艺术',
-  '暗色',
-  '亮色',
-  '渐变',
-  '抽象',
-  '自然',
-  '动物',
-  '植物',
-  '建筑',
+  "4K",
+  "8K",
+  "高清",
+  "超清",
+  "风景",
+  "星空",
+  "海洋",
+  "森林",
+  "城市",
+  "动漫",
+  "游戏",
+  "电影",
+  "艺术",
+  "暗色",
+  "亮色",
+  "渐变",
+  "抽象",
+  "自然",
+  "动物",
+  "植物",
+  "建筑",
 ]
 
 const recommendedTags = ref<string[]>([...defaultTagSeeds])
 const tagSuggestions = ref<Tag[]>([])
-const tagSearch = ref('')
+const tagSearch = ref("")
 const MAX_TITLE_LENGTH = 60
 const MAX_DESCRIPTION_LENGTH = 200
 const MAX_TAGS = 5
@@ -933,15 +926,15 @@ const tagsLoading = ref(false)
 
 // 可用分类
 const categories = [
-  { value: 'general', label: '全部' },
-  { value: 'anime', label: '动漫' },
-  { value: 'people', label: '人物' },
+  { value: "general", label: "全部" },
+  { value: "anime", label: "动漫" },
+  { value: "people", label: "人物" },
 ]
 
 // 选中的标签
 const selectedTags = ref<string[]>([])
 
-const normalizeTag = (tag: string) => tag.replace(/\s+/g, ' ').trim().slice(0, 30)
+const normalizeTag = (tag: string) => tag.replace(/\s+/g, " ").trim().slice(0, 30)
 
 const addTag = (tag: string) => {
   const normalized = normalizeTag(tag)
@@ -950,7 +943,7 @@ const addTag = (tag: string) => {
   }
 
   if (selectedTags.value.includes(normalized)) {
-    errors.tags = ''
+    errors.tags = ""
     return
   }
 
@@ -961,7 +954,7 @@ const addTag = (tag: string) => {
 
   selectedTags.value.push(normalized)
   formData.tags = [...selectedTags.value]
-  errors.tags = ''
+  errors.tags = ""
 }
 
 const removeTag = (tag: string) => {
@@ -984,7 +977,7 @@ const toggleTag = (tag: string) => {
 
 const addCustomTag = () => {
   addTag(tagSearch.value)
-  tagSearch.value = ''
+  tagSearch.value = ""
   tagSuggestions.value = []
 }
 
@@ -992,8 +985,8 @@ const loadRecommendedTags = async () => {
   tagsLoading.value = true
   try {
     const response = await tagService.getTags({
-      sortBy: 'createdAt',
-      sortOrder: 'DESC',
+      sortBy: "createdAt",
+      sortOrder: "DESC",
       limit: 60,
     })
     const serverTags = response.data || []
@@ -1004,7 +997,7 @@ const loadRecommendedTags = async () => {
       recommendedTags.value = [...defaultTagSeeds]
     }
   } catch (error) {
-    console.error('加载推荐标签失败:', error)
+    console.error("加载推荐标签失败:", error)
     recommendedTags.value = [...defaultTagSeeds]
   } finally {
     tagsLoading.value = false
@@ -1026,7 +1019,7 @@ const fetchTagSuggestions = async (keyword: string) => {
     tagSuggestions.value =
       response.data?.filter((tag) => !selectedTags.value.includes(tag.name)) || []
   } catch (error) {
-    console.error('获取标签建议失败:', error)
+    console.error("获取标签建议失败:", error)
   }
 }
 
@@ -1065,18 +1058,18 @@ const handleDrop = (event: DragEvent) => {
 
 // 处理图片文件
 const processImageFile = (file: File) => {
-  if (!file.type.startsWith('image/')) {
-    errors.image = '请选择图片文件'
+  if (!file.type.startsWith("image/")) {
+    errors.image = "请选择图片文件"
     return
   }
 
   if (file.size > 50 * 1024 * 1024) {
-    errors.image = '图片大小不能超过 50MB'
+    errors.image = "图片大小不能超过 50MB"
     return
   }
 
   formData.imageFile = file
-  errors.image = ''
+  errors.image = ""
 
   const reader = new FileReader()
   reader.onload = (e) => {
@@ -1089,7 +1082,7 @@ const processImageFile = (file: File) => {
         size: formatFileSize(file.size),
         width: img.width,
         height: img.height,
-        type: file.type.split('/')[1].toUpperCase(),
+        type: file.type.split("/")[1].toUpperCase(),
       }
     }
     img.src = previewImage.value
@@ -1099,20 +1092,20 @@ const processImageFile = (file: File) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes'
+  if (bytes === 0) return "0 Bytes"
   const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const sizes = ["Bytes", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
 // 移除图片
 const removeImage = () => {
   formData.imageFile = null
-  previewImage.value = ''
+  previewImage.value = ""
   imageInfo.value = null
   if (fileInput.value) {
-    fileInput.value.value = ''
+    fileInput.value.value = ""
   }
 }
 
@@ -1121,17 +1114,17 @@ const validateForm = (): boolean => {
   let isValid = true
 
   Object.keys(errors).forEach((key) => {
-    errors[key as keyof typeof errors] = ''
+    errors[key as keyof typeof errors] = ""
   })
 
   if (!formData.imageFile) {
-    errors.image = '请选择要上传的图片'
+    errors.image = "请选择要上传的图片"
     isValid = false
   }
 
   const titleValue = formData.title.trim()
   if (!titleValue) {
-    errors.title = '请输入壁纸标题'
+    errors.title = "请输入壁纸标题"
     isValid = false
   } else if (titleValue.length > MAX_TITLE_LENGTH) {
     errors.title = `标题不能超过 ${MAX_TITLE_LENGTH} 个字符`
@@ -1145,7 +1138,7 @@ const validateForm = (): boolean => {
   }
 
   if (selectedTags.value.length === 0) {
-    errors.tags = '请至少选择一个标签'
+    errors.tags = "请至少选择一个标签"
     isValid = false
   }
 
@@ -1163,11 +1156,11 @@ const handleSubmit = async () => {
 
   try {
     if (!formData.imageFile) {
-      throw new Error('请选择要上传的图片')
+      throw new Error("请选择要上传的图片")
     }
 
     if (!currentUserId.value) {
-      throw new Error('请先登录')
+      throw new Error("请先登录")
     }
 
     const { response, requestId } = await wallpaperService.uploadWallpaper(
@@ -1189,25 +1182,25 @@ const handleSubmit = async () => {
     currentRequestId.value = requestId
 
     if ((response as any).success) {
-      uploadStatus.value = { type: 'success', message: '壁纸上传成功！' }
+      uploadStatus.value = { type: "success", message: "壁纸上传成功！" }
       clearInputForm()
     } else {
-      throw new Error((response as any).message || '上传失败')
+      throw new Error((response as any).message || "上传失败")
     }
   } catch (error: any) {
     if (axios.isCancel(error)) {
-      uploadStatus.value = { type: 'info', message: '上传已取消' }
+      uploadStatus.value = { type: "info", message: "上传已取消" }
     } else {
-      console.error('上传失败:', error)
+      console.error("上传失败:", error)
       uploadStatus.value = {
-        type: 'error',
-        message: error.message || '上传失败，请重试',
+        type: "error",
+        message: error.message || "上传失败，请重试",
       }
     }
   } finally {
     loading.value = false
     isUploading.value = false
-    currentRequestId.value = ''
+    currentRequestId.value = ""
   }
 }
 
@@ -1221,25 +1214,25 @@ const cancelUpload = () => {
 // 清空输入表单（保留上传成功的信息）
 const clearInputForm = () => {
   formData.imageFile = null
-  formData.title = ''
-  formData.description = ''
-  formData.category = 'general'
+  formData.title = ""
+  formData.description = ""
+  formData.category = "general"
   formData.tags = []
 
   if (fileInput.value) {
-    fileInput.value.value = ''
+    fileInput.value.value = ""
   }
 
-  errors.image = ''
-  errors.title = ''
-  errors.description = ''
-  errors.tags = ''
-  errors.category = ''
+  errors.image = ""
+  errors.title = ""
+  errors.description = ""
+  errors.tags = ""
+  errors.category = ""
 
   selectedTags.value = []
-  tagSearch.value = ''
+  tagSearch.value = ""
   tagSuggestions.value = []
-  previewImage.value = ''
+  previewImage.value = ""
   imageInfo.value = null
 }
 

@@ -4,9 +4,7 @@
       <!-- 头部区域 -->
       <div class="mb-8 flex flex-col gap-4">
         <div class="flex items-center gap-3">
-          <div
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50"
-          >
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
             <i class="i-mdi-alert-circle text-xl text-red-500"></i>
           </div>
           <div>
@@ -92,15 +90,11 @@
     <transition name="modal" appear>
       <div
         v-if="showDeleteConfirm && isMounted"
-        class="bg-opacity-50 fixed inset-0 z-[9999] flex items-center justify-center bg-black p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 p-4"
       >
-        <div
-          class="w-full max-w-lg transform rounded-2xl bg-white p-6 shadow-xl transition-all"
-        >
+        <div class="w-full max-w-lg transform rounded-2xl bg-white p-6 shadow-xl transition-all">
           <div class="mb-6 flex items-center gap-3">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100"
-            >
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <i class="i-mdi-alert text-2xl text-red-600"></i>
             </div>
             <div>
@@ -148,62 +142,62 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue"
 
 // 注销确认弹窗显示状态
-const showDeleteConfirm = ref(false);
+const showDeleteConfirm = ref(false)
 
 // 组件是否已经挂载
-const isMounted = ref(false);
+const isMounted = ref(false)
 
 // 组件挂载时标记
 onMounted(() => {
-  isMounted.value = true;
-});
+  isMounted.value = true
+})
 
 // 注销账号
 const deleteAccount = async () => {
   try {
     // 防御性检查，确保组件仍然挂载
     if (!isMounted.value) {
-      return;
+      return
     }
 
     // 这里需要调用后端的账号删除接口
     // 由于后端目前没有账号删除接口，暂时提示用户
-    alert("账号注销功能暂未开放，请联系管理员");
+    alert("账号注销功能暂未开放，请联系管理员")
 
     // 在关闭模态框前检查组件状态
     if (isMounted.value) {
-      showDeleteConfirm.value = false;
+      showDeleteConfirm.value = false
     }
   } catch (error) {
-    console.error("注销账号失败:", error);
+    console.error("注销账号失败:", error)
 
     // 确保组件仍然存在时才显示错误
     if (isMounted.value) {
-      alert("注销账号失败，请重试");
+      alert("注销账号失败，请重试")
     }
   }
-};
+}
 
 // 组件卸载时清理资源
 onUnmounted(() => {
   // 标记组件已卸载
-  isMounted.value = false;
+  isMounted.value = false
 
   // 强制关闭模态框
-  showDeleteConfirm.value = false;
+  showDeleteConfirm.value = false
 
   // 清理 body 上的可能的 overflow 样式
-  if (typeof document !== 'undefined') {
-    document.body.style.overflow = '';
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = ""
   }
 
   // 清理任何可能的 Teleport 残留元素
-  const teleportElements = document.querySelectorAll('[data-teleport]');
-  teleportElements.forEach(el => el.remove());
-});
+  const teleportElements = document.querySelectorAll("[data-teleport]")
+  teleportElements.forEach((el) => el.remove())
+})
 </script>
 
 <style scoped>

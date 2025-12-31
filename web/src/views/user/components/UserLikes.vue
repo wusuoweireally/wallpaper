@@ -14,24 +14,15 @@
 </template>
 
 <script lang="ts" setup>
-import UserWallpaperList from "./UserWallpaperList.vue";
-import { useUserStore } from "@/stores";
+import UserWallpaperList from "./UserWallpaperList.vue"
+import { useUserStore } from "@/stores"
 
-const userStore = useUserStore();
+const userStore = useUserStore()
 
 // 获取用户点赞壁纸的API
-const fetchUserLikes = async (
-  page: number = 1,
-  limit: number = 20,
-  search: string = "",
-) => {
+const fetchUserLikes = async (page: number = 1, limit: number = 20, search: string = "") => {
   try {
-    const response = await userStore.fetchUserWallpapers(
-      "likes",
-      page,
-      limit,
-      search,
-    );
+    const response = await userStore.fetchUserWallpapers("likes", page, limit, search)
 
     if (response && response.data) {
       return {
@@ -42,7 +33,7 @@ const fetchUserLikes = async (
           total: 0,
           pages: 0,
         },
-      };
+      }
     }
 
     // 如果API返回失败，返回空数据
@@ -54,9 +45,9 @@ const fetchUserLikes = async (
         total: 0,
         pages: 0,
       },
-    };
+    }
   } catch (error) {
-    console.error("获取用户点赞壁纸失败:", error);
+    console.error("获取用户点赞壁纸失败:", error)
     // 返回空数据
     return {
       data: [],
@@ -66,7 +57,7 @@ const fetchUserLikes = async (
         total: 0,
         pages: 0,
       },
-    };
+    }
   }
-};
+}
 </script>

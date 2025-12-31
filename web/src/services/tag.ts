@@ -1,5 +1,5 @@
-import api from '@/config/api'
-import type { ApiResponse } from '@/config/api'
+import api from "@/config/api"
+import type { ApiResponse } from "@/config/api"
 
 export interface Tag {
   id: number
@@ -11,7 +11,7 @@ export interface Tag {
 export interface SearchTagsQuery {
   keyword?: string
   sortBy?: string
-  sortOrder?: 'ASC' | 'DESC'
+  sortOrder?: "ASC" | "DESC"
   page?: number
   limit?: number
 }
@@ -35,7 +35,7 @@ export interface TagListResponse extends ApiResponse<Tag[]> {
 
 class TagService {
   async getTags(query: SearchTagsQuery = {}) {
-    return api.get<Tag[]>('/tags', { params: query }) as Promise<TagListResponse>
+    return api.get<Tag[]>("/tags", { params: query }) as Promise<TagListResponse>
   }
 
   async getTagById(id: number) {
@@ -43,7 +43,7 @@ class TagService {
   }
 
   async createTag(data: CreateTag) {
-    return api.post('/tags', data)
+    return api.post("/tags", data)
   }
 
   async updateTag(id: number, data: UpdateTag) {

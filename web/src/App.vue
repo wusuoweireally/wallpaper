@@ -13,9 +13,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import NavBar from '@/components/NavBar.vue'
+import { computed } from "vue"
+import { useRoute } from "vue-router"
+import NavBar from "@/components/NavBar.vue"
 
 const route = useRoute()
 

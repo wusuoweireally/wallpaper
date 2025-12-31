@@ -11,7 +11,7 @@
     </nav>
 
     <div v-if="loading" class="detail-loader">
-      <span class="loading loading-lg loading-spinner text-primary"></span>
+      <span class="loading loading-spinner loading-lg text-primary"></span>
     </div>
 
     <div v-else-if="error" class="detail-error">
@@ -36,22 +36,16 @@
         <div class="detail-meta">
           <span class="meta-pill">分类：{{ categoryLabel }}</span>
           <span class="meta-pill">上传：{{ wallpaper.uploadDate }}</span>
-          <span class="meta-pill">
-            {{ wallpaper.width }} × {{ wallpaper.height }} px
-          </span>
+          <span class="meta-pill"> {{ wallpaper.width }} × {{ wallpaper.height }} px </span>
         </div>
       </header>
 
       <div class="detail-grid">
         <section class="media-card">
           <div class="media-frame">
-            <img
-              :src="wallpaper.imageUrl"
-              class="media-img"
-              @load="imageLoaded = true"
-            />
+            <img :src="wallpaper.imageUrl" class="media-img" @load="imageLoaded = true" />
             <div v-if="!imageLoaded" class="media-loader">
-              <span class="loading loading-lg loading-spinner"></span>
+              <span class="loading loading-spinner loading-lg"></span>
             </div>
           </div>
           <div class="media-actions">
@@ -78,11 +72,9 @@
 
           <div class="info-section">
             <h3 class="info-title">尺寸与格式</h3>
-            <p class="info-text">
-              {{ wallpaper.width }} × {{ wallpaper.height }} px
-            </p>
+            <p class="info-text">{{ wallpaper.width }} × {{ wallpaper.height }} px</p>
             <p class="info-subtext">
-              {{ wallpaper.fileSize }} · {{ wallpaper.format || '未知格式' }}
+              {{ wallpaper.fileSize }} · {{ wallpaper.format || "未知格式" }}
             </p>
           </div>
 
@@ -157,44 +149,44 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
-import { wallpaperService } from "@/services/wallpaper";
-import { useUserStore } from "@/stores";
+import { ref, computed, onMounted, onUnmounted } from "vue"
+import { useRoute } from "vue-router"
+import { wallpaperService } from "@/services/wallpaper"
+import { useUserStore } from "@/stores"
 
 // 壁纸详情接口
 interface WallpaperDetail {
-  id: number;
-  title: string;
-  description: string;
-  category: "general" | "anime" | "people";
-  format?: string;
-  imageUrl: string;
-  width: number;
-  height: number;
-  fileSize: string;
-  tags: string[];
+  id: number
+  title: string
+  description: string
+  category: "general" | "anime" | "people"
+  format?: string
+  imageUrl: string
+  width: number
+  height: number
+  fileSize: string
+  tags: string[]
   uploader: {
-    id: number;
-    name: string;
-    avatar: string;
-  };
-  uploadDate: string;
-  likes: number;
-  favorites: number;
-  resolutions: string[];
+    id: number
+    name: string
+    avatar: string
+  }
+  uploadDate: string
+  likes: number
+  favorites: number
+  resolutions: string[]
 }
 
-const route = useRoute();
-const wallpaperId = route.params.id;
-const userStore = useUserStore();
-const imageLoaded = ref(false);
-const isLiked = ref(false);
-const isFavorited = ref(false);
-const loading = ref(false);
-const error = ref<string | null>(null);
-const detailTimeoutId = ref<NodeJS.Timeout | null>(null);
-const shareNotice = ref("");
+const route = useRoute()
+const wallpaperId = route.params.id
+const userStore = useUserStore()
+const imageLoaded = ref(false)
+const isLiked = ref(false)
+const isFavorited = ref(false)
+const loading = ref(false)
+const error = ref<string | null>(null)
+const detailTimeoutId = ref<NodeJS.Timeout | null>(null)
+const shareNotice = ref("")
 
 // 壁纸详情数据
 const wallpaper = ref<WallpaperDetail>({
@@ -217,43 +209,41 @@ const wallpaper = ref<WallpaperDetail>({
   likes: 0,
   favorites: 0,
   resolutions: [],
-});
+})
 
 const categoryLabelMap = {
   general: "通用",
   anime: "动漫",
   people: "人物",
-} as const;
+} as const
 
-const categoryLabel = computed(
-  () => categoryLabelMap[wallpaper.value.category] || "其他",
-);
+const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
 
 // 页面加载时获取壁纸详情
 onMounted(() => {
-  fetchWallpaperDetail();
-});
+  fetchWallpaperDetail()
+})
 
 // 获取壁纸详情
 const fetchWallpaperDetail = async () => {
-  loading.value = true;
-  error.value = null;
+  loading.value = true
+  error.value = null
 
   try {
-    const id = Number(wallpaperId);
+    const id = Number(wallpaperId)
     if (isNaN(id)) {
-      throw new Error("无效的壁纸ID");
+      throw new Error("无效的壁纸ID")
     }
 
     // 同时获取壁纸详情和关联标签
     const [wallpaperResponse, tagsResponse] = await Promise.all([
       wallpaperService.getWallpaperDetail(id),
       wallpaperService.getWallpaperTags(id),
-    ]);
+    ])
 
     // 检查响应是否成功
     if (!wallpaperResponse.success) {
-      throw new Error(wallpaperResponse.message || "获取壁纸详情失败");
+      throw new Error(wallpaperResponse.message || "获取壁纸详情失败")
     }
 
     // 转换API数据格式以匹配组件接口
@@ -276,213 +266,207 @@ const fetchWallpaperDetail = async () => {
         name: wallpaperResponse.data.uploader?.username || "未知用户",
         avatar: wallpaperResponse.data.uploader?.avatarUrl || "", // 使用后端处理后的完整头像URL
       },
-      uploadDate: new Date(
-        wallpaperResponse.data.createdAt,
-      ).toLocaleDateString(),
+      uploadDate: new Date(wallpaperResponse.data.createdAt).toLocaleDateString(),
       likes: wallpaperResponse.data.likeCount,
       favorites: wallpaperResponse.data.favoriteCount,
-      resolutions: [
-        `${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`,
-      ], // 简化处理
-    };
+      resolutions: [`${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`], // 简化处理
+    }
 
     // 初始化点赞和收藏状态（如果API返回则使用，否则设为false）
-    isLiked.value = wallpaperResponse.data.isLiked || false;
-    isFavorited.value = wallpaperResponse.data.isFavorited || false;
+    isLiked.value = wallpaperResponse.data.isLiked || false
+    isFavorited.value = wallpaperResponse.data.isFavorited || false
   } catch (err: any) {
-    console.error("获取壁纸详情失败:", err);
+    console.error("获取壁纸详情失败:", err)
 
     // 静默处理请求被取消的情况，不显示错误信息
-    if (err.message === '请求已取消' || err.name === 'REQUEST_CANCELLED' || err.isCancelled) {
-      return;
+    if (err.message === "请求已取消" || err.name === "REQUEST_CANCELLED" || err.isCancelled) {
+      return
     }
 
     // 其他错误才显示错误信息
-    error.value = err instanceof Error ? err.message : "获取壁纸详情失败";
+    error.value = err instanceof Error ? err.message : "获取壁纸详情失败"
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 // 处理点赞
 const handleLike = async () => {
   // 检查登录状态
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再点赞");
-    return;
+    alert("请先登录后再点赞")
+    return
   }
 
-  const id = Number(wallpaperId);
+  const id = Number(wallpaperId)
   if (isNaN(id)) {
-    console.error("无效的壁纸ID");
-    return;
+    console.error("无效的壁纸ID")
+    return
   }
 
   // 保存当前状态用于错误回滚
-  const previousLiked = isLiked.value;
-  const previousLikes = wallpaper.value.likes;
+  const previousLiked = isLiked.value
+  const previousLikes = wallpaper.value.likes
 
   // 确定要执行的操作（根据当前状态）
-  const shouldLike = !previousLiked;
+  const shouldLike = !previousLiked
 
   // 乐观更新UI
-  isLiked.value = shouldLike;
+  isLiked.value = shouldLike
   if (shouldLike) {
-    wallpaper.value.likes++;
+    wallpaper.value.likes++
   } else {
-    wallpaper.value.likes--;
+    wallpaper.value.likes--
   }
 
   try {
     // 调用API
     if (shouldLike) {
-      await wallpaperService.likeWallpaper(id);
+      await wallpaperService.likeWallpaper(id)
     } else {
-      await wallpaperService.unlikeWallpaper(id);
+      await wallpaperService.unlikeWallpaper(id)
     }
   } catch (err: any) {
     // API调用失败，回滚状态
-    isLiked.value = previousLiked;
-    wallpaper.value.likes = previousLikes;
+    isLiked.value = previousLiked
+    wallpaper.value.likes = previousLikes
 
     // 处理错误
     if (err.response?.status === 401) {
-      alert("登录已过期，请重新登录");
+      alert("登录已过期，请重新登录")
     } else {
-      const errorMessage =
-        err.response?.data?.message || err.message || "操作失败，请稍后重试";
-      console.error("点赞操作失败:", errorMessage);
-      alert(errorMessage);
+      const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
+      console.error("点赞操作失败:", errorMessage)
+      alert(errorMessage)
     }
   }
-};
+}
 
 // 处理收藏
 const handleFavorite = async () => {
   // 检查登录状态
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再收藏");
-    return;
+    alert("请先登录后再收藏")
+    return
   }
 
-  const id = Number(wallpaperId);
+  const id = Number(wallpaperId)
   if (isNaN(id)) {
-    console.error("无效的壁纸ID");
-    return;
+    console.error("无效的壁纸ID")
+    return
   }
 
   // 保存当前状态用于错误回滚
-  const previousFavorited = isFavorited.value;
-  const previousFavorites = wallpaper.value.favorites;
+  const previousFavorited = isFavorited.value
+  const previousFavorites = wallpaper.value.favorites
 
   // 确定要执行的操作（根据当前状态）
-  const shouldFavorite = !previousFavorited;
+  const shouldFavorite = !previousFavorited
 
   // 乐观更新UI
-  isFavorited.value = shouldFavorite;
+  isFavorited.value = shouldFavorite
   if (shouldFavorite) {
-    wallpaper.value.favorites++;
+    wallpaper.value.favorites++
   } else {
-    wallpaper.value.favorites--;
+    wallpaper.value.favorites--
   }
 
   try {
     // 调用API
     if (shouldFavorite) {
-      await wallpaperService.favoriteWallpaper(id);
+      await wallpaperService.favoriteWallpaper(id)
     } else {
-      await wallpaperService.unfavoriteWallpaper(id);
+      await wallpaperService.unfavoriteWallpaper(id)
     }
   } catch (err: any) {
     // API调用失败，回滚状态
-    isFavorited.value = previousFavorited;
-    wallpaper.value.favorites = previousFavorites;
+    isFavorited.value = previousFavorited
+    wallpaper.value.favorites = previousFavorites
 
     // 处理错误
     if (err.response?.status === 401) {
-      alert("登录已过期，请重新登录");
+      alert("登录已过期，请重新登录")
     } else {
-      const errorMessage =
-        err.response?.data?.message || err.message || "操作失败，请稍后重试";
-      console.error("收藏操作失败:", errorMessage);
-      alert(errorMessage);
+      const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
+      console.error("收藏操作失败:", errorMessage)
+      alert(errorMessage)
     }
   }
-};
+}
 
 // 处理头像加载失败
 const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement;
+  const img = event.target as HTMLImageElement
   // 设置默认头像
-  img.src = '/uploads/profile-pictures/defaultAvatar.png';
-  img.onerror = null; // 防止无限循环
-};
+  img.src = "/uploads/profile-pictures/defaultAvatar.png"
+  img.onerror = null // 防止无限循环
+}
 
 // 选择分辨率
 const selectResolution = (_resolution: string) => {
   // TODO: 这里可以处理分辨率选择逻辑，比如显示不同分辨率的图片
-};
+}
 
 const pushShareNotice = (message: string) => {
-  shareNotice.value = message;
+  shareNotice.value = message
   window.setTimeout(() => {
-    shareNotice.value = "";
-  }, 2500);
-};
+    shareNotice.value = ""
+  }, 2500)
+}
 
 const handleShare = async () => {
-  const shareUrl = `${window.location.origin}/wallpaper/${wallpaper.value.id}`;
-  const shareTitle = wallpaper.value.title || "随心壁纸";
+  const shareUrl = `${window.location.origin}/wallpaper/${wallpaper.value.id}`
+  const shareTitle = wallpaper.value.title || "随心壁纸"
   try {
     if (navigator.share) {
       await navigator.share({
         title: shareTitle,
         text: wallpaper.value.description || shareTitle,
         url: shareUrl,
-      });
-      pushShareNotice("已发起分享");
-      return;
+      })
+      pushShareNotice("已发起分享")
+      return
     }
-    await navigator.clipboard.writeText(shareUrl);
-    pushShareNotice("链接已复制");
+    await navigator.clipboard.writeText(shareUrl)
+    pushShareNotice("链接已复制")
   } catch (err) {
-    console.error("分享失败:", err);
-    pushShareNotice("分享失败，请稍后重试");
+    console.error("分享失败:", err)
+    pushShareNotice("分享失败，请稍后重试")
   }
-};
+}
 
 const downloadWallpaper = () => {
   if (!wallpaper.value.imageUrl) {
-    pushShareNotice("图片链接无效，无法下载");
-    return;
+    pushShareNotice("图片链接无效，无法下载")
+    return
   }
 
-  const fileName = `${wallpaper.value.title || "wallpaper"}-${wallpaper.value.id}`;
-  const link = document.createElement("a");
-  link.href = wallpaper.value.imageUrl;
-  link.download = fileName;
-  link.rel = "noopener";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  pushShareNotice("开始下载壁纸");
-};
+  const fileName = `${wallpaper.value.title || "wallpaper"}-${wallpaper.value.id}`
+  const link = document.createElement("a")
+  link.href = wallpaper.value.imageUrl
+  link.download = fileName
+  link.rel = "noopener"
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  pushShareNotice("开始下载壁纸")
+}
 
 // 组件卸载时清理所有pending请求和计时器
 onUnmounted(() => {
   // 清理可能存在的重试计时器
   if (detailTimeoutId.value) {
-    clearTimeout(detailTimeoutId.value);
-    detailTimeoutId.value = null;
+    clearTimeout(detailTimeoutId.value)
+    detailTimeoutId.value = null
   }
 
   // 重置加载状态
-  loading.value = false;
-});
+  loading.value = false
+})
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Sora:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Sora:wght@400;500;600;700&display=swap");
 
 .detail-shell {
   min-height: 100vh;
@@ -491,7 +475,7 @@ onUnmounted(() => {
     radial-gradient(circle at 88% 80%, rgba(15, 118, 110, 0.18), transparent 55%),
     linear-gradient(135deg, #f8f3ea, #f1efe9 50%, #eef2f1);
   color: #0f172a;
-  font-family: 'Sora', 'Noto Sans SC', sans-serif;
+  font-family: "Sora", "Noto Sans SC", sans-serif;
 }
 
 .detail-nav {
@@ -517,7 +501,9 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.7);
   font-weight: 600;
   color: #0f172a;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .nav-btn:hover {
@@ -535,7 +521,9 @@ onUnmounted(() => {
   border: 1px solid rgba(15, 23, 42, 0.15);
   background: rgba(255, 255, 255, 0.7);
   color: #0f172a;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .nav-icon-btn:hover {
@@ -596,7 +584,7 @@ onUnmounted(() => {
 }
 
 .detail-title {
-  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-family: "Cormorant Garamond", "Noto Serif SC", serif;
   font-size: 2.8rem;
   font-weight: 700;
   color: #0f172a;
@@ -696,7 +684,9 @@ onUnmounted(() => {
   font-size: 0.85rem;
   font-weight: 600;
   color: #0f172a;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .resolution-btn:hover {
@@ -834,7 +824,9 @@ onUnmounted(() => {
   font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.85);
   color: #0f172a;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .action-btn:hover {
@@ -872,7 +864,9 @@ onUnmounted(() => {
   color: #fff;
   background: linear-gradient(120deg, #0f766e, #f59e0b);
   box-shadow: 0 20px 35px rgba(15, 23, 42, 0.18);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .action-cta:hover {

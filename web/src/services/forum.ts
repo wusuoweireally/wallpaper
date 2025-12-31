@@ -1,78 +1,78 @@
-import api from '@/config/api';
-import type { Post, Comment, PaginationData } from '@/stores/forum';
+import api from "@/config/api"
+import type { Post, Comment, PaginationData } from "@/stores/forum"
 
 /**
  * API 响应类型定义
  */
 interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data?: T;
+  success: boolean
+  message?: string
+  data?: T
   pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
 }
 
 /**
  * 帖子创建和更新DTO
  */
 export interface CreatePostDto {
-  title: string;
-  content: string;
-  category: 'tech_discussion' | 'experience_sharing' | 'q_a' | 'resource_sharing';
-  summary?: string;
-  tags?: string;
-  thumbnailUrl?: string;
+  title: string
+  content: string
+  category: "tech_discussion" | "experience_sharing" | "q_a" | "resource_sharing"
+  summary?: string
+  tags?: string
+  thumbnailUrl?: string
 }
 
 export interface UpdatePostDto {
-  title?: string;
-  content?: string;
-  category?: 'tech_discussion' | 'experience_sharing' | 'q_a' | 'resource_sharing';
-  summary?: string;
-  tags?: string;
-  thumbnailUrl?: string;
+  title?: string
+  content?: string
+  category?: "tech_discussion" | "experience_sharing" | "q_a" | "resource_sharing"
+  summary?: string
+  tags?: string
+  thumbnailUrl?: string
 }
 
 /**
  * 评论创建和更新DTO
  */
 export interface CreateCommentDto {
-  content: string;
-  postId: number;
-  parentId?: number;
+  content: string
+  postId: number
+  parentId?: number
 }
 
 export interface UpdateCommentDto {
-  content: string;
+  content: string
 }
 
 /**
  * 帖子查询参数
  */
 export interface PostsQueryParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-  category?: 'tech_discussion' | 'experience_sharing' | 'q_a' | 'resource_sharing';
-  search?: string;
-  authorId?: number;
-  tags?: string[];
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: "ASC" | "DESC"
+  category?: "tech_discussion" | "experience_sharing" | "q_a" | "resource_sharing"
+  search?: string
+  authorId?: number
+  tags?: string[]
 }
 
 /**
  * 评论查询参数
  */
 export interface CommentsQueryParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-  parentId?: number;
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: "ASC" | "DESC"
+  parentId?: number
 }
 
 /**
@@ -96,21 +96,21 @@ export const forumService = {
    * @returns 帖子列表和分页信息
    */
   async getPosts(params: PostsQueryParams = {}): Promise<{
-    data: Post[];
-    pagination: PaginationData;
+    data: Post[]
+    pagination: PaginationData
   }> {
-    const response: ApiResponse<Post[]> = await api.get('/posts', {
+    const response: ApiResponse<Post[]> = await api.get("/posts", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
-        sortBy: params.sortBy || 'createdAt',
-        sortOrder: params.sortOrder || 'DESC',
+        sortBy: params.sortBy || "createdAt",
+        sortOrder: params.sortOrder || "DESC",
         category: params.category,
         search: params.search,
         authorId: params.authorId,
-        tags: params.tags?.join(','),
+        tags: params.tags?.join(","),
       },
-    });
+    })
 
     if (response.success && response.data && response.pagination) {
       return {
@@ -121,10 +121,10 @@ export const forumService = {
           totalCount: response.pagination.total,
           pageSize: response.pagination.limit,
         },
-      };
+      }
     }
 
-    throw new Error(response.message || '获取帖子列表失败');
+    throw new Error(response.message || "获取帖子列表失败")
   },
 
   /**
@@ -134,13 +134,13 @@ export const forumService = {
    * @returns 帖子详情
    */
   async getPost(id: number): Promise<Post> {
-    const response: ApiResponse<Post> = await api.get(`/posts/${id}`);
+    const response: ApiResponse<Post> = await api.get(`/posts/${id}`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取帖子详情失败');
+    throw new Error(response.message || "获取帖子详情失败")
   },
 
   /**
@@ -150,13 +150,13 @@ export const forumService = {
    * @returns 创建的帖子
    */
   async createPost(postData: CreatePostDto): Promise<Post> {
-    const response: ApiResponse<Post> = await api.post('/posts', postData);
+    const response: ApiResponse<Post> = await api.post("/posts", postData)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '创建帖子失败');
+    throw new Error(response.message || "创建帖子失败")
   },
 
   /**
@@ -167,13 +167,13 @@ export const forumService = {
    * @returns 更新后的帖子
    */
   async updatePost(id: number, postData: UpdatePostDto): Promise<Post> {
-    const response: ApiResponse<Post> = await api.put(`/posts/${id}`, postData);
+    const response: ApiResponse<Post> = await api.put(`/posts/${id}`, postData)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '更新帖子失败');
+    throw new Error(response.message || "更新帖子失败")
   },
 
   /**
@@ -182,10 +182,10 @@ export const forumService = {
    * @param id 帖子ID
    */
   async deletePost(id: number): Promise<void> {
-    const response: ApiResponse = await api.delete(`/posts/${id}`);
+    const response: ApiResponse = await api.delete(`/posts/${id}`)
 
     if (!response.success) {
-      throw new Error(response.message || '删除帖子失败');
+      throw new Error(response.message || "删除帖子失败")
     }
   },
 
@@ -195,10 +195,10 @@ export const forumService = {
    * @param id 帖子ID
    */
   async likePost(id: number): Promise<void> {
-    const response: ApiResponse = await api.post(`/posts/${id}/like`);
+    const response: ApiResponse = await api.post(`/posts/${id}/like`)
 
     if (!response.success) {
-      throw new Error(response.message || '点赞失败');
+      throw new Error(response.message || "点赞失败")
     }
   },
 
@@ -208,10 +208,10 @@ export const forumService = {
    * @param id 帖子ID
    */
   async unlikePost(id: number): Promise<void> {
-    const response: ApiResponse = await api.delete(`/posts/${id}/like`);
+    const response: ApiResponse = await api.delete(`/posts/${id}/like`)
 
     if (!response.success) {
-      throw new Error(response.message || '取消点赞失败');
+      throw new Error(response.message || "取消点赞失败")
     }
   },
 
@@ -222,13 +222,13 @@ export const forumService = {
    * @returns 点赞状态
    */
   async checkLikeStatus(id: number): Promise<{ hasLiked: boolean }> {
-    const response: ApiResponse<{ hasLiked: boolean }> = await api.get(`/posts/${id}/like`);
+    const response: ApiResponse<{ hasLiked: boolean }> = await api.get(`/posts/${id}/like`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取点赞状态失败');
+    throw new Error(response.message || "获取点赞状态失败")
   },
 
   /**
@@ -238,15 +238,15 @@ export const forumService = {
    * @returns 热门帖子列表
    */
   async getPopularPosts(limit: number = 10): Promise<Post[]> {
-    const response: ApiResponse<Post[]> = await api.get('/posts/popular/list', {
+    const response: ApiResponse<Post[]> = await api.get("/posts/popular/list", {
       params: { limit },
-    });
+    })
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取热门帖子失败');
+    throw new Error(response.message || "获取热门帖子失败")
   },
 
   /**
@@ -256,15 +256,15 @@ export const forumService = {
    * @returns 最新帖子列表
    */
   async getLatestPosts(limit: number = 10): Promise<Post[]> {
-    const response: ApiResponse<Post[]> = await api.get('/posts/latest/list', {
+    const response: ApiResponse<Post[]> = await api.get("/posts/latest/list", {
       params: { limit },
-    });
+    })
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取最新帖子失败');
+    throw new Error(response.message || "获取最新帖子失败")
   },
 
   /**
@@ -274,15 +274,15 @@ export const forumService = {
    * @returns 用户帖子列表和分页信息
    */
   async getMyPosts(params: { page?: number; limit?: number } = {}): Promise<{
-    data: Post[];
-    pagination: PaginationData;
+    data: Post[]
+    pagination: PaginationData
   }> {
-    const response: ApiResponse<Post[]> = await api.get('/posts/user/my', {
+    const response: ApiResponse<Post[]> = await api.get("/posts/user/my", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
       },
-    });
+    })
 
     if (response.success && response.data && response.pagination) {
       return {
@@ -293,10 +293,10 @@ export const forumService = {
           totalCount: response.pagination.total,
           pageSize: response.pagination.limit,
         },
-      };
+      }
     }
 
-    throw new Error(response.message || '获取用户帖子失败');
+    throw new Error(response.message || "获取用户帖子失败")
   },
 
   /**
@@ -310,19 +310,22 @@ export const forumService = {
    * @param params 查询参数
    * @returns 评论列表和分页信息
    */
-  async getPostComments(postId: number, params: CommentsQueryParams = {}): Promise<{
-    data: Comment[];
-    pagination: PaginationData;
+  async getPostComments(
+    postId: number,
+    params: CommentsQueryParams = {},
+  ): Promise<{
+    data: Comment[]
+    pagination: PaginationData
   }> {
     const response: ApiResponse<Comment[]> = await api.get(`/comments/post/${postId}`, {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
-        sortBy: params.sortBy || 'createdAt',
-        sortOrder: params.sortOrder || 'ASC',
+        sortBy: params.sortBy || "createdAt",
+        sortOrder: params.sortOrder || "ASC",
         parentId: params.parentId,
       },
-    });
+    })
 
     if (response.success && response.data && response.pagination) {
       return {
@@ -333,10 +336,10 @@ export const forumService = {
           totalCount: response.pagination.total,
           pageSize: response.pagination.limit,
         },
-      };
+      }
     }
 
-    throw new Error(response.message || '获取评论列表失败');
+    throw new Error(response.message || "获取评论列表失败")
   },
 
   /**
@@ -346,13 +349,13 @@ export const forumService = {
    * @returns 评论详情
    */
   async getComment(id: number): Promise<Comment> {
-    const response: ApiResponse<Comment> = await api.get(`/comments/${id}`);
+    const response: ApiResponse<Comment> = await api.get(`/comments/${id}`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取评论详情失败');
+    throw new Error(response.message || "获取评论详情失败")
   },
 
   /**
@@ -362,13 +365,13 @@ export const forumService = {
    * @returns 创建的评论
    */
   async createComment(commentData: CreateCommentDto): Promise<Comment> {
-    const response: ApiResponse<Comment> = await api.post('/comments', commentData);
+    const response: ApiResponse<Comment> = await api.post("/comments", commentData)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '创建评论失败');
+    throw new Error(response.message || "创建评论失败")
   },
 
   /**
@@ -379,13 +382,13 @@ export const forumService = {
    * @returns 更新后的评论
    */
   async updateComment(id: number, commentData: UpdateCommentDto): Promise<Comment> {
-    const response: ApiResponse<Comment> = await api.put(`/comments/${id}`, commentData);
+    const response: ApiResponse<Comment> = await api.put(`/comments/${id}`, commentData)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '更新评论失败');
+    throw new Error(response.message || "更新评论失败")
   },
 
   /**
@@ -394,10 +397,10 @@ export const forumService = {
    * @param id 评论ID
    */
   async deleteComment(id: number): Promise<void> {
-    const response: ApiResponse = await api.delete(`/comments/${id}`);
+    const response: ApiResponse = await api.delete(`/comments/${id}`)
 
     if (!response.success) {
-      throw new Error(response.message || '删除评论失败');
+      throw new Error(response.message || "删除评论失败")
     }
   },
 
@@ -408,13 +411,13 @@ export const forumService = {
    * @returns 子评论列表
    */
   async getCommentReplies(parentCommentId: number): Promise<Comment[]> {
-    const response: ApiResponse<Comment[]> = await api.get(`/comments/${parentCommentId}/replies`);
+    const response: ApiResponse<Comment[]> = await api.get(`/comments/${parentCommentId}/replies`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取回复列表失败');
+    throw new Error(response.message || "获取回复列表失败")
   },
 
   /**
@@ -424,19 +427,19 @@ export const forumService = {
    * @returns 评论统计信息
    */
   async getCommentStats(postId: number): Promise<{
-    totalComments: number;
-    topLevelComments: number;
+    totalComments: number
+    topLevelComments: number
   }> {
     const response: ApiResponse<{
-      totalComments: number;
-      topLevelComments: number;
-    }> = await api.get(`/comments/stats/${postId}`);
+      totalComments: number
+      topLevelComments: number
+    }> = await api.get(`/comments/stats/${postId}`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取评论统计失败');
+    throw new Error(response.message || "获取评论统计失败")
   },
 
   /**
@@ -446,15 +449,15 @@ export const forumService = {
    * @returns 用户评论列表和分页信息
    */
   async getMyComments(params: { page?: number; limit?: number } = {}): Promise<{
-    data: Comment[];
-    pagination: PaginationData;
+    data: Comment[]
+    pagination: PaginationData
   }> {
-    const response: ApiResponse<Comment[]> = await api.get('/comments/user/my', {
+    const response: ApiResponse<Comment[]> = await api.get("/comments/user/my", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
       },
-    });
+    })
 
     if (response.success && response.data && response.pagination) {
       return {
@@ -465,10 +468,10 @@ export const forumService = {
           totalCount: response.pagination.total,
           pageSize: response.pagination.limit,
         },
-      };
+      }
     }
 
-    throw new Error(response.message || '获取用户评论失败');
+    throw new Error(response.message || "获取用户评论失败")
   },
 
   /**
@@ -478,15 +481,15 @@ export const forumService = {
    * @returns 最新评论列表
    */
   async getLatestComments(limit: number = 10): Promise<Comment[]> {
-    const response: ApiResponse<Comment[]> = await api.get('/comments/latest/list', {
+    const response: ApiResponse<Comment[]> = await api.get("/comments/latest/list", {
       params: { limit },
-    });
+    })
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取最新评论失败');
+    throw new Error(response.message || "获取最新评论失败")
   },
 
   /**
@@ -496,19 +499,19 @@ export const forumService = {
    * @returns 点赞结果
    */
   async toggleCommentLike(id: number): Promise<{
-    isLiked: boolean;
-    likeCount: number;
+    isLiked: boolean
+    likeCount: number
   }> {
     const response: ApiResponse<{
-      isLiked: boolean;
-      likeCount: number;
-    }> = await api.post(`/comments/${id}/like`);
+      isLiked: boolean
+      likeCount: number
+    }> = await api.post(`/comments/${id}/like`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '评论点赞操作失败');
+    throw new Error(response.message || "评论点赞操作失败")
   },
 
   /**
@@ -518,19 +521,19 @@ export const forumService = {
    * @returns 点赞状态
    */
   async getCommentLikeStatus(id: number): Promise<{
-    isLiked: boolean;
-    likeCount: number;
+    isLiked: boolean
+    likeCount: number
   }> {
     const response: ApiResponse<{
-      isLiked: boolean;
-      likeCount: number;
-    }> = await api.get(`/comments/${id}/like-status`);
+      isLiked: boolean
+      likeCount: number
+    }> = await api.get(`/comments/${id}/like-status`)
 
     if (response.success && response.data) {
-      return response.data;
+      return response.data
     }
 
-    throw new Error(response.message || '获取评论点赞状态失败');
+    throw new Error(response.message || "获取评论点赞状态失败")
   },
 
   /**
@@ -540,15 +543,15 @@ export const forumService = {
    * @returns 用户点赞的评论列表和分页信息
    */
   async getMyLikedComments(params: { page?: number; limit?: number } = {}): Promise<{
-    data: Comment[];
-    pagination: PaginationData;
+    data: Comment[]
+    pagination: PaginationData
   }> {
-    const response: ApiResponse<Comment[]> = await api.get('/comments/user/liked', {
+    const response: ApiResponse<Comment[]> = await api.get("/comments/user/liked", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
       },
-    });
+    })
 
     if (response.success && response.data && response.pagination) {
       return {
@@ -559,9 +562,9 @@ export const forumService = {
           totalCount: response.pagination.total,
           pageSize: response.pagination.limit,
         },
-      };
+      }
     }
 
-    throw new Error(response.message || '获取用户点赞评论失败');
+    throw new Error(response.message || "获取用户点赞评论失败")
   },
-};
+}

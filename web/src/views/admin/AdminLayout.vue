@@ -69,7 +69,7 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <span class="text-sm font-semibold text-white">{{
-                    userStore.user?.username || '管理员'
+                    userStore.user?.username || "管理员"
                   }}</span>
                   <div class="text-xs text-white/60">系统管理员</div>
                 </div>
@@ -302,7 +302,7 @@
                     v-if="pendingReportsCount > 0"
                     class="badge badge-error badge-sm animate-bounce shadow-lg shadow-red-500/50"
                   >
-                    {{ pendingReportsCount > 99 ? '99+' : pendingReportsCount }}
+                    {{ pendingReportsCount > 99 ? "99+" : pendingReportsCount }}
                   </div>
                   <div
                     v-if="$route.path.startsWith('/admin/reports')"
@@ -334,10 +334,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/stores'
-import adminService from '@/services/admin'
+import { computed, ref, onMounted, watch } from "vue"
+import { useRouter, useRoute } from "vue-router"
+import { useUserStore } from "@/stores"
+import adminService from "@/services/admin"
 
 const router = useRouter()
 const route = useRoute()
@@ -352,7 +352,7 @@ const loadPendingReportsCount = async () => {
     const response = await adminService.getReportStats()
     pendingReportsCount.value = response.data?.pendingReports || 0
   } catch (error) {
-    console.error('获取待处理举报数量失败:', error)
+    console.error("获取待处理举报数量失败:", error)
     pendingReportsCount.value = 0
   }
 }
@@ -366,7 +366,7 @@ watch(
   () => route.path,
   (newPath) => {
     // 如果路由包含 /admin/reports，说明离开了举报页面，可以刷新数量
-    if (newPath.includes('/admin/reports') === false) {
+    if (newPath.includes("/admin/reports") === false) {
       // 延迟一点时间刷新，确保用户已经离开举报页面
       setTimeout(() => {
         loadPendingReportsCount()
@@ -376,10 +376,10 @@ watch(
 )
 
 const userAvatar = computed(() => {
-  if (!userStore.user?.avatarUrl || userStore.user?.avatarUrl === 'defaultAvatar.png') {
-    return 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest'
+  if (!userStore.user?.avatarUrl || userStore.user?.avatarUrl === "defaultAvatar.png") {
+    return "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
   }
-  if (userStore.user.avatarUrl.startsWith('http')) {
+  if (userStore.user.avatarUrl.startsWith("http")) {
     return userStore.user.avatarUrl
   }
   return `/api/uploads/profile-pictures/${userStore.user.avatarUrl}`
@@ -387,12 +387,12 @@ const userAvatar = computed(() => {
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest'
+  img.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
 }
 
 const logout = () => {
   userStore.logout()
-  router.push('/')
+  router.push("/")
 }
 </script>
 

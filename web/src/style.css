@@ -8,15 +8,15 @@
 }
 
 .prose h1 {
-  @apply text-2xl font-bold mb-4 mt-6;
+  @apply mb-4 mt-6 text-2xl font-bold;
 }
 
 .prose h2 {
-  @apply text-xl font-bold mb-3 mt-5;
+  @apply mb-3 mt-5 text-xl font-bold;
 }
 
 .prose h3 {
-  @apply text-lg font-semibold mb-2 mt-4;
+  @apply mb-2 mt-4 text-lg font-semibold;
 }
 
 .prose p {
@@ -24,11 +24,11 @@
 }
 
 .prose ul {
-  @apply list-disc pl-6 mb-4;
+  @apply mb-4 list-disc pl-6;
 }
 
 .prose ol {
-  @apply list-decimal pl-6 mb-4;
+  @apply mb-4 list-decimal pl-6;
 }
 
 .prose li {
@@ -36,15 +36,15 @@
 }
 
 .prose blockquote {
-  @apply border-l-4 border-gray-300 pl-4 italic mb-4;
+  @apply mb-4 border-l-4 border-gray-300 pl-4 italic;
 }
 
 .prose code {
-  @apply bg-gray-100 px-1 py-0.5 rounded text-sm;
+  @apply rounded bg-gray-100 px-1 py-0.5 text-sm;
 }
 
 .prose pre {
-  @apply bg-gray-100 p-4 rounded overflow-x-auto mb-4;
+  @apply mb-4 overflow-x-auto rounded bg-gray-100 p-4;
 }
 
 .prose pre code {
@@ -56,11 +56,11 @@
 }
 
 .prose img {
-  @apply max-w-full h-auto rounded mb-4;
+  @apply mb-4 h-auto max-w-full rounded;
 }
 
 .prose table {
-  @apply w-full border-collapse border border-gray-300 mb-4;
+  @apply mb-4 w-full border-collapse border border-gray-300;
 }
 
 .prose th,

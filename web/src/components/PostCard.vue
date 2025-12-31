@@ -3,41 +3,41 @@
     class="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
     @click="handlePostClick"
   >
-    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-900 via-indigo-500 to-amber-400 opacity-0 transition group-hover:opacity-100"></div>
+    <div
+      class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-900 via-indigo-500 to-amber-400 opacity-0 transition group-hover:opacity-100"
+    ></div>
     <div class="relative flex gap-4 p-5">
       <div class="flex-1 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
-          <span
-            :class="`badge badge-sm ${forumStore.categoryColor(post.category)} badge-outline`"
-          >
+          <span :class="`badge badge-sm ${forumStore.categoryColor(post.category)} badge-outline`">
             {{ forumStore.categoryLabel(post.category) }}
           </span>
           <span
             v-if="post.isPinned"
-            class="badge badge-sm border-warning/40 bg-warning/10 text-warning"
+            class="border-warning/40 bg-warning/10 badge badge-sm text-warning"
           >
-            <i class="i-mdi-pin text-xs mr-1"></i>
+            <i class="i-mdi-pin mr-1 text-xs"></i>
             置顶
           </span>
           <span
             v-if="post.isFeatured"
-            class="badge badge-sm border-primary/50 bg-primary/10 text-primary"
+            class="border-primary/50 bg-primary/10 badge badge-sm text-primary"
           >
-            <i class="i-mdi-star text-xs mr-1"></i>
+            <i class="i-mdi-star mr-1 text-xs"></i>
             精华
           </span>
-          <span class="text-xs text-slate-500 ml-auto">
+          <span class="ml-auto text-xs text-slate-500">
             {{ formatTime(post.createdAt) }}
           </span>
         </div>
 
-        <h3 class="text-[20px] font-semibold leading-snug text-slate-900 transition-colors line-clamp-2 group-hover:text-slate-900">
+        <h3
+          class="line-clamp-2 text-[20px] font-semibold leading-snug text-slate-900 transition-colors group-hover:text-slate-900"
+        >
           {{ post.title }}
         </h3>
 
-        <p
-          class="text-sm text-slate-600 leading-relaxed line-clamp-3"
-        >
+        <p class="line-clamp-3 text-sm leading-relaxed text-slate-600">
           {{ post.summary ? post.summary : stripHtml(post.content) }}
         </p>
 
@@ -49,26 +49,27 @@
           >
             {{ tag.trim() }}
           </span>
-          <span
-            v-if="post.tags.split(',').length > 4"
-            class="badge badge-ghost badge-xs text-xs"
-          >
-            +{{ post.tags.split(',').length - 4 }}
+          <span v-if="post.tags.split(',').length > 4" class="badge badge-ghost badge-xs text-xs">
+            +{{ post.tags.split(",").length - 4 }}
           </span>
         </div>
 
-        <div class="flex items-center justify-between pt-3 border-t border-slate-200/70">
+        <div class="flex items-center justify-between border-t border-slate-200/70 pt-3">
           <div class="flex items-center gap-3">
             <div class="avatar">
               <div
                 v-if="authorAvatar"
                 class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50"
               >
-                <img :src="authorAvatar" :alt="post.author?.username || '用户头像'" class="h-full w-full object-cover" />
+                <img
+                  :src="authorAvatar"
+                  :alt="post.author?.username || '用户头像'"
+                  class="h-full w-full object-cover"
+                />
               </div>
               <div
                 v-else
-                class="h-9 w-9 rounded-full bg-slate-900/10 flex items-center justify-center"
+                class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/10"
               >
                 <span class="text-sm font-semibold text-slate-900">
                   {{ post.author?.username?.charAt(0)?.toUpperCase() || "U" }}
@@ -81,7 +82,7 @@
               </p>
               <p
                 v-if="post.lastCommentAt"
-                class="text-[11px] text-slate-500 flex items-center gap-1"
+                class="flex items-center gap-1 text-[11px] text-slate-500"
               >
                 <i class="i-mdi-clock-outline text-xs"></i>
                 最后回复 {{ formatTime(post.lastCommentAt) }}
@@ -95,8 +96,12 @@
               <span>{{ formatNumber(post.viewCount) }}</span>
             </div>
             <button
-              class="flex items-center gap-1 text-xs rounded-full px-3 py-1 transition border"
-              :class="post.isLiked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'"
+              class="flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition"
+              :class="
+                post.isLiked
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+              "
               @click.stop="handleLike"
               :disabled="loading"
             >
@@ -104,14 +109,14 @@
               <span>{{ formatNumber(post.likeCount) }}</span>
             </button>
             <button
-              class="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 transition"
+              class="flex items-center gap-1 text-xs text-slate-600 transition hover:text-slate-900"
               @click.stop="handleComment"
             >
               <i class="i-mdi-comment-outline text-sm"></i>
               <span>{{ formatNumber(post.commentCount) }}</span>
             </button>
             <button
-              class="btn btn-xs btn-ghost btn-circle text-slate-500 hover:text-slate-900"
+              class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900"
               @click.stop="handleShare"
             >
               <i class="i-mdi-share-variant text-sm"></i>
@@ -119,13 +124,13 @@
             <div v-if="isAuthor" class="dropdown dropdown-end" @click.stop>
               <label
                 tabindex="0"
-                class="btn btn-xs btn-ghost btn-circle text-slate-500 hover:text-slate-900"
+                class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900"
               >
                 <i class="i-mdi-dots-horizontal text-sm"></i>
               </label>
               <ul
                 tabindex="0"
-                class="dropdown-content menu p-1.5 shadow-lg bg-white rounded-box w-36 border border-slate-200"
+                class="dropdown-content menu w-36 rounded-box border border-slate-200 bg-white p-1.5 shadow-lg"
               >
                 <li>
                   <a class="text-sm" @click="handleEdit">
@@ -149,157 +154,154 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
-import { useForumStore } from "@/stores/forum";
-import { useUserStore } from "@/stores";
-import { forumService } from "@/services/forum";
-import type { Post } from "@/stores/forum";
-import { resolveAvatarUrl } from "@/utils/avatar";
-import { stripHtml as stripHtmlUtil } from "@/utils/htmlSanitizer";
+import { ref, computed } from "vue"
+import { useRouter } from "vue-router"
+import { useForumStore } from "@/stores/forum"
+import { useUserStore } from "@/stores"
+import { forumService } from "@/services/forum"
+import type { Post } from "@/stores/forum"
+import { resolveAvatarUrl } from "@/utils/avatar"
+import { stripHtml as stripHtmlUtil } from "@/utils/htmlSanitizer"
 
 interface Props {
-  post: Post;
-  showActions?: boolean;
-  compact?: boolean;
+  post: Post
+  showActions?: boolean
+  compact?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showActions: true,
   compact: false,
-});
+})
 
 const emit = defineEmits<{
-  like: [post: Post];
-  comment: [post: Post];
-  edit: [post: Post];
-  delete: [post: Post];
-  share: [post: Post];
-}>();
+  like: [post: Post]
+  comment: [post: Post]
+  edit: [post: Post]
+  delete: [post: Post]
+  share: [post: Post]
+}>()
 
-const router = useRouter();
-const forumStore = useForumStore();
-const userStore = useUserStore();
+const router = useRouter()
+const forumStore = useForumStore()
+const userStore = useUserStore()
 
-const loading = ref(false);
+const loading = ref(false)
 
 const isAuthor = computed(() => {
-  return props.post.authorId === userStore.user?.id;
-});
+  return props.post.authorId === userStore.user?.id
+})
 
 const authorAvatar = computed(() => {
-  const raw =
-    props.post.author?.avatarUrl ||
-    props.post.author?.profilePicture ||
-    undefined;
-  return resolveAvatarUrl(raw);
-});
+  const raw = props.post.author?.avatarUrl || props.post.author?.profilePicture || undefined
+  return resolveAvatarUrl(raw)
+})
 
 const handlePostClick = () => {
-  router.push(`/forums/post/${props.post.id}`);
-};
+  router.push(`/forums/post/${props.post.id}`)
+}
 
 const handleLike = async () => {
   if (!userStore.isLoggedIn) {
-    router.push("/auth/login");
-    return;
+    router.push("/auth/login")
+    return
   }
 
   try {
-    loading.value = true;
-    const postId = props.post.id;
+    loading.value = true
+    const postId = props.post.id
 
     if (props.post.isLiked) {
-      await forumService.unlikePost(postId);
-      forumStore.togglePostLike(postId, false);
+      await forumService.unlikePost(postId)
+      forumStore.togglePostLike(postId, false)
     } else {
-      await forumService.likePost(postId);
-      forumStore.togglePostLike(postId, true);
+      await forumService.likePost(postId)
+      forumStore.togglePostLike(postId, true)
     }
 
-    emit("like", props.post);
+    emit("like", props.post)
   } catch (error) {
-    console.error("点赞操作失败:", error);
+    console.error("点赞操作失败:", error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleComment = () => {
-  emit("comment", props.post);
-  router.push(`/forums/post/${props.post.id}#comments`);
-};
+  emit("comment", props.post)
+  router.push(`/forums/post/${props.post.id}#comments`)
+}
 
 const handleEdit = () => {
-  emit("edit", props.post);
-  router.push(`/forums/edit/${props.post.id}`);
-};
+  emit("edit", props.post)
+  router.push(`/forums/edit/${props.post.id}`)
+}
 
 const handleDelete = async () => {
   if (!confirm("确定要删除这个帖子吗？")) {
-    return;
+    return
   }
 
   try {
-    loading.value = true;
-    await forumService.deletePost(props.post.id);
-    emit("delete", props.post);
+    loading.value = true
+    await forumService.deletePost(props.post.id)
+    emit("delete", props.post)
   } catch (error) {
-    console.error("删除帖子失败:", error);
+    console.error("删除帖子失败:", error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleShare = () => {
-  emit("share", props.post);
+  emit("share", props.post)
 
-  const shareUrl = `${window.location.origin}/forums/post/${props.post.id}`;
+  const shareUrl = `${window.location.origin}/forums/post/${props.post.id}`
 
   if (navigator.share) {
     navigator.share({
       title: props.post.title,
       text: props.post.summary || props.post.title,
       url: shareUrl,
-    });
+    })
   } else {
-    navigator.clipboard.writeText(shareUrl);
+    navigator.clipboard.writeText(shareUrl)
   }
-};
+}
 
 const formatTime = (timeStr: string) => {
-  const date = new Date(timeStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const date = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return `${minutes}分钟前`;
-  if (hours < 24) return `${hours}小时前`;
-  if (days < 7) return `${days}天前`;
+  if (minutes < 1) return "刚刚"
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
 
   return date.toLocaleDateString("zh-CN", {
     month: "short",
     day: "numeric",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
-};
+  })
+}
 
 const formatNumber = (num: number) => {
   if (num >= 10000) {
-    return (num / 10000).toFixed(1) + "w";
+    return (num / 10000).toFixed(1) + "w"
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "k";
+    return (num / 1000).toFixed(1) + "k"
   }
-  return num.toString();
-};
+  return num.toString()
+}
 
 const stripHtml = (html: string) => {
-  return stripHtmlUtil(html).substring(0, 200);
-};
+  return stripHtmlUtil(html).substring(0, 200)
+}
 </script>
 
 <style scoped>

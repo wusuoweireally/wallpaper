@@ -6,25 +6,46 @@
  * @see https://github.com/cure53/DOMPurify
  */
 
-import * as DOMPurify from 'dompurify';
+import * as DOMPurify from "dompurify"
 
 /**
  * 允许的 HTML 标签白名单
  * 仅保留基本的富文本格式化标签
  */
 const ALLOWED_TAGS = [
-  'p', 'br', 'strong', 'b', 'em', 'i', 'u',
-  'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'blockquote', 'code', 'pre', 'div', 'span',
-  'hr', 'sub', 'sup', 'del', 'ins'
-];
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "u",
+  "a",
+  "ul",
+  "ol",
+  "li",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "blockquote",
+  "code",
+  "pre",
+  "div",
+  "span",
+  "hr",
+  "sub",
+  "sup",
+  "del",
+  "ins",
+]
 
 /**
  * 允许的 HTML 属性白名单
  */
-const ALLOWED_ATTR = [
-  'href', 'title', 'target', 'rel', 'class'
-];
+const ALLOWED_ATTR = ["href", "title", "target", "rel", "class"]
 
 /**
  * DOMPurify 配置
@@ -37,11 +58,11 @@ const SANITIZE_CONFIG = {
   // 允许 svg 标签
   USE_PROFILES: { html: true },
   // 添加安全属性到链接
-  ADD_ATTR: ['target'],
+  ADD_ATTR: ["target"],
   // 链接自动添加 rel="noopener noreferrer"
-  FORBID_TAGS: ['script', 'style', 'iframe', 'embed', 'object', 'form', 'input', 'button'],
-  FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover']
-};
+  FORBID_TAGS: ["script", "style", "iframe", "embed", "object", "form", "input", "button"],
+  FORBID_ATTR: ["onerror", "onclick", "onload", "onmouseover"],
+}
 
 /**
  * 清理 HTML 字符串，移除不安全的标签和属性
@@ -49,15 +70,15 @@ const SANITIZE_CONFIG = {
  * @returns 清理后的安全 HTML 字符串
  */
 export function sanitizeHtml(html: string): string {
-  if (!html || typeof html !== 'string') {
-    return '';
+  if (!html || typeof html !== "string") {
+    return ""
   }
 
   // 使用 DOMPurify 清理 HTML
-  const cleaned = DOMPurify.sanitize(html, SANITIZE_CONFIG);
+  const cleaned = DOMPurify.sanitize(html, SANITIZE_CONFIG)
 
   // 确保所有外部链接都有安全属性
-  return addLinkSecurityAttributes(cleaned);
+  return addLinkSecurityAttributes(cleaned)
 }
 
 /**
@@ -69,21 +90,21 @@ function addLinkSecurityAttributes(html: string): string {
   return html.replace(
     /<a\s+(?:([^>]*?)href=["']([^"']+)["'][^>]*)>/gi,
     (_match, beforeHref, href) => {
-      let attrs = beforeHref || '';
+      let attrs = beforeHref || ""
 
       // 添加 target="_blank" 如果没有
-      if (!attrs.includes('target=')) {
-        attrs += ' target="_blank"';
+      if (!attrs.includes("target=")) {
+        attrs += ' target="_blank"'
       }
 
       // 添加 rel="noopener noreferrer" 如果没有
-      if (!attrs.includes('rel=')) {
-        attrs += ' rel="noopener noreferrer"';
+      if (!attrs.includes("rel=")) {
+        attrs += ' rel="noopener noreferrer"'
       }
 
-      return `<a ${attrs}href="${href}">`;
-    }
-  );
+      return `<a ${attrs}href="${href}">`
+    },
+  )
 }
 
 /**
@@ -92,17 +113,17 @@ function addLinkSecurityAttributes(html: string): string {
  * @returns 纯文本字符串
  */
 export function stripHtml(html: string): string {
-  if (!html || typeof html !== 'string') {
-    return '';
+  if (!html || typeof html !== "string") {
+    return ""
   }
 
   // 移除 HTML 标签
-  const text = html.replace(/<[^>]*>/g, '');
+  const text = html.replace(/<[^>]*>/g, "")
 
   // 解码 HTML 实体
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = text;
-  return textarea.value;
+  const textarea = document.createElement("textarea")
+  textarea.innerHTML = text
+  return textarea.value
 }
 
 /**
@@ -112,6 +133,6 @@ export function stripHtml(html: string): string {
  * @returns 截断后的 HTML 字符串
  */
 export function truncateHtml(html: string, maxLength: number = 200): string {
-  const text = stripHtml(html);
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  const text = stripHtml(html)
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
 }

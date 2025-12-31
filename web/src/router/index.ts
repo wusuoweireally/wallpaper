@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from "vue-router";
-import type { RouteRecordRaw } from "vue-router";
-import "./types"; // 导入路由类型扩展
-import { useUserStore } from "@/stores";
-import { storeToRefs } from "pinia";
+import { createRouter, createWebHistory } from "vue-router"
+import type { RouteRecordRaw } from "vue-router"
+import "./types" // 导入路由类型扩展
+import { useUserStore } from "@/stores"
+import { storeToRefs } from "pinia"
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -315,7 +315,7 @@ const routes: RouteRecordRaw[] = [
       showNavBar: true, // 404页面显示导航栏
     },
   },
-];
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -323,92 +323,92 @@ const router = createRouter({
   // 路由滚动行为
   scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {
-      return savedPosition;
+      return savedPosition
     } else {
-      return { top: 0 };
+      return { top: 0 }
     }
   },
-});
+})
 
 // 路由守卫
 router.beforeEach(async (to, _from, next) => {
   // 在路由切换前清理可能的DOM残留
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     // 清理所有可能的 Teleport 元素
-    const teleportElements = document.querySelectorAll('[data-teleport]');
-    teleportElements.forEach(el => el.remove());
+    const teleportElements = document.querySelectorAll("[data-teleport]")
+    teleportElements.forEach((el) => el.remove())
 
     // 清理所有可能的模态框背景
-    const modals = document.querySelectorAll('[data-modal-backdrop]');
-    modals.forEach(el => el.remove());
+    const modals = document.querySelectorAll("[data-modal-backdrop]")
+    modals.forEach((el) => el.remove())
 
     // 清理所有固定定位的可能残留元素
-    const fixedElements = document.querySelectorAll('.fixed.z-\\[9999\\]');
-    fixedElements.forEach(el => {
-      const elAny = el as any;
+    const fixedElements = document.querySelectorAll(".fixed.z-\\[9999\\]")
+    fixedElements.forEach((el) => {
+      const elAny = el as any
       if (elAny._v_isTeleport || elAny.__vteleport) {
-        el.remove();
+        el.remove()
       }
-    });
+    })
 
     // 恢复 body 样式
-    document.body.style.overflow = '';
-    document.body.classList.remove('modal-open');
+    document.body.style.overflow = ""
+    document.body.classList.remove("modal-open")
   }
 
   // 设置页面标题
   if (to.meta.title) {
-    document.title = to.meta.title as string;
+    document.title = to.meta.title as string
   }
 
   // 检查登录状态 - 使用Pinia store中的用户状态来判断登录状态
-  const userStore = useUserStore();
-  const { isLoggedIn, currentUser } = storeToRefs(userStore);
+  const userStore = useUserStore()
+  const { isLoggedIn, currentUser } = storeToRefs(userStore)
 
   // 需要登录的路由
   if (to.meta.requiresAuth && !isLoggedIn.value) {
     // 避免在登录页之间无限重定向
     if (to.name === "Login" || to.name === "Register") {
-      next();
-      return;
+      next()
+      return
     }
 
     next({
       name: "Login",
       query: { redirect: to.fullPath }, // 保存重定向路径
-    });
-    return;
+    })
+    return
   }
 
   // 已登录用户访问登录/注册页面，重定向到首页
   if (to.meta.hideForAuth && isLoggedIn.value) {
     // 避免在首页之间无限重定向
     if (to.name === "Home") {
-      next();
-      return;
+      next()
+      return
     }
 
-    next({ name: "Home" });
-    return;
+    next({ name: "Home" })
+    return
   }
 
   // 检查管理员权限
   if (to.meta.roles && isLoggedIn.value) {
-    const requiredRoles = to.meta.roles as string[];
-    const userRole = currentUser.value?.role;
+    const requiredRoles = to.meta.roles as string[]
+    const userRole = currentUser.value?.role
 
-    if (requiredRoles.includes('ADMIN') && userRole !== 'admin') {
-      next({ name: "Home" });
-      return;
+    if (requiredRoles.includes("ADMIN") && userRole !== "admin") {
+      next({ name: "Home" })
+      return
     }
   }
 
-  next();
-});
+  next()
+})
 
 // 路由错误处理
 router.onError((error) => {
-  console.error("路由错误:", error);
-});
+  console.error("路由错误:", error)
+})
 
-export default router;
+export default router

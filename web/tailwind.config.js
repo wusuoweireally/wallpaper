@@ -1,18 +1,12 @@
-import { addDynamicIconSelectors } from "@iconify/tailwind";
+import { addDynamicIconSelectors } from "@iconify/tailwind"
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {},
   },
-  plugins: [
-    require("daisyui"),
-    addDynamicIconSelectors(),
-  ],
+  plugins: [require("daisyui"), addDynamicIconSelectors()],
   daisyui: {
     themes: ["light", "dark"],
     darkTheme: "dark",

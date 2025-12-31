@@ -1,22 +1,22 @@
-import 'reflect-metadata';
-import { DataSource } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Wallpaper } from '../entities/wallpaper.entity';
-import { Tag } from '../entities/tag.entity';
-import { WallpaperTag } from '../entities/wallpaper-tag.entity';
-import { UserFavorite } from '../entities/user-favorite.entity';
-import { UserLike } from '../entities/user-like.entity';
-import { ViewHistory } from '../entities/view-history.entity';
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { User } from "../entities/user.entity";
+import { Wallpaper } from "../entities/wallpaper.entity";
+import { Tag } from "../entities/tag.entity";
+import { WallpaperTag } from "../entities/wallpaper-tag.entity";
+import { UserFavorite } from "../entities/user-favorite.entity";
+import { UserLike } from "../entities/user-like.entity";
+import { ViewHistory } from "../entities/view-history.entity";
 
 // TypeORM DataSource 配置
 // 用于 CLI 工具（迁移生成和执行）
 export const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: 'localhost',
+  type: "mysql",
+  host: "localhost",
   port: 3306,
-  username: 'root',
-  password: '12345678',
-  database: 'wallpaper_site',
+  username: "root",
+  password: "12345678",
+  database: "wallpaper_site",
   entities: [
     User,
     Wallpaper,
@@ -26,11 +26,11 @@ export const AppDataSource = new DataSource({
     UserLike,
     ViewHistory,
   ],
-  migrations: ['src/migrations/*.ts'],
+  migrations: ["src/migrations/*.ts"],
   synchronize: false,
   logging: true,
-  charset: 'utf8mb4',
-  timezone: '+08:00',
+  charset: "utf8mb4",
+  timezone: "+08:00",
 });
 
 /**

@@ -331,104 +331,104 @@
 </template>
 
 <script lang="ts" setup>
-import WallpaperShowcase from '@/components/WallpaperShowcase.vue'
+import WallpaperShowcase from "@/components/WallpaperShowcase.vue"
 
 const heroCollections = [
   {
-    title: '赛博霓虹',
-    mood: '夜幕氛围',
+    title: "赛博霓虹",
+    mood: "夜幕氛围",
     image:
-      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
   },
   {
-    title: '晨雾森林',
-    mood: '自然沉浸',
+    title: "晨雾森林",
+    mood: "自然沉浸",
     image:
-      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80',
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80",
   },
 ]
 
 const featureHighlights = [
   {
-    icon: '🧠',
-    title: 'AI 灵感引擎',
-    description: '根据你的收藏偏好实时推荐主题套装，从此不再审美疲劳。',
+    icon: "🧠",
+    title: "AI 灵感引擎",
+    description: "根据你的收藏偏好实时推荐主题套装，从此不再审美疲劳。",
   },
   {
-    icon: '📱',
-    title: '多端同步',
-    description: '一键将壁纸同步到桌面、移动端和超宽屏，享受统一的视觉体验。',
+    icon: "📱",
+    title: "多端同步",
+    description: "一键将壁纸同步到桌面、移动端和超宽屏，享受统一的视觉体验。",
   },
   {
-    icon: '🎨',
-    title: '创作者计划',
-    description: '提交原创作品即可获得曝光机会，还有专属的作品数据与反馈。',
+    icon: "🎨",
+    title: "创作者计划",
+    description: "提交原创作品即可获得曝光机会，还有专属的作品数据与反馈。",
   },
   {
-    icon: '⚡',
-    title: '极速下载',
-    description: '全球加速节点保障 4K/8K 壁纸快速下载，支持批量导出与收藏夹。',
+    icon: "⚡",
+    title: "极速下载",
+    description: "全球加速节点保障 4K/8K 壁纸快速下载，支持批量导出与收藏夹。",
   },
 ]
 
 const curatedCollections = [
   {
-    name: '沉静自然',
-    mood: '森林 · 风与光',
-    description: '以柔和的绿色和雾气为主，适合希望远离喧嚣的你。',
-    count: '2.4K',
-    tags: ['治愈系', '自然光', '高分辨率'],
+    name: "沉静自然",
+    mood: "森林 · 风与光",
+    description: "以柔和的绿色和雾气为主，适合希望远离喧嚣的你。",
+    count: "2.4K",
+    tags: ["治愈系", "自然光", "高分辨率"],
     image:
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: '极简秩序',
-    mood: '结构 · 线条',
-    description: '保持工作专注力的极简风格，留白与几何元素互相平衡。',
-    count: '1.8K',
-    tags: ['极简', '灰度', '双屏适配'],
+    name: "极简秩序",
+    mood: "结构 · 线条",
+    description: "保持工作专注力的极简风格，留白与几何元素互相平衡。",
+    count: "1.8K",
+    tags: ["极简", "灰度", "双屏适配"],
     image:
-      'https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1200&q=80',
+      "https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: '赛博能量',
-    mood: '霓虹 · 科技',
-    description: '科幻主题与霓虹色的碰撞，适合夜间工作或创意灵感激发。',
-    count: '3.1K',
-    tags: ['霓虹', 'CGI', '暗色调'],
+    name: "赛博能量",
+    mood: "霓虹 · 科技",
+    description: "科幻主题与霓虹色的碰撞，适合夜间工作或创意灵感激发。",
+    count: "3.1K",
+    tags: ["霓虹", "CGI", "暗色调"],
     image:
-      'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80',
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
   },
 ]
 
 const communityStats = [
-  { label: '周投稿数', value: '2,900+' },
-  { label: '精选系列', value: '64 套' },
-  { label: '互动反馈', value: '18K+' },
+  { label: "周投稿数", value: "2,900+" },
+  { label: "精选系列", value: "64 套" },
+  { label: "互动反馈", value: "18K+" },
 ]
 
 const communityVoices = [
   {
-    name: 'Yuki Lin',
-    role: '数字艺术家',
-    quote: '我可以直接通过随心壁纸追踪作品热度，也能和收藏者在论坛展开灵感讨论，体验非常完整。',
+    name: "Yuki Lin",
+    role: "数字艺术家",
+    quote: "我可以直接通过随心壁纸追踪作品热度，也能和收藏者在论坛展开灵感讨论，体验非常完整。",
     avatar:
-      'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=240&q=80',
+      "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=240&q=80",
   },
   {
-    name: 'Kai Zhou',
-    role: 'UX 设计师',
+    name: "Kai Zhou",
+    role: "UX 设计师",
     quote:
-      '在这里我找到了适配超宽屏的整套桌面主题，更新频率高而且分类特别清晰，极大提升了工作沉浸感。',
+      "在这里我找到了适配超宽屏的整套桌面主题，更新频率高而且分类特别清晰，极大提升了工作沉浸感。",
     avatar:
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80',
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
   },
 ]
 
 const quickFilters = [
-  { label: '4K 高清', to: { path: '/wallpapers', query: { resolution: '4k' } } },
-  { label: '最新发布', to: { path: '/wallpapers', query: { sort: 'latest' } } },
-  { label: '编辑推荐', to: { path: '/wallpapers', query: { sort: 'popular' } } },
+  { label: "4K 高清", to: { path: "/wallpapers", query: { resolution: "4k" } } },
+  { label: "最新发布", to: { path: "/wallpapers", query: { sort: "latest" } } },
+  { label: "编辑推荐", to: { path: "/wallpapers", query: { sort: "popular" } } },
 ]
 
 const currentYear = new Date().getFullYear()

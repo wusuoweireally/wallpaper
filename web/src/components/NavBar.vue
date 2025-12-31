@@ -136,10 +136,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/stores/index'
+import { ref, onMounted, onUnmounted } from "vue"
+import { useRoute } from "vue-router"
+import { storeToRefs } from "pinia"
+import { useUserStore } from "@/stores/index"
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -150,27 +150,27 @@ const { isLoggedIn, user, userAvatar } = storeToRefs(userStore)
 
 const navItems = [
   {
-    name: '最新壁纸',
-    to: { path: '/wallpapers', query: { sort: 'latest' } },
-    sortValue: 'latest',
+    name: "最新壁纸",
+    to: { path: "/wallpapers", query: { sort: "latest" } },
+    sortValue: "latest",
   },
   {
-    name: '排行榜',
-    to: { path: '/wallpapers', query: { sort: 'popular' } },
-    sortValue: 'popular',
+    name: "排行榜",
+    to: { path: "/wallpapers", query: { sort: "popular" } },
+    sortValue: "popular",
   },
   {
-    name: '随机壁纸',
-    to: { path: '/wallpapers', query: { sort: 'random' } },
-    sortValue: 'random',
+    name: "随机壁纸",
+    to: { path: "/wallpapers", query: { sort: "random" } },
+    sortValue: "random",
   },
   {
-    name: '上传壁纸',
-    to: '/upload',
+    name: "上传壁纸",
+    to: "/upload",
   },
   {
-    name: '论坛',
-    to: '/forums',
+    name: "论坛",
+    to: "/forums",
   },
 ]
 
@@ -178,7 +178,7 @@ const navItems = [
 const isNavItemActive = (item: any) => {
   if (item.sortValue) {
     // 对于有 sortValue 的项，检查路由路径和查询参数
-    return route.path === '/wallpapers' && route.query.sort === item.sortValue
+    return route.path === "/wallpapers" && route.query.sort === item.sortValue
   }
   // 对于其他项，使用默认的 router-link active 判断
   return false
@@ -192,7 +192,7 @@ const toggleDropdown = () => {
 // 关闭下拉菜单（点击外部）
 const closeDropdown = (event: MouseEvent) => {
   const target = event.target as HTMLElement
-  if (!target.closest('.relative.group')) {
+  if (!target.closest(".relative.group")) {
     showDropdown.value = false
   }
 }
@@ -205,17 +205,17 @@ const handleLogout = async () => {
     // 退出登录后保持在当前页面，不需要重定向到登录页
     // 如果当前页面需要登录，路由守卫会自动处理重定向
   } catch (error) {
-    console.error('退出登录失败:', error)
+    console.error("退出登录失败:", error)
   }
 }
 
 onMounted(() => {
   // 添加全局点击事件监听，点击外部关闭下拉菜单
-  document.addEventListener('click', closeDropdown)
+  document.addEventListener("click", closeDropdown)
 })
 
 // 组件卸载时移除事件监听
 onUnmounted(() => {
-  document.removeEventListener('click', closeDropdown)
+  document.removeEventListener("click", closeDropdown)
 })
 </script>

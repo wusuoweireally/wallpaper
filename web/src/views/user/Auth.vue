@@ -428,63 +428,63 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUserStore, type RegisterDto } from '@/stores'
-import GitHubLoginButton from '@/components/GitHubLoginButton.vue'
+import { ref, reactive, computed } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { useUserStore, type RegisterDto } from "@/stores"
+import GitHubLoginButton from "@/components/GitHubLoginButton.vue"
 
-type AuthMode = 'login' | 'register'
+type AuthMode = "login" | "register"
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const isLogin = ref(router.currentRoute.value.name === 'Login')
+const isLogin = ref(router.currentRoute.value.name === "Login")
 
-const formTitle = computed(() => (isLogin.value ? '欢迎回来' : '你好，新朋友'))
+const formTitle = computed(() => (isLogin.value ? "欢迎回来" : "你好，新朋友"))
 
 const switchForm = (mode: AuthMode) => {
-  const targetName = mode === 'login' ? 'Login' : 'Register'
+  const targetName = mode === "login" ? "Login" : "Register"
   if (router.currentRoute.value.name !== targetName) {
     router.push({ name: targetName })
   }
-  isLogin.value = mode === 'login'
+  isLogin.value = mode === "login"
 }
 
 router.afterEach((to) => {
-  if (to.name === 'Login' || to.name === 'Register') {
-    isLogin.value = to.name === 'Login'
-    loginError.value = ''
-    registerError.value = ''
+  if (to.name === "Login" || to.name === "Register") {
+    isLogin.value = to.name === "Login"
+    loginError.value = ""
+    registerError.value = ""
   }
 })
 
 const loginForm = reactive({
-  id: '',
-  password: '',
+  id: "",
+  password: "",
 })
 const loginLoading = ref(false)
-const loginError = ref('')
+const loginError = ref("")
 const rememberMe = ref(false)
 const showPassword = ref(false)
 
 const registerForm = reactive({
   id: undefined as number | undefined,
-  username: '',
-  password: '',
-  confirmPassword: '',
+  username: "",
+  password: "",
+  confirmPassword: "",
 })
 const registerErrors = reactive({
-  id: '',
-  username: '',
-  password: '',
-  confirmPassword: '',
+  id: "",
+  username: "",
+  password: "",
+  confirmPassword: "",
 })
 const registerLoading = ref(false)
-const registerError = ref('')
+const registerError = ref("")
 
 const handleLogin = async () => {
-  loginError.value = ''
+  loginError.value = ""
   loginLoading.value = true
 
   try {
@@ -494,13 +494,11 @@ const handleLogin = async () => {
     })
     const redirectParam = route.query.redirect
     const redirectPath =
-      typeof redirectParam === 'string' && redirectParam.startsWith('/')
-        ? redirectParam
-        : '/'
+      typeof redirectParam === "string" && redirectParam.startsWith("/") ? redirectParam : "/"
     router.replace(redirectPath)
   } catch (error: any) {
-    console.error('登录失败:', error)
-    loginError.value = error.message || '登录失败，请重试'
+    console.error("登录失败:", error)
+    loginError.value = error.message || "登录失败，请重试"
   } finally {
     loginLoading.value = false
   }
@@ -509,49 +507,49 @@ const handleLogin = async () => {
 const validateRegister = (): boolean => {
   let isValid = true
 
-  registerErrors.id = ''
-  registerErrors.username = ''
-  registerErrors.password = ''
-  registerErrors.confirmPassword = ''
+  registerErrors.id = ""
+  registerErrors.username = ""
+  registerErrors.password = ""
+  registerErrors.confirmPassword = ""
 
   if (!registerForm.id) {
-    registerErrors.id = '请输入账号'
+    registerErrors.id = "请输入账号"
     isValid = false
   } else if (registerForm.id.toString().length < 6) {
-    registerErrors.id = '账号长度至少6位'
+    registerErrors.id = "账号长度至少6位"
     isValid = false
   }
 
   if (!registerForm.username.trim()) {
-    registerErrors.username = '请输入用户名'
+    registerErrors.username = "请输入用户名"
     isValid = false
   } else if (registerForm.username.trim().length < 2) {
-    registerErrors.username = '用户名至少2个字符'
+    registerErrors.username = "用户名至少2个字符"
     isValid = false
   } else if (registerForm.username.trim().length > 20) {
-    registerErrors.username = '用户名不能超过20个字符'
+    registerErrors.username = "用户名不能超过20个字符"
     isValid = false
   } else if (!/^[\u4e00-\u9fa5a-zA-Z0-9_\-]+$/.test(registerForm.username.trim())) {
-    registerErrors.username = '用户名只能包含中文、英文、数字、下划线和减号'
+    registerErrors.username = "用户名只能包含中文、英文、数字、下划线和减号"
     isValid = false
   }
 
   if (!registerForm.password) {
-    registerErrors.password = '请输入密码'
+    registerErrors.password = "请输入密码"
     isValid = false
   } else if (registerForm.password.length < 6) {
-    registerErrors.password = '密码至少6位'
+    registerErrors.password = "密码至少6位"
     isValid = false
   } else if (registerForm.password.length > 20) {
-    registerErrors.password = '密码不能超过20位'
+    registerErrors.password = "密码不能超过20位"
     isValid = false
   }
 
   if (!registerForm.confirmPassword) {
-    registerErrors.confirmPassword = '请确认密码'
+    registerErrors.confirmPassword = "请确认密码"
     isValid = false
   } else if (registerForm.password !== registerForm.confirmPassword) {
-    registerErrors.confirmPassword = '两次输入的密码不一致'
+    registerErrors.confirmPassword = "两次输入的密码不一致"
     isValid = false
   }
 
@@ -561,7 +559,7 @@ const validateRegister = (): boolean => {
 const handleRegister = async () => {
   if (!validateRegister()) return
 
-  registerError.value = ''
+  registerError.value = ""
   registerLoading.value = true
 
   try {
@@ -573,16 +571,16 @@ const handleRegister = async () => {
 
     await userStore.register(registerData)
 
-    switchForm('login')
+    switchForm("login")
     Object.assign(registerForm, {
       id: undefined,
-      username: '',
-      password: '',
-      confirmPassword: '',
+      username: "",
+      password: "",
+      confirmPassword: "",
     })
   } catch (error: any) {
-    console.error('注册失败:', error)
-    registerError.value = error.response?.data?.message || '注册失败，请重试'
+    console.error("注册失败:", error)
+    registerError.value = error.response?.data?.message || "注册失败，请重试"
   } finally {
     registerLoading.value = false
   }
@@ -590,7 +588,7 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap");
 
 .auth-shell {
   position: relative;
@@ -604,13 +602,13 @@ const handleRegister = async () => {
     radial-gradient(circle at 12% 20%, rgba(251, 191, 36, 0.18), transparent 55%),
     radial-gradient(circle at 88% 80%, rgba(13, 148, 136, 0.2), transparent 60%),
     linear-gradient(135deg, #fdf6ed, #f7f1e8 55%, #f4efe7);
-  font-family: 'Manrope', 'Noto Sans SC', sans-serif;
+  font-family: "Manrope", "Noto Sans SC", sans-serif;
   color: #0f172a;
 }
 
 .auth-shell::before,
 .auth-shell::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 320px;
   height: 320px;
@@ -711,14 +709,14 @@ const handleRegister = async () => {
 }
 
 .hero-title {
-  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-family: "Fraunces", "Noto Serif SC", serif;
   font-size: 2.6rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
 .hero-lead {
-  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-family: "Fraunces", "Noto Serif SC", serif;
   font-size: 2.1rem;
   font-weight: 600;
   line-height: 1.2;
@@ -801,7 +799,7 @@ const handleRegister = async () => {
 }
 
 .panel-title {
-  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-family: "Fraunces", "Noto Serif SC", serif;
   font-size: 2.2rem;
   font-weight: 700;
   color: #0f172a;
@@ -922,7 +920,9 @@ const handleRegister = async () => {
   color: #fff;
   background: linear-gradient(120deg, #0f766e, #f59e0b);
   box-shadow: 0 25px 45px rgba(15, 23, 42, 0.22);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .primary-btn:hover {

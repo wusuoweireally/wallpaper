@@ -49,20 +49,48 @@
       <div class="stat-row">
         <span class="stat-badge">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
           </svg>
           {{ wallpaper.viewCount || 0 }}
         </span>
         <span class="stat-badge">
-          <svg class="h-3.5 w-3.5" :class="isLiked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-current'" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          <svg
+            class="h-3.5 w-3.5"
+            :class="isLiked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-current'"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
           </svg>
           {{ likeCount }}
         </span>
         <span class="stat-badge">
-          <svg class="h-3.5 w-3.5" :class="isFavorited ? 'fill-amber-400 stroke-amber-400' : 'fill-none stroke-current'" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          <svg
+            class="h-3.5 w-3.5"
+            :class="isFavorited ? 'fill-amber-400 stroke-amber-400' : 'fill-none stroke-current'"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+            />
           </svg>
           {{ favoriteCount }}
         </span>
@@ -72,131 +100,131 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import type { Wallpaper } from "@/services/wallpaper";
-import { wallpaperService } from "@/services/wallpaper";
-import { useUserStore } from "@/stores";
+import { ref, watch } from "vue"
+import { useRouter } from "vue-router"
+import type { Wallpaper } from "@/services/wallpaper"
+import { wallpaperService } from "@/services/wallpaper"
+import { useUserStore } from "@/stores"
 
 interface Props {
-  wallpaper: Wallpaper;
-  showActions?: boolean;
+  wallpaper: Wallpaper
+  showActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showActions: true,
-});
+})
 
-const router = useRouter();
-const userStore = useUserStore();
+const router = useRouter()
+const userStore = useUserStore()
 
-const imageLoaded = ref(false);
-const imageError = ref(false);
-const likeCount = ref(props.wallpaper.likeCount || 0);
-const favoriteCount = ref(props.wallpaper.favoriteCount || 0);
-const isLiked = ref(Boolean(props.wallpaper.isLiked));
-const isFavorited = ref(Boolean(props.wallpaper.isFavorited));
-const liking = ref(false);
-const favoriting = ref(false);
+const imageLoaded = ref(false)
+const imageError = ref(false)
+const likeCount = ref(props.wallpaper.likeCount || 0)
+const favoriteCount = ref(props.wallpaper.favoriteCount || 0)
+const isLiked = ref(Boolean(props.wallpaper.isLiked))
+const isFavorited = ref(Boolean(props.wallpaper.isFavorited))
+const liking = ref(false)
+const favoriting = ref(false)
 
 const handleCardClick = () => {
-  router.push(`/wallpaper/${props.wallpaper.id}`);
-};
+  router.push(`/wallpaper/${props.wallpaper.id}`)
+}
 
 const syncState = (wallpaper: Wallpaper) => {
-  likeCount.value = wallpaper.likeCount || 0;
-  favoriteCount.value = wallpaper.favoriteCount || 0;
-  isLiked.value = Boolean(wallpaper.isLiked);
-  isFavorited.value = Boolean(wallpaper.isFavorited);
-};
+  likeCount.value = wallpaper.likeCount || 0
+  favoriteCount.value = wallpaper.favoriteCount || 0
+  isLiked.value = Boolean(wallpaper.isLiked)
+  isFavorited.value = Boolean(wallpaper.isFavorited)
+}
 
 watch(
   () => props.wallpaper,
   (newWallpaper) => {
     if (newWallpaper) {
-      syncState(newWallpaper);
+      syncState(newWallpaper)
     }
   },
-);
-syncState(props.wallpaper);
+)
+syncState(props.wallpaper)
 
 const ensureAuth = () => {
   if (userStore.isLoggedIn) {
-    return true;
+    return true
   }
-  router.push("/auth/login");
-  return false;
-};
+  router.push("/auth/login")
+  return false
+}
 
 const handleLike = async () => {
   if (!ensureAuth() || liking.value) {
-    return;
+    return
   }
 
-  liking.value = true;
+  liking.value = true
   try {
     if (isLiked.value) {
-      await wallpaperService.unlikeWallpaper(props.wallpaper.id);
-      isLiked.value = false;
-      likeCount.value = Math.max(0, likeCount.value - 1);
+      await wallpaperService.unlikeWallpaper(props.wallpaper.id)
+      isLiked.value = false
+      likeCount.value = Math.max(0, likeCount.value - 1)
     } else {
-      await wallpaperService.likeWallpaper(props.wallpaper.id);
-      isLiked.value = true;
-      likeCount.value += 1;
+      await wallpaperService.likeWallpaper(props.wallpaper.id)
+      isLiked.value = true
+      likeCount.value += 1
     }
   } catch (error) {
-    console.error("点赞壁纸失败:", error);
-    alert("点赞失败，请稍后重试");
+    console.error("点赞壁纸失败:", error)
+    alert("点赞失败，请稍后重试")
   } finally {
-    liking.value = false;
+    liking.value = false
   }
-};
+}
 
 const handleFavorite = async () => {
   if (!ensureAuth() || favoriting.value) {
-    return;
+    return
   }
 
-  favoriting.value = true;
+  favoriting.value = true
   try {
     if (isFavorited.value) {
-      await wallpaperService.unfavoriteWallpaper(props.wallpaper.id);
-      isFavorited.value = false;
-      favoriteCount.value = Math.max(0, favoriteCount.value - 1);
+      await wallpaperService.unfavoriteWallpaper(props.wallpaper.id)
+      isFavorited.value = false
+      favoriteCount.value = Math.max(0, favoriteCount.value - 1)
     } else {
-      await wallpaperService.favoriteWallpaper(props.wallpaper.id);
-      isFavorited.value = true;
-      favoriteCount.value += 1;
+      await wallpaperService.favoriteWallpaper(props.wallpaper.id)
+      isFavorited.value = true
+      favoriteCount.value += 1
     }
   } catch (error) {
-    console.error("收藏壁纸失败:", error);
-    alert("收藏失败，请稍后重试");
+    console.error("收藏壁纸失败:", error)
+    alert("收藏失败，请稍后重试")
   } finally {
-    favoriting.value = false;
+    favoriting.value = false
   }
-};
+}
 
 const handleImageLoad = () => {
-  imageLoaded.value = true;
-  imageError.value = false;
-};
+  imageLoaded.value = true
+  imageError.value = false
+}
 
 const handleImageError = () => {
-  imageLoaded.value = false;
-  imageError.value = true;
-};
+  imageLoaded.value = false
+  imageError.value = true
+}
 
 const handleClick = (event: Event) => {
-  const target = event.target as HTMLElement;
+  const target = event.target as HTMLElement
   if (target.closest("button")) {
-    return;
+    return
   }
-  handleCardClick();
-};
+  handleCardClick()
+}
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap");
 
 .card-shell {
   display: flex;
@@ -207,8 +235,10 @@ const handleClick = (event: Event) => {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 24px 45px rgba(15, 23, 42, 0.12);
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  font-family: 'Sora', 'Noto Sans SC', sans-serif;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  font-family: "Sora", "Noto Sans SC", sans-serif;
 }
 
 .card-shell:hover {
@@ -323,7 +353,9 @@ const handleClick = (event: Event) => {
   background: rgba(15, 23, 42, 0.65);
   color: #fff;
   font-size: 0.75rem;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
 .action-icon:hover {

@@ -39,7 +39,7 @@
           </svg>
         </div>
         <h2 class="title">登录失败</h2>
-        <p class="message">{{ errorMessage || 'GitHub 登录过程中出现错误' }}</p>
+        <p class="message">{{ errorMessage || "GitHub 登录过程中出现错误" }}</p>
         <button @click="handleRetry" class="action-btn">返回登录页</button>
       </div>
     </div>
@@ -47,21 +47,21 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useUserStore } from '@/stores';
+import { ref, onMounted, onUnmounted, computed } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { useUserStore } from "@/stores"
 
-const route = useRoute();
-const router = useRouter();
-const userStore = useUserStore();
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
 
-type CallbackStatus = 'loading' | 'success' | 'error';
-const status = ref<CallbackStatus>('loading');
-const errorMessage = ref('');
-const countdown = ref(3);
-let countdownTimer: number | null = null;
+type CallbackStatus = "loading" | "success" | "error"
+const status = ref<CallbackStatus>("loading")
+const errorMessage = ref("")
+const countdown = ref(3)
+let countdownTimer: number | null = null
 
-const user = computed(() => userStore.user);
+const user = computed(() => userStore.user)
 
 /**
  * 处理页面跳转
@@ -69,30 +69,28 @@ const user = computed(() => userStore.user);
 const handleNavigate = () => {
   // 清除倒计时
   if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
+    clearInterval(countdownTimer)
+    countdownTimer = null
   }
 
   // 获取保存的重定向路径
   const redirectPath =
-    sessionStorage.getItem('github_login_redirect') ||
-    sessionStorage.getItem('redirect') ||
-    '/';
+    sessionStorage.getItem("github_login_redirect") || sessionStorage.getItem("redirect") || "/"
 
   // 清除存储的路径
-  sessionStorage.removeItem('github_login_redirect');
-  sessionStorage.removeItem('redirect');
+  sessionStorage.removeItem("github_login_redirect")
+  sessionStorage.removeItem("redirect")
 
   // 跳转到目标页面
-  router.replace(redirectPath);
-};
+  router.replace(redirectPath)
+}
 
 /**
  * 重试：返回登录页
  */
 const handleRetry = () => {
-  router.replace({ name: 'Login' });
-};
+  router.replace({ name: "Login" })
+}
 
 /**
  * 初始化认证状态
@@ -100,55 +98,55 @@ const handleRetry = () => {
 const initializeAuth = async () => {
   try {
     // GitHub OAuth 回调后不依赖 localStorage，直接向后端拉取当前用户
-    await userStore.fetchCurrentUser();
+    await userStore.fetchCurrentUser()
 
     // 检查用户是否登录成功
     if (user.value) {
-      status.value = 'success';
+      status.value = "success"
 
       // 启动倒计时
       countdownTimer = window.setInterval(() => {
-        countdown.value--;
+        countdown.value--
         if (countdown.value <= 0) {
-          handleNavigate();
+          handleNavigate()
         }
-      }, 1000);
+      }, 1000)
     } else {
-      status.value = 'error';
-      errorMessage.value = '未能获取登录信息，请重试';
+      status.value = "error"
+      errorMessage.value = "未能获取登录信息，请重试"
     }
   } catch (error: any) {
-    console.error('GitHub 登录验证失败:', error);
-    status.value = 'error';
-    errorMessage.value = error.message || '登录验证失败';
+    console.error("GitHub 登录验证失败:", error)
+    status.value = "error"
+    errorMessage.value = error.message || "登录验证失败"
   }
-};
+}
 
 /**
  * 组件挂载时处理回调
  */
 onMounted(async () => {
   // 检查 URL 参数中的错误信息
-  const error = route.query.error as string | undefined;
+  const error = route.query.error as string | undefined
   if (error) {
-    status.value = 'error';
-    errorMessage.value = decodeURIComponent(error);
-    return;
+    status.value = "error"
+    errorMessage.value = decodeURIComponent(error)
+    return
   }
 
   // 初始化认证状态
-  await initializeAuth();
-});
+  await initializeAuth()
+})
 
 /**
  * 组件卸载时清理定时器
  */
 onUnmounted(() => {
   if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
+    clearInterval(countdownTimer)
+    countdownTimer = null
   }
-});
+})
 </script>
 
 <style scoped>
@@ -220,7 +218,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 1rem;
-  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-family: "Fraunces", "Noto Serif SC", serif;
 }
 
 .message {

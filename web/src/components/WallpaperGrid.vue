@@ -47,13 +47,18 @@
       class="mt-8 flex flex-wrap items-center justify-center gap-2"
     >
       <button
-        class="btn btn-sm h-10 w-10 rounded-xl bg-base-100 border-2 border-base-content/20 hover:border-primary/50 hover:bg-primary/5 transition-all shadow-sm"
-        :class="{ 'btn-disabled opacity-50 cursor-not-allowed': pagination.currentPage === 1 }"
+        class="border-base-content/20 hover:border-primary/50 hover:bg-primary/5 btn btn-sm h-10 w-10 rounded-xl border-2 bg-base-100 shadow-sm transition-all"
+        :class="{ 'btn-disabled cursor-not-allowed opacity-50': pagination.currentPage === 1 }"
         @click="$emit('page-change', pagination.currentPage - 1)"
         title="上一页"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M15.41 16.58L10.83 12L15.41 7.41L14 6L8 12L14 18L15.41 16.58Z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M15.41 16.58L10.83 12L15.41 7.41L14 6L8 12L14 18L15.41 16.58Z" />
         </svg>
       </button>
 
@@ -61,10 +66,12 @@
         <button
           v-for="page in visiblePages"
           :key="page"
-          class="btn btn-sm h-10 w-10 rounded-xl border-2 transition-all shadow-sm"
-          :class="page === pagination.currentPage
-            ? 'bg-gradient-to-r from-primary to-secondary text-white border-primary shadow-md'
-            : 'bg-base-100 border-base-content/20 hover:border-primary/50 hover:bg-primary/5'"
+          class="btn btn-sm h-10 w-10 rounded-xl border-2 shadow-sm transition-all"
+          :class="
+            page === pagination.currentPage
+              ? 'border-primary bg-gradient-to-r from-primary to-secondary text-white shadow-md'
+              : 'border-base-content/20 hover:border-primary/50 hover:bg-primary/5 bg-base-100'
+          "
           @click="$emit('page-change', page)"
         >
           <span class="font-medium">{{ page }}</span>
@@ -72,13 +79,21 @@
       </div>
 
       <button
-        class="btn btn-sm h-10 w-10 rounded-xl bg-base-100 border-2 border-base-content/20 hover:border-primary/50 hover:bg-primary/5 transition-all shadow-sm"
-        :class="{ 'btn-disabled opacity-50 cursor-not-allowed': pagination.currentPage === pagination.totalPages }"
+        class="border-base-content/20 hover:border-primary/50 hover:bg-primary/5 btn btn-sm h-10 w-10 rounded-xl border-2 bg-base-100 shadow-sm transition-all"
+        :class="{
+          'btn-disabled cursor-not-allowed opacity-50':
+            pagination.currentPage === pagination.totalPages,
+        }"
         @click="$emit('page-change', pagination.currentPage + 1)"
         title="下一页"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8.59 16.58L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.58Z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M8.59 16.58L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.58Z" />
         </svg>
       </button>
     </div>
@@ -86,9 +101,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import WallpaperCard from './WallpaperCard.vue'
-import type { Wallpaper } from '@/services/wallpaper'
+import { computed } from "vue"
+import WallpaperCard from "./WallpaperCard.vue"
+import type { Wallpaper } from "@/services/wallpaper"
 
 interface Props {
   wallpapers: Wallpaper[]
@@ -103,9 +118,9 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'wallpaper-click', wallpaper: Wallpaper): void
-  (e: 'page-change', page: number): void
-  (e: 'reset-filters'): void
+  (e: "wallpaper-click", wallpaper: Wallpaper): void
+  (e: "page-change", page: number): void
+  (e: "reset-filters"): void
 }
 
 const props = withDefaults(defineProps<Props>(), {

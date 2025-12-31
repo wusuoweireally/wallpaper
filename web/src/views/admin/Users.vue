@@ -357,7 +357,7 @@
                         icon="mdi:email-outline"
                         class="text-base text-white/40"
                       ></iconify-icon>
-                      <span class="truncate">{{ user.email || '未填写邮箱' }}</span>
+                      <span class="truncate">{{ user.email || "未填写邮箱" }}</span>
                     </div>
                   </td>
                   <td class="whitespace-nowrap px-6 py-5">
@@ -506,7 +506,11 @@
       >
         <div
           class="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-800/90 text-white shadow-2xl"
-          style="font-family: 'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;"
+          style="
+            font-family:
+              &quot;Noto Sans SC&quot;, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;,
+              sans-serif;
+          "
         >
           <button
             class="btn btn-sm btn-circle absolute right-4 top-4 border-white/15 bg-white/10 text-white hover:bg-white/20"
@@ -517,12 +521,17 @@
           </button>
           <div class="space-y-6 p-6">
             <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-200/70">User Center</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-200/70">
+                User Center
+              </p>
               <h3 class="mt-2 text-2xl font-semibold">创建新用户</h3>
               <p class="mt-1 text-sm text-white/60">分配一个唯一的用户ID并为其设置初始密码与角色</p>
             </div>
 
-            <form class="grid gap-5 md:grid-cols-2 rounded-2xl border border-white/10 bg-white/5 p-5" @submit.prevent="submitCreateUser">
+            <form
+              class="grid gap-5 rounded-2xl border border-white/10 bg-white/5 p-5 md:grid-cols-2"
+              @submit.prevent="submitCreateUser"
+            >
               <div class="form-control">
                 <label class="label text-sm text-white/60">用户ID</label>
                 <input
@@ -644,9 +653,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed, onBeforeUnmount } from 'vue'
-import adminService, { type AdminUser, type AdminUserQuery } from '@/services/admin'
-import { UserRole } from '@/services/user'
+import { reactive, ref, onMounted, computed, onBeforeUnmount } from "vue"
+import adminService, { type AdminUser, type AdminUserQuery } from "@/services/admin"
+import { UserRole } from "@/services/user"
 
 interface PaginationMeta {
   page: number
@@ -665,63 +674,63 @@ const pagination = ref<PaginationMeta>({
 })
 
 const filters = reactive({
-  status: '',
-  role: '',
-  keyword: '',
+  status: "",
+  role: "",
+  keyword: "",
 })
 
 const showCreateModal = ref(false)
 const createLoading = ref(false)
 const createUserForm = reactive({
-  id: '',
-  username: '',
-  email: '',
-  password: '',
+  id: "",
+  username: "",
+  email: "",
+  password: "",
   role: UserRole.USER as UserRole,
-  bio: '',
+  bio: "",
 })
 const createErrors = reactive({
-  id: '',
-  username: '',
-  email: '',
-  password: '',
+  id: "",
+  username: "",
+  email: "",
+  password: "",
 })
 const roleOptions = [
-  { label: '普通用户', value: UserRole.USER },
-  { label: '管理员', value: UserRole.ADMIN },
+  { label: "普通用户", value: UserRole.USER },
+  { label: "管理员", value: UserRole.ADMIN },
 ]
-const toast = ref<{ text: string; type: 'success' | 'error' } | null>(null)
+const toast = ref<{ text: string; type: "success" | "error" } | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
 
 const getAvatarUrl = (avatarUrl: string) => {
-  if (avatarUrl.startsWith('http')) return avatarUrl
+  if (avatarUrl.startsWith("http")) return avatarUrl
   return `/api/uploads/profile-pictures/${avatarUrl}`
 }
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest'
+  img.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
 }
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Date(date).toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   })
 }
 
 const totalUsers = computed(() => pagination.value.total || 0)
 const activeUsers = computed(() => users.value.filter((user) => user.status === 1).length)
-const adminUsers = computed(() => users.value.filter((user) => user.role === 'admin').length)
+const adminUsers = computed(() => users.value.filter((user) => user.role === "admin").length)
 const activeRate = computed(() => {
   const total = users.value.length
   if (!total) return 0
   return Math.round((activeUsers.value / total) * 100)
 })
 const latestSignup = computed(() => {
-  if (!users.value.length) return '暂无数据'
+  if (!users.value.length) return "暂无数据"
   const sorted = [...users.value].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
@@ -758,7 +767,7 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+const showToast = (text: string, type: "success" | "error" = "success") => {
   toast.value = { text, type }
   if (toastTimer) {
     clearTimeout(toastTimer)
@@ -770,16 +779,16 @@ const showToast = (text: string, type: 'success' | 'error' = 'success') => {
 }
 
 const resetCreateForm = () => {
-  createUserForm.id = ''
-  createUserForm.username = ''
-  createUserForm.email = ''
-  createUserForm.password = ''
+  createUserForm.id = ""
+  createUserForm.username = ""
+  createUserForm.email = ""
+  createUserForm.password = ""
   createUserForm.role = UserRole.USER
-  createUserForm.bio = ''
-  createErrors.id = ''
-  createErrors.username = ''
-  createErrors.email = ''
-  createErrors.password = ''
+  createUserForm.bio = ""
+  createErrors.id = ""
+  createErrors.username = ""
+  createErrors.email = ""
+  createErrors.password = ""
 }
 
 const openCreateModal = () => {
@@ -794,29 +803,29 @@ const closeCreateModal = () => {
 
 const validateCreateForm = () => {
   let valid = true
-  createErrors.id = ''
-  createErrors.username = ''
-  createErrors.email = ''
-  createErrors.password = ''
+  createErrors.id = ""
+  createErrors.username = ""
+  createErrors.email = ""
+  createErrors.password = ""
 
   const idValue = Number(createUserForm.id)
   if (!idValue || Number.isNaN(idValue) || idValue <= 0) {
-    createErrors.id = '请输入大于0的用户ID'
+    createErrors.id = "请输入大于0的用户ID"
     valid = false
   }
 
   if (!createUserForm.username || !createUserForm.username.trim()) {
-    createErrors.username = '用户名不能为空'
+    createErrors.username = "用户名不能为空"
     valid = false
   }
 
   if (createUserForm.email && !emailPattern.test(createUserForm.email)) {
-    createErrors.email = '请输入有效的邮箱地址'
+    createErrors.email = "请输入有效的邮箱地址"
     valid = false
   }
 
   if (!createUserForm.password || createUserForm.password.length < 6) {
-    createErrors.password = '密码至少6位'
+    createErrors.password = "密码至少6位"
     valid = false
   }
 
@@ -837,12 +846,12 @@ const submitCreateUser = async () => {
       bio: createUserForm.bio.trim() || undefined,
     }
     await adminService.adminCreateUser(payload)
-    showToast('创建用户成功')
+    showToast("创建用户成功")
     closeCreateModal()
     refreshList()
   } catch (error) {
-    console.error('创建用户失败:', error)
-    showToast('创建用户失败，请稍后重试', 'error')
+    console.error("创建用户失败:", error)
+    showToast("创建用户失败，请稍后重试", "error")
   } finally {
     createLoading.value = false
   }
@@ -874,7 +883,7 @@ const loadUsers = async () => {
     users.value = response.data ?? []
     pagination.value = normalizePagination(response.pagination)
   } catch (error) {
-    console.error('加载用户列表失败:', error)
+    console.error("加载用户列表失败:", error)
     users.value = []
     pagination.value = normalizePagination()
   } finally {
@@ -893,20 +902,20 @@ const refreshList = () => {
 }
 
 const resetFilters = () => {
-  filters.status = ''
-  filters.role = ''
-  filters.keyword = ''
+  filters.status = ""
+  filters.role = ""
+  filters.keyword = ""
   refreshList()
 }
 
-const applyQuickFilter = (type: 'active' | 'inactive' | 'admin' | 'user') => {
-  if (type === 'active') {
-    filters.status = '1'
-  } else if (type === 'inactive') {
-    filters.status = '0'
-  } else if (type === 'admin') {
+const applyQuickFilter = (type: "active" | "inactive" | "admin" | "user") => {
+  if (type === "active") {
+    filters.status = "1"
+  } else if (type === "inactive") {
+    filters.status = "0"
+  } else if (type === "admin") {
     filters.role = UserRole.ADMIN
-  } else if (type === 'user') {
+  } else if (type === "user") {
     filters.role = UserRole.USER
   }
   refreshList()
@@ -914,7 +923,7 @@ const applyQuickFilter = (type: 'active' | 'inactive' | 'admin' | 'user') => {
 
 const clearKeyword = () => {
   if (!filters.keyword) return
-  filters.keyword = ''
+  filters.keyword = ""
   refreshList()
 }
 

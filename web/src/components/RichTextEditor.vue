@@ -21,91 +21,94 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from "vue"
 
 interface Props {
-  modelValue?: string;
-  placeholder?: string;
-  maxLength?: number;
-  height?: string;
-  showStatus?: boolean;
-  autoResize?: boolean;
-  readonly?: boolean;
+  modelValue?: string
+  placeholder?: string
+  maxLength?: number
+  height?: string
+  showStatus?: boolean
+  autoResize?: boolean
+  readonly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '请输入内容...',
+  modelValue: "",
+  placeholder: "请输入内容...",
   maxLength: 10000,
-  height: '400px',
+  height: "400px",
   showStatus: true,
   autoResize: true,
   readonly: false,
-});
+})
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string];
-  change: [value: string];
-}>();
+  "update:modelValue": [value: string]
+  change: [value: string]
+}>()
 
-const textareaRef = ref<HTMLTextAreaElement>();
-const isFocused = ref(false);
+const textareaRef = ref<HTMLTextAreaElement>()
+const isFocused = ref(false)
 
 const charCount = computed(() => {
-  return props.modelValue.length;
-});
+  return props.modelValue.length
+})
 
 const handleInput = (event: Event) => {
-  const target = event.target as HTMLTextAreaElement;
-  const value = target.value;
+  const target = event.target as HTMLTextAreaElement
+  const value = target.value
 
-  emit('update:modelValue', value);
-  emit('change', value);
+  emit("update:modelValue", value)
+  emit("change", value)
 
   // 自动调整高度
   if (props.autoResize && textareaRef.value) {
     nextTick(() => {
-      autoResize();
-    });
+      autoResize()
+    })
   }
-};
+}
 
 const autoResize = () => {
-  if (!textareaRef.value) return;
+  if (!textareaRef.value) return
 
-  const textarea = textareaRef.value;
-  textarea.style.height = 'auto';
+  const textarea = textareaRef.value
+  textarea.style.height = "auto"
 
-  const scrollHeight = textarea.scrollHeight;
-  const minHeight = parseInt(props.height) || 400;
+  const scrollHeight = textarea.scrollHeight
+  const minHeight = parseInt(props.height) || 400
 
   if (scrollHeight > minHeight) {
-    textarea.style.height = scrollHeight + 'px';
+    textarea.style.height = scrollHeight + "px"
   } else {
-    textarea.style.height = minHeight + 'px';
+    textarea.style.height = minHeight + "px"
   }
-};
+}
 
 onMounted(() => {
   if (props.autoResize) {
     nextTick(() => {
-      autoResize();
-    });
+      autoResize()
+    })
   }
-});
+})
 
-watch(() => props.modelValue, () => {
-  if (props.autoResize) {
-    nextTick(() => {
-      autoResize();
-    });
-  }
-});
+watch(
+  () => props.modelValue,
+  () => {
+    if (props.autoResize) {
+      nextTick(() => {
+        autoResize()
+      })
+    }
+  },
+)
 
 defineExpose({
   focus: () => textareaRef.value?.focus(),
   blur: () => textareaRef.value?.blur(),
-});
+})
 </script>
 
 <style scoped>
@@ -121,8 +124,9 @@ defineExpose({
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
   resize: vertical;
   outline: none;
   transition: all 0.2s;

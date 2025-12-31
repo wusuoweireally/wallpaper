@@ -6,7 +6,9 @@
     class="github-btn group relative w-full overflow-hidden rounded-[1.4rem] border-2 border-slate-300 bg-white px-6 py-3.5 font-semibold text-slate-700 transition-all duration-300 hover:border-slate-800 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:grayscale"
   >
     <!-- 背景装饰 -->
-    <span class="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></span>
+    <span
+      class="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+    ></span>
 
     <!-- 内容 -->
     <span class="relative flex items-center justify-center gap-3">
@@ -22,7 +24,7 @@
         />
       </svg>
 
-      <span class="text-base">{{ loading ? '登录中...' : '使用 GitHub 登录' }}</span>
+      <span class="text-base">{{ loading ? "登录中..." : "使用 GitHub 登录" }}</span>
     </span>
 
     <!-- 加载动画 -->
@@ -55,11 +57,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref } from "vue"
+import { useRouter } from "vue-router"
 
-const router = useRouter();
-const loading = ref(false);
+const router = useRouter()
+const loading = ref(false)
 
 /**
  * 处理 GitHub 登录
@@ -67,40 +69,38 @@ const loading = ref(false);
  */
 const handleGitHubLogin = () => {
   try {
-    loading.value = true;
+    loading.value = true
 
     // 保存当前路由，用于登录后重定向
-    const currentPath = router.currentRoute.value.fullPath;
-    if (currentPath !== '/login' && currentPath !== '/register') {
-      sessionStorage.setItem('github_login_redirect', currentPath);
+    const currentPath = router.currentRoute.value.fullPath
+    if (currentPath !== "/login" && currentPath !== "/register") {
+      sessionStorage.setItem("github_login_redirect", currentPath)
     }
 
     // 跳转到后端 GitHub OAuth 端点
     // 后端会重定向到 GitHub 授权页面
     // 开发环境优先走 /api 代理，生产环境可用绝对地址
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-    const isAbsoluteUrl = Boolean(apiBaseUrl && apiBaseUrl.startsWith('http'));
-    const normalizedBaseUrl = apiBaseUrl ? apiBaseUrl.trim().replace(/\/$/, '') : '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+    const isAbsoluteUrl = Boolean(apiBaseUrl && apiBaseUrl.startsWith("http"))
+    const normalizedBaseUrl = apiBaseUrl ? apiBaseUrl.trim().replace(/\/$/, "") : ""
     const resolvedBaseUrl = isAbsoluteUrl
-      ? normalizedBaseUrl.replace(/\/api$/, '')
-      : normalizedBaseUrl;
-    const authUrl = resolvedBaseUrl
-      ? `${resolvedBaseUrl}/auth/github`
-      : '/api/auth/github';
+      ? normalizedBaseUrl.replace(/\/api$/, "")
+      : normalizedBaseUrl
+    const authUrl = resolvedBaseUrl ? `${resolvedBaseUrl}/auth/github` : "/api/auth/github"
 
     // 验证 URL 有效性
     if (isAbsoluteUrl && resolvedBaseUrl) {
-      new URL(resolvedBaseUrl); // 如果无效会抛出异常
+      new URL(resolvedBaseUrl) // 如果无效会抛出异常
     }
 
     // 执行跳转
-    window.location.href = authUrl;
+    window.location.href = authUrl
   } catch (error) {
-    console.error('GitHub 登录 URL 构建失败:', error);
-    loading.value = false;
-    alert('登录服务配置错误，请联系管理员');
+    console.error("GitHub 登录 URL 构建失败:", error)
+    loading.value = false
+    alert("登录服务配置错误，请联系管理员")
   }
-};
+}
 </script>
 
 <style scoped>

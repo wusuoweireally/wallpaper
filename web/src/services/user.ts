@@ -1,72 +1,72 @@
-import api from "@/config/api";
-import type { ApiResponse } from "@/config/api";
+import api from "@/config/api"
+import type { ApiResponse } from "@/config/api"
 
 /**
  * 用户角色枚举
  */
 export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
+  USER = "user",
+  ADMIN = "admin",
 }
 
 /**
  * 用户信息接口
  */
 export interface User {
-  id: number;
-  username: string;
-  email: string;
-  avatarUrl: string;
-  bio: string;
-  status: number;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
+  id: number
+  username: string
+  email: string
+  avatarUrl: string
+  bio: string
+  status: number
+  role: UserRole
+  createdAt: string
+  updatedAt: string
 }
 
 /**
  * 登录DTO接口
  */
 export interface LoginDto {
-  id: number;
-  password: string;
+  id: number
+  password: string
 }
 
 /**
  * 注册DTO接口
  */
 export interface RegisterDto {
-  id: number;
-  username: string;
-  password: string;
+  id: number
+  username: string
+  password: string
 }
 
 /**
  * 更新用户信息DTO接口
  */
 export interface UpdateUserDto {
-  username?: string;
-  email?: string;
-  bio?: string;
-  password?: string;
+  username?: string
+  email?: string
+  bio?: string
+  password?: string
 }
 
 /**
  * 分页响应接口
  */
 export interface PaginatedResponse<T> {
-  data: T[];
+  data: T[]
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
 }
 
 export interface LoginResponse {
-  user: User;
-  token: string;
+  user: User
+  token: string
 }
 
 /**
@@ -82,11 +82,11 @@ class UserService {
         id: registerDto.id,
         username: registerDto.username,
         password: registerDto.password,
-      });
-      return response as unknown as ApiResponse<User>;
+      })
+      return response as unknown as ApiResponse<User>
     } catch (error) {
-      console.error("注册失败:", error);
-      throw error;
+      console.error("注册失败:", error)
+      throw error
     }
   }
 
@@ -95,11 +95,11 @@ class UserService {
    */
   async login(loginDto: LoginDto) {
     try {
-      const response = await api.post("/users/login", loginDto);
-      return response as unknown as ApiResponse<LoginResponse>;
+      const response = await api.post("/users/login", loginDto)
+      return response as unknown as ApiResponse<LoginResponse>
     } catch (error) {
-      console.error("登录失败:", error);
-      throw error;
+      console.error("登录失败:", error)
+      throw error
     }
   }
 
@@ -108,15 +108,11 @@ class UserService {
    */
   async logout() {
     try {
-      const response = await api.post(
-        "/users/logout",
-        undefined,
-        { skipAuthExpiredHandler: true },
-      );
-      return response as unknown as ApiResponse;
+      const response = await api.post("/users/logout", undefined, { skipAuthExpiredHandler: true })
+      return response as unknown as ApiResponse
     } catch (error) {
-      console.error("登出失败:", error);
-      throw error;
+      console.error("登出失败:", error)
+      throw error
     }
   }
 
@@ -125,11 +121,11 @@ class UserService {
    */
   async getProfile() {
     try {
-      const response = await api.get("/users/profile");
-      return response;
+      const response = await api.get("/users/profile")
+      return response
     } catch (error) {
-      console.error("获取用户信息失败:", error);
-      throw error;
+      console.error("获取用户信息失败:", error)
+      throw error
     }
   }
 
@@ -138,11 +134,11 @@ class UserService {
    */
   async getUserById(id: number) {
     try {
-      const response = await api.get(`/users/${id}`);
-      return response;
+      const response = await api.get(`/users/${id}`)
+      return response
     } catch (error) {
-      console.error("获取用户信息失败:", error);
-      throw error;
+      console.error("获取用户信息失败:", error)
+      throw error
     }
   }
 
@@ -151,11 +147,11 @@ class UserService {
    */
   async updateUser(id: number, updateData: UpdateUserDto) {
     try {
-      const response = await api.patch(`/users/${id}`, updateData);
-      return response;
+      const response = await api.patch(`/users/${id}`, updateData)
+      return response
     } catch (error) {
-      console.error("更新用户信息失败:", error);
-      throw error;
+      console.error("更新用户信息失败:", error)
+      throw error
     }
   }
 
@@ -164,21 +160,21 @@ class UserService {
    */
   async uploadAvatar(id: number, file: File) {
     try {
-      const formData = new FormData();
-      formData.append("avatar", file);
+      const formData = new FormData()
+      formData.append("avatar", file)
 
       const response = await api.post(`/users/${id}/avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      });
+      })
       return response as unknown as ApiResponse<{
-        avatarUrl: string;
-        user: User;
-      }>;
+        avatarUrl: string
+        user: User
+      }>
     } catch (error) {
-      console.error("上传头像失败:", error);
-      throw error;
+      console.error("上传头像失败:", error)
+      throw error
     }
   }
 
@@ -189,11 +185,11 @@ class UserService {
     try {
       const response = await api.get("/users/likes", {
         params: { page, limit },
-      });
-      return response as unknown as ApiResponse<PaginatedResponse<any>>;
+      })
+      return response as unknown as ApiResponse<PaginatedResponse<any>>
     } catch (error) {
-      console.error("获取用户点赞列表失败:", error);
-      throw error;
+      console.error("获取用户点赞列表失败:", error)
+      throw error
     }
   }
 
@@ -204,11 +200,11 @@ class UserService {
     try {
       const response = await api.get("/users/favorites", {
         params: { page, limit },
-      });
-      return response;
+      })
+      return response
     } catch (error) {
-      console.error("获取用户收藏列表失败:", error);
-      throw error;
+      console.error("获取用户收藏列表失败:", error)
+      throw error
     }
   }
 
@@ -219,11 +215,11 @@ class UserService {
     try {
       const response = await api.get("/users/wallpapers", {
         params: { page, limit },
-      });
-      return response;
+      })
+      return response
     } catch (error) {
-      console.error("获取用户上传壁纸列表失败:", error);
-      throw error;
+      console.error("获取用户上传壁纸列表失败:", error)
+      throw error
     }
   }
 
@@ -234,16 +230,16 @@ class UserService {
     try {
       const response = await api.get("/users/view-history", {
         params: { page, limit },
-      });
-      return response;
+      })
+      return response
     } catch (error) {
-      console.error("获取用户浏览记录失败:", error);
-      throw error;
+      console.error("获取用户浏览记录失败:", error)
+      throw error
     }
   }
 }
 
 // 导出单例实例
-export const userService = new UserService();
+export const userService = new UserService()
 
-export default userService;
+export default userService

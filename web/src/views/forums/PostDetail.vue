@@ -1,21 +1,29 @@
 <template>
   <div class="relative min-h-screen bg-[#f5f6fa]">
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] blur-3xl opacity-60"></div>
-      <div class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] blur-3xl opacity-70"></div>
-      <div class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] blur-3xl opacity-60"></div>
+      <div
+        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl"
+      ></div>
+      <div
+        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl"
+      ></div>
+      <div
+        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl"
+      ></div>
     </div>
 
     <div class="relative mx-auto max-w-5xl px-4 py-10">
       <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
         <div class="flex flex-col items-center gap-3 text-slate-500">
-          <div class="loading loading-lg loading-spinner text-primary"></div>
+          <div class="loading loading-spinner loading-lg text-primary"></div>
           <p class="text-sm">正在加载帖子...</p>
         </div>
       </div>
 
       <div v-else-if="error" class="py-12 text-center">
-        <div class="mx-auto mb-4 max-w-md rounded-2xl border border-error/30 bg-error/5 px-4 py-3 text-error shadow">
+        <div
+          class="border-error/30 bg-error/5 mx-auto mb-4 max-w-md rounded-2xl border px-4 py-3 text-error shadow"
+        >
           <i class="i-mdi-alert-circle mr-2"></i>
           <span>{{ error }}</span>
         </div>
@@ -55,10 +63,16 @@
           </div>
         </div>
 
-        <div class="overflow-hidden rounded-[32px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50 backdrop-blur-sm relative">
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent"></div>
+        <div
+          class="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50 backdrop-blur-sm"
+        >
+          <div
+            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent"
+          ></div>
           <div class="relative">
-            <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-slate-900 via-indigo-600 to-amber-500 shadow-lg"></div>
+            <div
+              class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-slate-900 via-indigo-600 to-amber-500 shadow-lg"
+            ></div>
             <div class="relative space-y-7 p-7 lg:p-10">
               <div class="flex flex-wrap items-start gap-5">
                 <div class="relative">
@@ -82,74 +96,83 @@
                       </span>
                     </div>
                   </div>
-                  <div class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white shadow-lg"></div>
+                  <div
+                    class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-lg"
+                  ></div>
                 </div>
-                <div class="flex-1 space-y-3 min-w-[200px]">
+                <div class="min-w-[200px] flex-1 space-y-3">
                   <div class="flex flex-wrap items-center gap-3">
                     <span class="text-base font-bold text-slate-900">
                       {{ post.author?.username || "未知用户" }}
                     </span>
-                    <span class="badge badge-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-none shadow-md">
+                    <span
+                      class="badge badge-sm border-none bg-gradient-to-r from-blue-500 to-indigo-600 font-medium text-white shadow-md"
+                    >
                       {{ getCategoryName(post.category) }}
                     </span>
-                    <span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                    <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">
                       {{ formatTime(post.createdAt) }}
                     </span>
                     <span
                       v-if="post.updatedAt && post.updatedAt !== post.createdAt"
-                      class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full"
+                      class="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-600"
                     >
                       ✏️ 已编辑
                     </span>
                   </div>
-                  <h1 class="text-4xl font-bold leading-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent lg:text-5xl">
+                  <h1
+                    class="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-4xl font-bold leading-tight text-transparent lg:text-5xl"
+                  >
                     {{ post.title }}
                   </h1>
-                  <p v-if="post.summary" class="text-base text-slate-600 leading-relaxed">
+                  <p v-if="post.summary" class="text-base leading-relaxed text-slate-600">
                     {{ post.summary }}
                   </p>
                   <div class="flex flex-wrap gap-2">
                     <span
                       v-for="tag in getTagList(post.tags || '').slice(0, 6)"
                       :key="tag"
-                      class="badge badge-sm border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+                      class="badge badge-sm border-slate-300 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-100"
                     >
                       #{{ tag }}
                     </span>
                   </div>
                   <div class="flex flex-wrap gap-4 text-sm">
-                    <div class="flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1">
+                    <div class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
                       <i class="i-mdi-eye text-slate-600"></i>
-                      <span class="text-slate-700 font-medium">{{ post.viewCount || 0 }}</span>
+                      <span class="font-medium text-slate-700">{{ post.viewCount || 0 }}</span>
                       <span class="text-slate-500">浏览</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-blue-50 rounded-full px-3 py-1">
+                    <div class="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1">
                       <i class="i-mdi-comment text-blue-600"></i>
-                      <span class="text-blue-700 font-medium">{{ post.commentCount || 0 }}</span>
+                      <span class="font-medium text-blue-700">{{ post.commentCount || 0 }}</span>
                       <span class="text-blue-500">评论</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-rose-50 rounded-full px-3 py-1">
+                    <div class="flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1">
                       <i class="i-mdi-heart text-rose-600"></i>
-                      <span class="text-rose-700 font-medium">{{ post.likeCount || 0 }}</span>
+                      <span class="font-medium text-rose-700">{{ post.likeCount || 0 }}</span>
                       <span class="text-rose-500">点赞</span>
                     </div>
                   </div>
                 </div>
                 <div v-if="isAuthor" class="dropdown dropdown-end">
-                  <label tabindex="0" class="btn btn-circle btn-ghost btn-sm shadow-md hover:shadow-lg transition-shadow">
+                  <label
+                    tabindex="0"
+                    class="btn btn-ghost btn-sm btn-circle shadow-md transition-shadow hover:shadow-lg"
+                  >
                     <i class="i-mdi-dots-horizontal text-slate-600"></i>
                   </label>
                   <ul
                     tabindex="0"
                     class="dropdown-content menu w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"
                   >
-                    <li class="hover:bg-slate-50 rounded-xl">
+                    <li class="rounded-xl hover:bg-slate-50">
                       <a @click="editPost" class="text-slate-700">
                         <i class="i-mdi-pencil"></i>
                         编辑
                       </a>
                     </li>
-                    <li class="hover:bg-rose-50 rounded-xl">
+                    <li class="rounded-xl hover:bg-rose-50">
                       <a class="text-rose-600" @click="deletePost">
                         <i class="i-mdi-delete"></i>
                         删除
@@ -160,9 +183,14 @@
               </div>
 
               <!-- eslint-disable-next-line vue/no-v-html -->
-              <div class="prose max-w-none text-slate-800 prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700" v-html="sanitizedContent"></div>
+              <div
+                class="prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose max-w-none text-slate-800"
+                v-html="sanitizedContent"
+              ></div>
 
-              <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-4 shadow-inner">
+              <div
+                class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-4 shadow-inner"
+              >
                 <div class="flex items-center gap-5 text-sm">
                   <div class="flex items-center gap-2 text-slate-600">
                     <i class="i-mdi-eye text-lg"></i>
@@ -182,14 +210,15 @@
                 </div>
                 <button
                   class="group btn btn-sm relative overflow-hidden"
-                  :class="isLiked ? 'btn-error shadow-lg shadow-rose-500/30' : 'btn-outline hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600'"
+                  :class="
+                    isLiked
+                      ? 'btn-error shadow-lg shadow-rose-500/30'
+                      : 'btn-outline hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600'
+                  "
                   @click="toggleLike"
                   :disabled="!userStore.isLoggedIn || likeLoading"
                 >
-                  <span
-                    class="loading loading-xs loading-spinner"
-                    v-if="likeLoading"
-                  ></span>
+                  <span class="loading loading-spinner loading-xs" v-if="likeLoading"></span>
                   <i
                     class="i-mdi-heart transition-all"
                     :class="isLiked ? 'fill-current text-white' : 'group-hover:scale-110'"
@@ -197,7 +226,7 @@
                   <span class="font-medium">{{ isLiked ? "已点赞" : "点赞" }}</span>
                   <span
                     v-if="post.likeCount > 0"
-                    class="ml-1 badge badge-outline badge-sm"
+                    class="badge badge-outline badge-sm ml-1"
                     :class="isLiked ? 'border-white text-white' : 'border-rose-300 text-rose-600'"
                   >
                     {{ post.likeCount }}
@@ -208,16 +237,24 @@
           </div>
         </div>
 
-        <div class="mt-8 rounded-[28px] border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/30 backdrop-blur-sm relative overflow-hidden">
-          <div class="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full blur-3xl"></div>
+        <div
+          class="relative mt-8 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/30 backdrop-blur-sm"
+        >
+          <div
+            class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-blue-100/30 to-purple-100/30 blur-3xl"
+          ></div>
           <div class="relative">
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div class="flex items-center gap-3">
-                <div class="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-3 shadow-lg shadow-indigo-500/30">
-                  <i class="i-mdi-comment text-white text-2xl"></i>
+                <div
+                  class="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-3 shadow-lg shadow-indigo-500/30"
+                >
+                  <i class="i-mdi-comment text-2xl text-white"></i>
                 </div>
                 <div>
-                  <h2 class="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                  <h2
+                    class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-bold text-transparent"
+                  >
                     评论区
                   </h2>
                   <p class="text-sm text-slate-500">共 {{ comments.length }} 条评论</p>
@@ -228,10 +265,17 @@
                   v-for="option in commentSortOptions"
                   :key="option.value"
                   class="btn btn-sm transition-all"
-                  :class="commentSort === option.value
-                    ? 'btn-primary shadow-md shadow-blue-500/25 hover:shadow-blue-500/40'
-                    : 'btn-ghost hover:bg-slate-100'"
-                  @click="() => { commentSort = option.value; loadComments(); }"
+                  :class="
+                    commentSort === option.value
+                      ? 'btn-primary shadow-md shadow-blue-500/25 hover:shadow-blue-500/40'
+                      : 'btn-ghost hover:bg-slate-100'
+                  "
+                  @click="
+                    () => {
+                      commentSort = option.value
+                      loadComments()
+                    }
+                  "
                 >
                   {{ option.emoji }} {{ option.label }}
                 </button>
@@ -244,13 +288,16 @@
             >
               <div class="flex items-center gap-3">
                 <div class="rounded-full bg-amber-100 p-2">
-                  <i class="i-mdi-information text-amber-600 text-lg"></i>
+                  <i class="i-mdi-information text-lg text-amber-600"></i>
                 </div>
                 <div class="flex-1">
-                  <p class="text-slate-700 font-medium mb-1">登录后即可参与讨论</p>
-                  <p class="text-slate-600 text-xs">与作者互动，分享你的想法和见解</p>
+                  <p class="mb-1 font-medium text-slate-700">登录后即可参与讨论</p>
+                  <p class="text-xs text-slate-600">与作者互动，分享你的想法和见解</p>
                 </div>
-                <button class="btn btn-sm btn-primary shadow-md hover:shadow-lg transition-shadow" @click="router.push('/auth/login')">
+                <button
+                  class="btn btn-primary btn-sm shadow-md transition-shadow hover:shadow-lg"
+                  @click="router.push('/auth/login')"
+                >
                   <i class="i-mdi-login"></i>
                   去登录
                 </button>
@@ -258,17 +305,17 @@
             </div>
 
             <div class="mb-8">
-              <div class="rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5 shadow-inner">
+              <div
+                class="rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5 shadow-inner"
+              >
                 <label class="label mb-3">
-                  <span class="label-text font-semibold text-slate-800">
-                    💭 写下你的看法
-                  </span>
+                  <span class="label-text font-semibold text-slate-800"> 💭 写下你的看法 </span>
                   <span class="label-text-alt text-slate-500">{{ newComment.length }}/1000</span>
                 </label>
                 <textarea
                   v-model="newComment"
                   placeholder="分享你的见解，与作者和其他读者互动..."
-                  class="textarea textarea-bordered h-32 w-full resize-none bg-white focus:border-slate-900 transition-colors"
+                  class="textarea-bordered textarea h-32 w-full resize-none bg-white transition-colors focus:border-slate-900"
                   maxlength="1000"
                 ></textarea>
                 <div class="mt-3 flex items-center justify-between">
@@ -283,21 +330,29 @@
                     </span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span v-if="commentSubmitting" class="loading loading-xs loading-spinner text-primary"></span>
+                    <span
+                      v-if="commentSubmitting"
+                      class="loading loading-spinner loading-xs text-primary"
+                    ></span>
                     <button
-                      class="group btn btn-sm btn-primary shadow-md hover:shadow-lg hover:shadow-blue-500/25 transition-all hover:scale-105 disabled:hover:scale-100"
+                      class="group btn btn-primary btn-sm shadow-md transition-all hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 disabled:hover:scale-100"
                       @click="submitComment"
                       :disabled="!userStore.isLoggedIn || !newComment.trim() || commentSubmitting"
                     >
-                      <i class="i-mdi-send group-hover:translate-x-0.5 transition-transform"></i>
-                      <span class="font-medium">{{ commentSubmitting ? "发布中..." : "发表评论" }}</span>
+                      <i class="i-mdi-send transition-transform group-hover:translate-x-0.5"></i>
+                      <span class="font-medium">{{
+                        commentSubmitting ? "发布中..." : "发表评论"
+                      }}</span>
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-if="comments.length === 0 && !loading" class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
+            <div
+              v-if="comments.length === 0 && !loading"
+              class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center"
+            >
               <div class="flex flex-col items-center gap-3">
                 <div class="rounded-full bg-slate-200 p-4">
                   <i class="i-mdi-comment-outline text-4xl text-slate-400"></i>
@@ -322,15 +377,15 @@
 
             <div v-if="hasMoreComments" class="mt-8 text-center">
               <button
-                class="group btn btn-outline btn-wide shadow-md hover:shadow-lg transition-all hover:scale-105"
+                class="group btn btn-outline btn-wide shadow-md transition-all hover:scale-105 hover:shadow-lg"
                 @click="loadMoreComments"
                 :disabled="loadingMore"
               >
-                <span
-                  class="loading loading-sm loading-spinner mr-2"
-                  v-if="loadingMore"
-                ></span>
-                <i class="i-mdi-chevron-down group-hover:translate-y-0.5 transition-transform" v-else></i>
+                <span class="loading loading-spinner loading-sm mr-2" v-if="loadingMore"></span>
+                <i
+                  class="i-mdi-chevron-down transition-transform group-hover:translate-y-0.5"
+                  v-else
+                ></i>
                 {{ loadingMore ? "加载中..." : "加载更多评论" }}
               </button>
             </div>
@@ -349,60 +404,57 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { forumService } from "@/services/forum";
-import { useUserStore } from "@/stores";
-import type { Post, Comment } from "@/stores/forum";
-import CommentItem from "@/components/CommentItem.vue";
-import ReportModal from "@/components/ReportModal.vue";
-import { resolveAvatarUrl } from "@/utils/avatar";
-import { sanitizeHtml } from "@/utils/htmlSanitizer";
+import { ref, computed, onMounted, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { forumService } from "@/services/forum"
+import { useUserStore } from "@/stores"
+import type { Post, Comment } from "@/stores/forum"
+import CommentItem from "@/components/CommentItem.vue"
+import ReportModal from "@/components/ReportModal.vue"
+import { resolveAvatarUrl } from "@/utils/avatar"
+import { sanitizeHtml } from "@/utils/htmlSanitizer"
 
 // 路由和状态管理
-const route = useRoute();
-const router = useRouter();
-const userStore = useUserStore();
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
 
 // 响应式数据
-const loading = ref(true);
-const error = ref("");
-const post = ref<Post | null>(null);
-const comments = ref<Comment[]>([]);
-const newComment = ref("");
-const commentSubmitting = ref(false);
-const likeLoading = ref(false);
-const isLiked = ref(false);
-const commentSort = ref("newest");
+const loading = ref(true)
+const error = ref("")
+const post = ref<Post | null>(null)
+const comments = ref<Comment[]>([])
+const newComment = ref("")
+const commentSubmitting = ref(false)
+const likeLoading = ref(false)
+const isLiked = ref(false)
+const commentSort = ref("newest")
 const commentSortOptions = [
   { value: "newest", label: "最新", emoji: "🕒" },
   { value: "oldest", label: "最早", emoji: "⏰" },
   { value: "popular", label: "最热", emoji: "🔥" },
-];
-const currentPage = ref(1);
-const hasMoreComments = ref(false);
-const loadingMore = ref(false);
-const reportModalRef = ref<InstanceType<typeof ReportModal>>();
+]
+const currentPage = ref(1)
+const hasMoreComments = ref(false)
+const loadingMore = ref(false)
+const reportModalRef = ref<InstanceType<typeof ReportModal>>()
 
 // 计算属性
-const postId = computed(() => parseInt(route.params.id as string));
+const postId = computed(() => parseInt(route.params.id as string))
 
 const isAuthor = computed(() => {
-  return post.value?.authorId === userStore.user?.id;
-});
+  return post.value?.authorId === userStore.user?.id
+})
 
 const authorAvatar = computed(() => {
-  const raw =
-    post.value?.author?.avatarUrl ||
-    post.value?.author?.profilePicture ||
-    undefined;
-  return resolveAvatarUrl(raw);
-});
+  const raw = post.value?.author?.avatarUrl || post.value?.author?.profilePicture || undefined
+  return resolveAvatarUrl(raw)
+})
 
 // 清理后的帖子内容（防止XSS攻击）
 const sanitizedContent = computed(() => {
-  return post.value ? sanitizeHtml(post.value.content) : '';
-});
+  return post.value ? sanitizeHtml(post.value.content) : ""
+})
 
 const updateCommentTree = (
   list: Comment[],
@@ -411,29 +463,29 @@ const updateCommentTree = (
 ): boolean => {
   for (const comment of list) {
     if (comment.id === targetId) {
-      updater(comment);
-      return true;
+      updater(comment)
+      return true
     }
     if (comment.replies && updateCommentTree(comment.replies, targetId, updater)) {
-      return true;
+      return true
     }
   }
-  return false;
-};
+  return false
+}
 
 const removeCommentFromTree = (list: Comment[], targetId: number): boolean => {
-  const index = list.findIndex((comment) => comment.id === targetId);
+  const index = list.findIndex((comment) => comment.id === targetId)
   if (index !== -1) {
-    list.splice(index, 1);
-    return true;
+    list.splice(index, 1)
+    return true
   }
   for (const comment of list) {
     if (comment.replies && removeCommentFromTree(comment.replies, targetId)) {
-      return true;
+      return true
     }
   }
-  return false;
-};
+  return false
+}
 
 // 方法
 const getCategoryName = (category: string): string => {
@@ -442,9 +494,9 @@ const getCategoryName = (category: string): string => {
     experience_sharing: "经验分享",
     q_a: "问答求助",
     resource_sharing: "资源分享",
-  };
-  return categoryMap[category] || "未分类";
-};
+  }
+  return categoryMap[category] || "未分类"
+}
 
 const getTagList = (tags: string): string[] => {
   return tags
@@ -452,270 +504,269 @@ const getTagList = (tags: string): string[] => {
         .split(",")
         .map((tag) => tag.trim())
         .filter((tag) => tag)
-    : [];
-};
+    : []
+}
 
 const formatTime = (timeStr: string): string => {
-  const date = new Date(timeStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const date = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return `${minutes}分钟前`;
-  if (hours < 24) return `${hours}小时前`;
-  if (days < 7) return `${days}天前`;
+  if (minutes < 1) return "刚刚"
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
 
   return date.toLocaleDateString("zh-CN", {
     month: "short",
     day: "numeric",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
-};
+  })
+}
 
 const loadPost = async () => {
   try {
-    loading.value = true;
-    error.value = "";
+    loading.value = true
+    error.value = ""
 
-    post.value = await forumService.getPost(postId.value);
+    post.value = await forumService.getPost(postId.value)
 
     // 更新页面标题
-    document.title = `${post.value.title} - 壁纸论坛`;
+    document.title = `${post.value.title} - 壁纸论坛`
 
     // 检查点赞状态
     if (userStore.isLoggedIn) {
-      await checkLikeStatus();
+      await checkLikeStatus()
     }
   } catch (err: any) {
-    console.error("加载帖子失败:", err);
-    error.value = err.message || "帖子加载失败";
+    console.error("加载帖子失败:", err)
+    error.value = err.message || "帖子加载失败"
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const loadComments = async (reset: boolean = true) => {
-  if (!post.value) return;
+  if (!post.value) return
 
   try {
     if (reset) {
-      currentPage.value = 1;
-      loadingMore.value = false;
-      comments.value = []; // 重置评论列表
+      currentPage.value = 1
+      loadingMore.value = false
+      comments.value = [] // 重置评论列表
     }
 
     const sortOptions: Record<string, any> = {
       newest: { sortBy: "createdAt", sortOrder: "DESC" as const },
       oldest: { sortBy: "createdAt", sortOrder: "ASC" as const },
       popular: { sortBy: "likeCount", sortOrder: "DESC" as const },
-    };
+    }
 
     const result = await forumService.getPostComments(post.value.id, {
       page: currentPage.value,
       limit: 20,
       ...sortOptions[commentSort.value],
-    });
+    })
 
     if (result && result.data) {
       if (reset) {
-        comments.value = result.data;
+        comments.value = result.data
       } else {
-        comments.value = [...comments.value, ...result.data];
+        comments.value = [...comments.value, ...result.data]
       }
 
-      hasMoreComments.value =
-        result.pagination.currentPage < result.pagination.totalPages;
+      hasMoreComments.value = result.pagination.currentPage < result.pagination.totalPages
     } else {
-      console.warn("评论数据格式不正确:", result);
+      console.warn("评论数据格式不正确:", result)
       if (reset) {
-        comments.value = [];
+        comments.value = []
       }
     }
   } catch (err: any) {
-    console.error("加载评论失败:", err);
+    console.error("加载评论失败:", err)
     // 显示错误提示
     if (reset) {
-      comments.value = [];
+      comments.value = []
     }
     // 可以在这里添加用户友好的错误提示
     // alert(err.message || "加载评论失败，请稍后重试");
   }
-};
+}
 
 const loadMoreComments = async () => {
-  if (loadingMore.value || !hasMoreComments.value) return;
+  if (loadingMore.value || !hasMoreComments.value) return
 
   try {
-    loadingMore.value = true;
-    currentPage.value++;
-    await loadComments(false);
+    loadingMore.value = true
+    currentPage.value++
+    await loadComments(false)
   } finally {
-    loadingMore.value = false;
+    loadingMore.value = false
   }
-};
+}
 
 const checkLikeStatus = async () => {
   try {
-    const status = await forumService.checkLikeStatus(postId.value);
-    isLiked.value = status.hasLiked;
+    const status = await forumService.checkLikeStatus(postId.value)
+    isLiked.value = status.hasLiked
   } catch (err) {
-    console.error("检查点赞状态失败:", err);
+    console.error("检查点赞状态失败:", err)
   }
-};
+}
 
 const toggleLike = async () => {
-  if (!userStore.isLoggedIn || !post.value) return;
+  if (!userStore.isLoggedIn || !post.value) return
 
   try {
-    likeLoading.value = true;
+    likeLoading.value = true
 
     if (isLiked.value) {
-      await forumService.unlikePost(postId.value);
-      isLiked.value = false;
-      post.value.likeCount = Math.max(0, (post.value.likeCount || 0) - 1);
+      await forumService.unlikePost(postId.value)
+      isLiked.value = false
+      post.value.likeCount = Math.max(0, (post.value.likeCount || 0) - 1)
     } else {
-      await forumService.likePost(postId.value);
-      isLiked.value = true;
-      post.value.likeCount = (post.value.likeCount || 0) + 1;
+      await forumService.likePost(postId.value)
+      isLiked.value = true
+      post.value.likeCount = (post.value.likeCount || 0) + 1
     }
   } catch (err: any) {
-    console.error("点赞操作失败:", err);
-    alert(err.message || "操作失败");
+    console.error("点赞操作失败:", err)
+    alert(err.message || "操作失败")
   } finally {
-    likeLoading.value = false;
+    likeLoading.value = false
   }
-};
+}
 
 const submitComment = async () => {
-  if (!userStore.isLoggedIn || !post.value || !newComment.value.trim()) return;
+  if (!userStore.isLoggedIn || !post.value || !newComment.value.trim()) return
 
   try {
-    commentSubmitting.value = true;
+    commentSubmitting.value = true
 
     const comment = await forumService.createComment({
       content: newComment.value.trim(),
       postId: post.value.id,
-    });
+    })
 
-    comments.value.unshift(comment);
-    newComment.value = "";
+    comments.value.unshift(comment)
+    newComment.value = ""
 
     // 更新帖子评论数
     if (post.value) {
-      post.value.commentCount = (post.value.commentCount || 0) + 1;
+      post.value.commentCount = (post.value.commentCount || 0) + 1
     }
   } catch (err: any) {
-    console.error("发表评论失败:", err);
-    alert(err.message || "发表评论失败");
+    console.error("发表评论失败:", err)
+    alert(err.message || "发表评论失败")
   } finally {
-    commentSubmitting.value = false;
+    commentSubmitting.value = false
   }
-};
+}
 
 const handleCommentLike = async (comment: Comment) => {
   try {
-    const result = await forumService.toggleCommentLike(comment.id);
+    const result = await forumService.toggleCommentLike(comment.id)
     updateCommentTree(comments.value, comment.id, (target) => {
-      target.likeCount = result.likeCount;
-      target.isLiked = result.isLiked;
-    });
+      target.likeCount = result.likeCount
+      target.isLiked = result.isLiked
+    })
   } catch (err: any) {
-    console.error("评论点赞失败:", err);
-    alert(err.message || "操作失败");
+    console.error("评论点赞失败:", err)
+    alert(err.message || "操作失败")
   }
-};
+}
 
 const handleCommentEdit = (updatedComment: Comment) => {
   updateCommentTree(comments.value, updatedComment.id, (target) => {
-    Object.assign(target, updatedComment);
-  });
-};
+    Object.assign(target, updatedComment)
+  })
+}
 
 const handleCommentDelete = (comment: Comment) => {
   if (removeCommentFromTree(comments.value, comment.id) && post.value) {
-    post.value.commentCount = Math.max(0, (post.value.commentCount || 0) - 1);
+    post.value.commentCount = Math.max(0, (post.value.commentCount || 0) - 1)
   }
-};
+}
 
 const handleCommentReply = (_comment?: Comment) => {
   // 回复后刷新评论列表
-  loadComments();
-};
+  loadComments()
+}
 
 const openReportModal = () => {
-  reportModalRef.value?.openModal();
-};
+  reportModalRef.value?.openModal()
+}
 
 const handleReportSuccess = () => {
   // 举报成功后的处理，可以刷新评论列表或显示通知
-};
+}
 
 const editPost = () => {
   if (post.value) {
-    router.push(`/forums/edit/${post.value.id}`);
+    router.push(`/forums/edit/${post.value.id}`)
   }
-};
+}
 
 const deletePost = async () => {
-  if (!post.value || !confirm("确定要删除这篇帖子吗？删除后无法恢复。")) return;
+  if (!post.value || !confirm("确定要删除这篇帖子吗？删除后无法恢复。")) return
 
   try {
-    await forumService.deletePost(post.value.id);
-    alert("帖子已删除");
-    router.push("/forums");
+    await forumService.deletePost(post.value.id)
+    alert("帖子已删除")
+    router.push("/forums")
   } catch (err: any) {
-    console.error("删除帖子失败:", err);
-    alert(err.message || "删除失败");
+    console.error("删除帖子失败:", err)
+    alert(err.message || "删除失败")
   }
-};
+}
 
 const shareToWeChat = () => {
-  alert("请使用微信扫一扫功能分享");
-};
+  alert("请使用微信扫一扫功能分享")
+}
 
 const shareToWeibo = () => {
   if (post.value) {
-    const url = window.location.href;
-    const title = post.value.title;
+    const url = window.location.href
+    const title = post.value.title
     window.open(
       `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
-    );
+    )
   }
-};
+}
 
 const copyLink = async () => {
   try {
-    await navigator.clipboard.writeText(window.location.href);
-    alert("链接已复制到剪贴板");
+    await navigator.clipboard.writeText(window.location.href)
+    alert("链接已复制到剪贴板")
   } catch {
-    alert("复制失败，请手动复制链接");
+    alert("复制失败，请手动复制链接")
   }
-};
+}
 
 // 生命周期
 onMounted(async () => {
-  await loadPost();
+  await loadPost()
   // 确保帖子加载完成后再加载评论
   if (post.value) {
-    await loadComments();
+    await loadComments()
   }
-});
+})
 
 // 监听路由参数变化
 watch(
   () => route.params.id,
   async () => {
-    await loadPost();
+    await loadPost()
     // 确保帖子加载完成后再加载评论
     if (post.value) {
-      await loadComments();
+      await loadComments()
     }
   },
-);
+)
 </script>
 
 <style scoped>

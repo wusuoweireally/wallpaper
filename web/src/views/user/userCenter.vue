@@ -25,7 +25,11 @@
             <i class="i-mdi-arrow-left"></i>
             返回首页
           </button>
-          <button class="ghost-btn ghost-info" type="button" @click="$router.push('/user/settings')">
+          <button
+            class="ghost-btn ghost-info"
+            type="button"
+            @click="$router.push('/user/settings')"
+          >
             <i class="i-mdi-cog"></i>
             编辑资料
           </button>
@@ -76,7 +80,12 @@
           <i class="i-mdi-cog"></i>
           账号设置
         </router-link>
-        <router-link v-if="userStore.user?.role === 'admin'" to="/admin/dashboard" class="uc-nav-link admin-nav-link" active-class="is-active">
+        <router-link
+          v-if="userStore.user?.role === 'admin'"
+          to="/admin/dashboard"
+          class="uc-nav-link admin-nav-link"
+          active-class="is-active"
+        >
           <i class="i-mdi-shield-crown"></i>
           管理后台
         </router-link>
@@ -90,22 +99,22 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from "vue";
-import { useUserStore } from "@/stores";
+import { onMounted } from "vue"
+import { useUserStore } from "@/stores"
 
-const userStore = useUserStore();
+const userStore = useUserStore()
 
 onMounted(() => {
-  fetchUserData();
-});
+  fetchUserData()
+})
 
 const fetchUserData = async () => {
   try {
-    await userStore.fetchUserStats();
+    await userStore.fetchUserStats()
   } catch (error) {
-    console.error("获取用户数据失败:", error);
+    console.error("获取用户数据失败:", error)
   }
-};
+}
 </script>
 
 <style scoped>
@@ -215,7 +224,9 @@ const fetchUserData = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .uc-stat-card:hover {
@@ -255,7 +266,10 @@ const fetchUserData = async () => {
   color: #475569;
   font-weight: 600;
   background: #fff;
-  transition: color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .uc-nav-link:hover {
@@ -314,7 +328,10 @@ const fetchUserData = async () => {
   font-weight: 600;
   font-size: 0.8rem;
   padding: 0.35rem 1rem;
-  transition: color 0.2s ease, border 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border 0.2s ease,
+    background 0.2s ease;
 }
 
 .ghost-btn {

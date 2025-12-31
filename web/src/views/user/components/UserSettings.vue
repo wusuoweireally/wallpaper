@@ -55,38 +55,38 @@
 </template>
 
 <script lang="ts" setup>
-import { useUserStore } from "@/stores";
-import { ref, onMounted, onUnmounted } from "vue";
-import ProfileSettings from "./settings/ProfileSettings.vue";
-import PasswordSettings from "./settings/PasswordSettings.vue";
-import AccountSettings from "./settings/AccountSettings.vue";
+import { useUserStore } from "@/stores"
+import { ref, onMounted, onUnmounted } from "vue"
+import ProfileSettings from "./settings/ProfileSettings.vue"
+import PasswordSettings from "./settings/PasswordSettings.vue"
+import AccountSettings from "./settings/AccountSettings.vue"
 
-const userStore = useUserStore();
+const userStore = useUserStore()
 
 // 组件挂载状态
-const isMounted = ref(false);
+const isMounted = ref(false)
 
 onMounted(() => {
-  isMounted.value = true;
-});
+  isMounted.value = true
+})
 
 onUnmounted(() => {
-  isMounted.value = false;
+  isMounted.value = false
 
   // 清理任何可能的 Teleport 残留元素
-  if (typeof document !== 'undefined') {
-    const teleportElements = document.querySelectorAll('[data-teleport]');
-    teleportElements.forEach(el => el.remove());
+  if (typeof document !== "undefined") {
+    const teleportElements = document.querySelectorAll("[data-teleport]")
+    teleportElements.forEach((el) => el.remove())
 
     // 清理任何可能的模态框背景
-    const modals = document.querySelectorAll('[data-modal-backdrop]');
-    modals.forEach(el => el.remove());
+    const modals = document.querySelectorAll("[data-modal-backdrop]")
+    modals.forEach((el) => el.remove())
 
     // 恢复 body 样式
-    document.body.style.overflow = '';
-    document.body.classList.remove('modal-open');
+    document.body.style.overflow = ""
+    document.body.classList.remove("modal-open")
   }
-});
+})
 </script>
 
 <style scoped>
