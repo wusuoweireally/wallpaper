@@ -1,20 +1,35 @@
-# 依赖
+# ===================================
+# pnpm Workspace 项目 - 统一 .gitignore
+# ===================================
+
+# ---------------
+# 依赖包
+# ---------------
 node_modules/
 .pnp
 .pnp.js
 
+# ---------------
 # 构建输出
+# ---------------
 dist/
 dist-ssr/
 build/
 *.local
 
-# 环境变量
+# ---------------
+# 环境变量文件（安全敏感）
+# ---------------
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
+# ---------------
 # 日志文件
+# ---------------
 logs/
 *.log
 npm-debug.log*
@@ -23,44 +38,105 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# 编辑器和 IDE
+# ---------------
+# 注意：server/uploads/ 目录未被忽略
+# 因为项目使用本地存储，未配置 OSS 对象存储
+# 开发者需要注意提交必要的示例图片
+# ---------------
+
+# ---------------
+# 编辑器和 IDE 配置
+# ---------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# IDEs
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# VSCode（保留部分配置文件）
 .vscode/*
 !.vscode/extensions.json
-.idea/
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 
-# 上传文件目录
-uploads/
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.webp
+# Cursor
+.cursor/
 
+# ---------------
 # 测试覆盖率
+# ---------------
 coverage/
 *.lcov
 .nyc_output/
+test-results/
 
-# 临时文件
+# ---------------
+# 临时文件和缓存
+# ---------------
 *.tmp
 *.temp
 .cache/
 .parcel-cache/
+.fusebox/
+.serverless/
+.dynamodb/
+.tern-port
 
+# ---------------
 # TypeScript
+# ---------------
 *.tsbuildinfo
 
+# ---------------
+# 包管理器缓存
+# ---------------
+.npm/
+.eslintcache
+.pnpm-store/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn-integrity
+.pnp.*
+
+# ---------------
+# 运行时数据
+# ---------------
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 诊断报告
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ---------------
+# 其他
+# ---------------
 # 可选的 npm 缓存目录
 .npm
-
-# 可选的 eslint 缓存
-.eslintcache
 
 # 可选的 REPL 历史
 .node_repl_history
@@ -70,30 +146,6 @@ coverage/
 
 # Yarn
 .yarn-integrity
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-
-# Serverless 目录
-.serverless/
-
-# FuseBox 缓存
-.fusebox/
-
-# DynamoDB Local 文件
-.dynamodb/
-
-# TernJS 端口文件
-.tern-port
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
-
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
