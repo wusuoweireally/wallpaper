@@ -1,0 +1,42 @@
+{
+  "name": "wallpaper-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "现代化的壁纸管理系统",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "dev:server": "pnpm -C server dev",
+    "dev:web": "pnpm -C web dev",
+    "build": "pnpm -r run build",
+    "build:server": "pnpm -C server build",
+    "build:web": "pnpm -C web build",
+    "lint": "pnpm -r run lint",
+    "lint:fix": "pnpm -r run lint:fix",
+    "type-check": "pnpm -r run type-check",
+    "format": "pnpm -r run format",
+    "test": "pnpm -r run test",
+    "test:e2e": "pnpm -C server test:e2e",
+    "start": "pnpm -C server start:prod",
+    "preview": "pnpm -C web preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "keywords": [
+    "wallpaper",
+    "vue3",
+    "nestjs",
+    "typescript",
+    "wallpaper-system"
+  ],
+  "author": "",
+  "license": "MIT"
+}
