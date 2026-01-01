@@ -21,6 +21,9 @@ export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
       clientSecret: configService.get<string>("GITHUB_CLIENT_SECRET") || "",
       callbackURL: configService.get<string>("GITHUB_CALLBACK_URL") || "",
       scope: ["user:email"], // 请求读取用户邮箱的权限
+      // 安全性改进：每次都强制用户在GitHub上确认账户
+      // 防止退出登录后，其他用户可以直接使用前一个用户的GitHub账户登录
+      prompt: "login",
     });
   }
 
