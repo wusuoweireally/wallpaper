@@ -314,9 +314,11 @@
                 </label>
                 <textarea
                   v-model="newComment"
-                  placeholder="分享你的见解，与作者和其他读者互动..."
+                  placeholder="分享你的见解，与作者和其他读者互动... (Ctrl + Enter 快速发表)"
                   class="textarea-bordered textarea h-32 w-full resize-none bg-white transition-colors focus:border-slate-900"
                   maxlength="1000"
+                  @keydown.enter.ctrl.exact.prevent="submitComment"
+                  @keydown.enter.shift.prevent="newComment += '\n'"
                 ></textarea>
                 <div class="mt-3 flex items-center justify-between">
                   <div class="flex items-center gap-3 text-xs text-slate-500">

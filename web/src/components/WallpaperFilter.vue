@@ -1,5 +1,5 @@
 <template>
-  <div class="from-primary/5 to-secondary/5 bg-gradient-to-r shadow-sm">
+  <div class="from-primary/5 to-secondary/5 bg-gradient-to-r shadow-sm dark:from-slate-900 dark:to-slate-900">
     <div class="container mx-auto px-4 py-5">
       <div class="flex flex-wrap items-center gap-3 sm:gap-4">
         <!-- 排序方式 -->
@@ -7,7 +7,7 @@
           <div
             tabindex="0"
             role="button"
-            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -22,13 +22,13 @@
           </div>
           <ul
             tabindex="0"
-            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
           >
             <li v-for="option in sortOptions" :key="option.value">
               <a
                 @click="updateSort(option.value)"
                 :class="{ active: props.modelValue.sortBy === option.value }"
-                class="hover:bg-primary/10 rounded-lg transition-all"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
               >
                 {{ option.label }}
               </a>
@@ -41,7 +41,7 @@
           <div
             tabindex="0"
             role="button"
-            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -58,13 +58,13 @@
           </div>
           <ul
             tabindex="0"
-            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
           >
             <li>
               <a
                 @click="updateCategory('')"
                 :class="{ active: !props.modelValue.category }"
-                class="hover:bg-primary/10 rounded-lg transition-all"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
                 >全部</a
               >
             </li>
@@ -85,7 +85,7 @@
           <div
             tabindex="0"
             role="button"
-            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -102,13 +102,13 @@
           </div>
           <ul
             tabindex="0"
-            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
           >
             <li>
               <a
                 @click="updateResolution('')"
                 :class="{ active: !props.modelValue.resolution }"
-                class="hover:bg-primary/10 rounded-lg transition-all"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
                 >全部</a
               >
             </li>
@@ -129,7 +129,7 @@
           <div
             tabindex="0"
             role="button"
-            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -146,13 +146,13 @@
           </div>
           <ul
             tabindex="0"
-            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
           >
             <li>
               <a
                 @click="updateRatio('')"
                 :class="{ active: !props.modelValue.ratio }"
-                class="hover:bg-primary/10 rounded-lg transition-all"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
                 >全部</a
               >
             </li>
@@ -176,12 +176,12 @@
               @input="handleSearchInputEvent"
               type="text"
               placeholder="输入标签关键字搜索壁纸..."
-              class="border-base-content/20 bg-base-100/80 focus:border-primary/50 focus:ring-primary/10 hover:border-base-content/30 input input-sm h-10 w-full rounded-xl border-2 pl-10 pr-10 shadow-sm transition-all focus:ring-2"
+              class="border-base-content/20 bg-base-100/80 focus:border-primary/50 focus:ring-primary/10 hover:border-base-content/30 input input-sm h-10 w-full rounded-xl border-2 pl-10 pr-10 shadow-sm transition-all focus:ring-2 dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:placeholder:text-slate-400"
               @keyup.enter.prevent="handleSearch"
             />
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="text-base-content/40 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+              class="text-base-content/40 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 dark:text-slate-400"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
@@ -191,14 +191,14 @@
             </svg>
             <button
               v-if="props.modelValue.search"
-              class="hover:bg-error/10 btn btn-ghost btn-xs absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
+              class="hover:bg-error/10 btn btn-ghost btn-xs absolute right-2 top-1/2 -translate-y-1/2 rounded-full dark:hover:bg-slate-700"
               type="button"
               @click="clearSearch"
               title="清除搜索"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                class="text-base-content/60 h-4 w-4"
+                class="text-base-content/60 h-4 w-4 dark:text-slate-300"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
@@ -211,11 +211,11 @@
             <transition name="fade">
               <div
                 v-if="showSuggestionPanel"
-                class="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-base-200 bg-base-100 p-2 shadow-xl"
+                class="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-base-200 bg-base-100 p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900"
               >
                 <div
                   v-if="searchLoading"
-                  class="text-base-content/60 flex items-center gap-2 px-2 py-3 text-sm"
+                  class="text-base-content/60 flex items-center gap-2 px-2 py-3 text-sm dark:text-slate-300"
                 >
                   <span class="loading loading-spinner loading-xs text-primary"></span>
                   搜索标签中...

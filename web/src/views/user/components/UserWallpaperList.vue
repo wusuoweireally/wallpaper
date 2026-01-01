@@ -1,38 +1,65 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-8">
     <!-- 页面标题和统计 -->
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-2xl font-bold">{{ title }}</h2>
-        <p class="mt-1 text-gray-500">共 {{ pagination.total }} 个壁纸</p>
+        <h2 class="text-3xl font-bold text-slate-900">{{ title }}</h2>
+        <p class="mt-2 text-sm text-slate-500">
+          共 <span class="font-semibold text-slate-900">{{ pagination.total }}</span> 个壁纸
+        </p>
       </div>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex justify-center py-12">
+    <div v-if="loading" class="flex justify-center py-16">
       <div class="flex flex-col items-center gap-4">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
-        <p class="text-gray-500">加载中...</p>
+        <div class="relative">
+          <div class="h-16 w-16 animate-spin rounded-full border-4 border-slate-200"></div>
+          <div
+            class="absolute left-0 top-0 h-16 w-16 animate-spin rounded-full border-4 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent"
+          ></div>
+        </div>
+        <p class="text-slate-500">加载中...</p>
       </div>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="alert alert-error">
-      <i class="i-mdi-alert-circle text-lg"></i>
-      <span>{{ error }}</span>
-      <button class="btn btn-ghost btn-sm" @click="() => fetchData()">重试</button>
+    <div
+      v-else-if="error"
+      class="flex items-center justify-between rounded-2xl border-2 border-red-200 bg-red-50 p-6"
+    >
+      <div class="flex items-center gap-3">
+        <i class="icon-[mdi--alert-circle] text-2xl text-red-500"></i>
+        <span class="font-medium text-red-900">{{ error }}</span>
+      </div>
+      <button
+        class="rounded-lg border border-red-300 bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
+        @click="() => fetchData()"
+      >
+        重试
+      </button>
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!loading && wallpapers.length === 0" class="py-16 text-center">
-      <div class="flex flex-col items-center gap-4">
-        <i class="i-mdi-image-off text-6xl text-gray-300"></i>
-        <div>
-          <h3 class="text-xl font-semibold text-gray-600">{{ emptyTitle }}</h3>
-          <p class="mt-2 text-gray-500">{{ emptyDescription }}</p>
+    <div v-else-if="!loading && wallpapers.length === 0" class="py-20 text-center">
+      <div class="flex flex-col items-center gap-6">
+        <div class="relative">
+          <div
+            class="absolute inset-0 rounded-full bg-gradient-to-r from-purple-200/50 to-pink-200/50 blur-3xl"
+          ></div>
+          <i class="icon-[mdi--image-off] relative text-8xl text-slate-300"></i>
         </div>
-        <button v-if="emptyAction" class="btn btn-primary mt-4" @click="emptyAction.handler">
+        <div>
+          <h3 class="text-2xl font-semibold text-slate-700">{{ emptyTitle }}</h3>
+          <p class="mt-3 text-slate-500">{{ emptyDescription }}</p>
+        </div>
+        <button
+          v-if="emptyAction"
+          class="group mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 px-8 py-3 font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl"
+          @click="emptyAction.handler"
+        >
           {{ emptyAction.text }}
+          <i class="icon-[mdi--arrow-right] text-lg transition-transform group-hover:translate-x-1"></i>
         </button>
       </div>
     </div>
@@ -49,32 +76,38 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="!loading && wallpapers.length > 0" class="flex justify-center">
-      <div class="join">
+    <div v-if="!loading && wallpapers.length > 0" class="flex justify-center pt-4">
+      <div class="inline-flex items-center gap-2 rounded-2xl bg-white/90 p-2 shadow-lg shadow-slate-200/60 ring-1 ring-black/5">
         <button
-          class="btn btn-sm join-item"
+          class="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
           :disabled="pagination.page <= 1"
           @click="handlePageChange(pagination.page - 1)"
         >
-          <i class="i-mdi-chevron-left"></i>
+          <i class="icon-[mdi--chevron-left] text-xl"></i>
         </button>
 
-        <button
-          v-for="page in visiblePages"
-          :key="page"
-          class="btn btn-sm join-item"
-          :class="{ 'btn-active': page === pagination.page }"
-          @click="handlePageChange(page)"
-        >
-          {{ page }}
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            class="flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl text-sm font-semibold transition-all"
+            :class="
+              page === pagination.page
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-500 text-white shadow-md'
+                : 'text-slate-700 hover:bg-slate-100'
+            "
+            @click="handlePageChange(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
 
         <button
-          class="btn btn-sm join-item"
+          class="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
           :disabled="pagination.page >= pagination.pages"
           @click="handlePageChange(pagination.page + 1)"
         >
-          <i class="i-mdi-chevron-right"></i>
+          <i class="icon-[mdi--chevron-right] text-xl"></i>
         </button>
       </div>
     </div>

@@ -5,21 +5,23 @@
       <div
         v-for="index in skeletonCount"
         :key="`skeleton-${index}`"
-        class="h-60 animate-pulse rounded-[1.75rem] bg-gradient-to-br from-slate-100 via-slate-50 to-white shadow-inner shadow-black/5"
+        class="h-60 animate-pulse rounded-[1.75rem] bg-gradient-to-br from-slate-100 via-slate-50 to-white shadow-inner shadow-black/5 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950"
       ></div>
     </div>
 
     <!-- 空状态 -->
     <div
       v-else-if="wallpapers.length === 0"
-      class="mx-auto flex max-w-xl flex-col items-center gap-5 rounded-3xl border border-dashed border-slate-200 bg-white/80 px-10 py-16 text-center shadow-sm"
+      class="mx-auto flex max-w-xl flex-col items-center gap-5 rounded-3xl border border-dashed border-slate-200 bg-white/80 px-10 py-16 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800/70"
     >
-      <div class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
-        <i class="i-mdi-image-off text-4xl text-slate-400"></i>
+      <div
+        class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900"
+      >
+        <i class="i-mdi-image-off text-4xl text-slate-400 dark:text-slate-500"></i>
       </div>
       <div>
-        <p class="text-lg font-semibold text-slate-800">暂无满足条件的壁纸</p>
-        <p class="mt-2 text-sm text-slate-500">
+        <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">暂无满足条件的壁纸</p>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">
           尝试调整筛选条件或换一个关键词，也可以上传你的第一张作品
         </p>
       </div>
@@ -168,6 +170,6 @@ const visiblePages = computed(() => {
 .auto-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1rem;
+  gap: 0.5rem;
 }
 </style>

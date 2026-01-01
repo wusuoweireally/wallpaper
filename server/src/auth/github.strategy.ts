@@ -4,6 +4,13 @@ import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-github2";
 import { GitHubProfile, PassportGitHubProfile } from "../dto/github.dto";
 
+// 扩展 passport-github2 的类型定义，支持 prompt 参数
+declare module "passport-github2" {
+  interface IStrategyOptions {
+    prompt?: string;
+  }
+}
+
 /**
  * GitHub OAuth 2.0 认证策略
  *
@@ -21,10 +28,8 @@ export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
       clientSecret: configService.get<string>("GITHUB_CLIENT_SECRET") || "",
       callbackURL: configService.get<string>("GITHUB_CALLBACK_URL") || "",
       scope: ["user:email"], // 请求读取用户邮箱的权限
-      // 安全性改进：每次都强制用户在GitHub上确认账户
-      // 防止退出登录后，其他用户可以直接使用前一个用户的GitHub账户登录
-      prompt: "login",
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   }
 
   /**

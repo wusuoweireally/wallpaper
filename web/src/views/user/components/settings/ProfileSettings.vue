@@ -1,14 +1,16 @@
 <template>
-  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
     <div class="p-8">
       <!-- 头部区域 -->
-      <div class="mb-8 flex items-center gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50">
-          <i class="i-mdi-account text-xl text-purple-600"></i>
+      <div class="mb-8 flex items-center gap-4">
+        <div
+          class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 shadow-lg shadow-purple-500/30"
+        >
+          <i class="icon-[mdi--account] text-2xl text-white"></i>
         </div>
         <div>
-          <h3 class="text-xl font-semibold text-gray-900">个人信息</h3>
-          <p class="mt-1 text-sm text-gray-500">完善个人资料，让其他用户更好地了解你</p>
+          <h3 class="text-2xl font-bold text-slate-900">个人信息</h3>
+          <p class="mt-1 text-sm text-slate-500">完善个人资料，让其他用户更好地了解你</p>
         </div>
       </div>
 
@@ -18,7 +20,7 @@
           <div class="flex flex-col items-center">
             <div class="group relative">
               <div
-                class="h-32 w-32 overflow-hidden rounded-full border-4 border-gray-100 shadow-lg"
+                class="h-36 w-36 overflow-hidden rounded-full border-4 border-white shadow-xl shadow-purple-500/20"
               >
                 <img
                   v-if="userStore.user || avatarPreview"
@@ -27,29 +29,32 @@
                   class="h-full w-full object-cover"
                   @error="handleImageError"
                 />
-                <div v-else class="flex h-full w-full items-center justify-center bg-gray-200">
-                  <i class="i-mdi-account text-3xl text-gray-400"></i>
+                <div
+                  v-else
+                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200"
+                >
+                  <i class="icon-[mdi--account] text-4xl text-slate-400"></i>
                 </div>
               </div>
               <!-- 头像上传按钮 -->
               <label
-                class="absolute inset-0 flex h-32 w-32 cursor-pointer items-center justify-center rounded-full bg-black bg-opacity-50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                class="absolute inset-0 flex h-36 w-36 cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100"
               >
-                <i class="i-mdi-camera text-2xl text-white"></i>
+                <i class="icon-[mdi--camera] text-3xl text-white"></i>
                 <input type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
               </label>
             </div>
 
-            <div class="mt-4 text-center">
-              <h4 class="font-medium text-gray-900">个人头像</h4>
-              <p class="mt-1 text-sm text-gray-500">JPG, PNG, WebP 格式</p>
-              <p class="text-xs text-gray-400">建议 256×256 像素</p>
+            <div class="mt-5 text-center">
+              <h4 class="text-lg font-semibold text-slate-900">个人头像</h4>
+              <p class="mt-2 text-sm text-slate-500">JPG, PNG, WebP 格式</p>
+              <p class="text-xs text-slate-400">建议 256×256 像素</p>
             </div>
 
             <label
-              class="mt-4 cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50"
+              class="mt-5 cursor-pointer rounded-xl border-2 border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:border-purple-300 hover:bg-purple-50"
             >
-              <i class="i-mdi-upload mr-2"></i>
+              <i class="icon-[mdi--upload] mr-2"></i>
               选择图片
               <input type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
             </label>
@@ -60,44 +65,44 @@
         <div class="space-y-6 lg:col-span-2">
           <!-- 用户名 -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700"> 用户名 </label>
+            <label class="block text-sm font-semibold text-slate-700"> 用户名 </label>
             <input
               type="text"
               v-model="profileForm.username"
               placeholder="请输入用户名"
-              class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+              class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
             />
-            <p class="text-xs text-gray-500">用于展示在个人主页中，建议使用独特易记的名称</p>
+            <p class="text-xs text-slate-500">用于展示在个人主页中，建议使用独特易记的名称</p>
           </div>
 
           <!-- 邮箱 -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700"> 邮箱地址 </label>
+            <label class="block text-sm font-semibold text-slate-700"> 邮箱地址 </label>
             <input
               type="email"
               v-model="profileForm.email"
               placeholder="请输入邮箱地址（可选）"
-              class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+              class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
             />
-            <p class="text-xs text-gray-500">用于接收安全通知，若不填写将无法找回密码</p>
+            <p class="text-xs text-slate-500">用于接收安全通知，若不填写将无法找回密码</p>
           </div>
 
           <!-- 个人简介 -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700"> 个人简介 </label>
+            <label class="block text-sm font-semibold text-slate-700"> 个人简介 </label>
             <div class="relative">
               <textarea
                 v-model="profileForm.bio"
                 placeholder="简单介绍一下自己，分享你的创作灵感和兴趣..."
-                class="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                class="w-full resize-none rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
                 rows="4"
                 maxlength="500"
               ></textarea>
-              <div class="absolute bottom-3 right-3 text-xs text-gray-400">
+              <div class="absolute bottom-3 right-3 rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-500">
                 {{ profileForm.bio?.length || 0 }}/500
               </div>
             </div>
-            <p class="text-xs text-gray-500">展示在公共主页，支持 Markdown 基础语法</p>
+            <p class="text-xs text-slate-500">展示在公共主页，支持 Markdown 基础语法</p>
           </div>
         </div>
       </div>
@@ -105,42 +110,47 @@
       <!-- 上传状态提示 -->
       <div
         v-if="loading && avatarFile"
-        class="mt-6 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4"
+        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-sky-200 bg-sky-50 p-4"
       >
-        <i class="i-mdi-loading animate-spin text-xl text-blue-500"></i>
-        <span class="text-blue-800">正在上传头像，请稍候...</span>
+        <div class="relative">
+          <div class="h-5 w-5 animate-spin rounded-full border-2 border-sky-300"></div>
+          <div
+            class="absolute left-0 top-0 h-5 w-5 animate-spin rounded-full border-2 border-t-sky-500 border-r-transparent border-b-transparent border-l-transparent"
+          ></div>
+        </div>
+        <span class="font-medium text-sky-900">正在上传头像，请稍候...</span>
       </div>
 
       <!-- 错误提示 -->
       <div
         v-if="error"
-        class="mt-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4"
+        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-red-200 bg-red-50 p-4"
       >
-        <i class="i-mdi-alert-circle text-xl text-red-500"></i>
-        <span class="text-red-800">{{ error }}</span>
+        <i class="icon-[mdi--alert-circle] text-2xl text-red-500"></i>
+        <span class="font-medium text-red-900">{{ error }}</span>
       </div>
 
       <!-- 成功提示 -->
       <div
         v-if="success"
-        class="mt-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4"
+        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4"
       >
-        <i class="i-mdi-check-circle text-xl text-green-500"></i>
-        <span class="text-green-800">{{ success }}</span>
+        <i class="icon-[mdi--check-circle] text-2xl text-emerald-500"></i>
+        <span class="font-medium text-emerald-900">{{ success }}</span>
       </div>
 
       <!-- 操作区域 -->
-      <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <i class="i-mdi-information text-purple-500"></i>
+      <div class="mt-8 flex items-center justify-between border-t-2 border-slate-100 pt-6">
+        <div class="flex items-center gap-2 text-sm text-slate-500">
+          <i class="icon-[mdi--information] text-lg text-purple-500"></i>
           <span>所有修改将实时同步，保存后立即生效</span>
         </div>
         <button
           @click="updateProfile"
           :disabled="loading || !hasChanges"
-          class="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 font-medium text-white shadow-sm transition-colors duration-200 hover:bg-purple-700 hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-300"
+          class="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 px-8 py-3 font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-400 disabled:shadow-none"
         >
-          <i v-if="loading" class="i-mdi-loading animate-spin"></i>
+          <i v-if="loading" class="icon-[mdi--loading] animate-spin"></i>
           {{ loading ? "保存中..." : "保存修改" }}
         </button>
       </div>

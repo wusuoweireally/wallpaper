@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100;
+  }
+
+  body {
+    @apply bg-inherit text-inherit;
+  }
+}
+
 /* 自定义 prose 样式用于富文本内容 */
 .prose {
   @apply max-w-none text-base-content;

@@ -1,12 +1,14 @@
 <template>
-  <div class="app-container">
+  <div
+    class="min-h-screen flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300"
+  >
     <!-- 条件渲染导航栏 -->
     <transition name="navbar" appear>
       <NavBar v-if="shouldShowNavBar" />
     </transition>
 
     <!-- 主要内容区域 -->
-    <main class="main-content" :class="{ 'no-navbar': !shouldShowNavBar }">
+    <main class="flex-1 transition-[margin-top] duration-300 ease-in-out" :class="{ 'min-h-screen': !shouldShowNavBar }">
       <RouterView />
     </main>
   </div>
@@ -32,22 +34,7 @@ const shouldShowNavBar = computed(() => {
 </script>
 
 <style scoped>
-.app-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main-content {
-  flex: 1;
-}
-
-.main-content.no-navbar {
-  /* 当没有导航栏时，内容占满整个视口高度 */
-  min-height: 100vh;
-}
-
-/* 导航栏过渡动画 */
+/* 导航栏过渡动画 - 必须保留，用于 Vue transition 组件 */
 .navbar-enter-active,
 .navbar-leave-active {
   transition: all 0.3s ease;
@@ -61,14 +48,5 @@ const shouldShowNavBar = computed(() => {
 .navbar-leave-to {
   opacity: 0;
   transform: translateY(-100%);
-}
-
-/* 确保页面切换时的平滑过渡 */
-.main-content {
-  transition: margin-top 0.3s ease;
-}
-
-.main-content.no-navbar {
-  margin-top: 0;
 }
 </style>

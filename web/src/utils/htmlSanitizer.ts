@@ -6,7 +6,7 @@
  * @see https://github.com/cure53/DOMPurify
  */
 
-import * as DOMPurify from "dompurify"
+import DOMPurify from "dompurify"
 
 /**
  * 允许的 HTML 标签白名单

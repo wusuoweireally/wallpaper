@@ -1,149 +1,197 @@
 <template>
-  <div class="detail-shell">
-    <nav class="detail-nav">
-      <button class="nav-btn" @click="$router.back()">
-        <i class="i-mdi-arrow-left text-lg"></i>
-        返回
-      </button>
-      <button class="nav-icon-btn" @click="handleShare">
-        <i class="i-mdi-share-variant text-lg"></i>
-      </button>
-    </nav>
-
-    <div v-if="loading" class="detail-loader">
+  <div class="min-h-screen bg-slate-50 py-6 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+    <div v-if="loading" class="flex justify-center py-16">
       <span class="loading loading-spinner loading-lg text-primary"></span>
     </div>
 
-    <div v-else-if="error" class="detail-error">
-      <div class="detail-error__card">
-        <i class="i-mdi-alert-circle text-xl"></i>
+    <div v-else-if="error" class="flex justify-center px-4 py-12">
+      <div
+        class="inline-flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200"
+      >
+        <svg
+          class="h-5 w-5"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 9v3.75m0 3a.375.375 0 1 1 0 .75.375.375 0 0 1 0-.75ZM10.5 3.75h3L21 18.75H3L10.5 3.75Z"
+          />
+        </svg>
         <span>{{ error }}</span>
       </div>
     </div>
 
-    <div v-else class="detail-container">
-      <header class="detail-header">
-        <p class="detail-kicker">WALLPAPER STORY</p>
-        <div class="detail-title-row">
-          <h1 class="detail-title">
-            {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
-          </h1>
-          <span class="detail-id">ID · {{ wallpaper.id }}</span>
+    <div v-else class="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1400px] grid-cols-1 items-stretch gap-5 px-4 lg:grid-cols-[320px_1fr]">
+      <aside
+        class="flex h-full flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
+      >
+        <div
+          class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+        >
+          <h3 class="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-300">标签</h3>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span
+              v-for="tag in wallpaper.tags"
+              :key="tag"
+              class="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-800 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-100"
+            >
+              {{ tag }}
+            </span>
+            <span
+              v-if="wallpaper.tags.length === 0"
+              class="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            >
+              暂无标签
+            </span>
+          </div>
         </div>
-        <p v-if="wallpaper.description" class="detail-desc">
-          {{ wallpaper.description }}
-        </p>
-        <div class="detail-meta">
-          <span class="meta-pill">分类：{{ categoryLabel }}</span>
-          <span class="meta-pill">上传：{{ wallpaper.uploadDate }}</span>
-          <span class="meta-pill"> {{ wallpaper.width }} × {{ wallpaper.height }} px </span>
-        </div>
-      </header>
 
-      <div class="detail-grid">
-        <section class="media-card">
-          <div class="media-frame">
-            <img :src="wallpaper.imageUrl" class="media-img" @load="imageLoaded = true" />
-            <div v-if="!imageLoaded" class="media-loader">
-              <span class="loading loading-spinner loading-lg"></span>
+        <div
+          class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+        >
+          <h3 class="text-sm font-bold tracking-wide text-slate-500 dark:text-slate-300">上传者</h3>
+          <div class="flex items-center gap-3">
+            <div
+              class="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+            >
+              <img
+                :src="wallpaper.uploader.avatar"
+                :alt="wallpaper.uploader.name"
+                @error="handleAvatarError"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <div>
+              <p class="font-semibold">{{ wallpaper.uploader.name }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ wallpaper.uploadDate }}</p>
             </div>
           </div>
-          <div class="media-actions">
-            <button
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span class="text-xs text-slate-500 dark:text-slate-400">分类</span>
+              <span class="font-semibold">{{ categoryLabel }}</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span class="text-xs text-slate-500 dark:text-slate-400">点赞</span>
+              <span class="font-semibold">{{ wallpaper.likes }}</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span class="text-xs text-slate-500 dark:text-slate-400">收藏</span>
+              <span class="font-semibold">{{ wallpaper.favorites }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+        >
+          <button
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-gradient-to-r from-emerald-400 to-cyan-300 px-3 py-2 font-semibold text-slate-900 shadow-lg shadow-emerald-200/50"
+            :class="{ 'opacity-90 ring-2 ring-emerald-300': isLiked }"
+            @click="handleLike"
+          >
+            <svg
+              class="h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C4.099 3.75 2 5.765 2 8.25c0 7.22 8 12 8 12s8-4.78 8-12Z"
+              />
+            </svg>
+            {{ isLiked ? "已点赞" : "点赞" }}
+          </button>
+          <button
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-gradient-to-r from-amber-300 to-orange-400 px-3 py-2 font-semibold text-slate-900 shadow-lg shadow-amber-200/50"
+            :class="{ 'opacity-90 ring-2 ring-amber-300': isFavorited }"
+            @click="handleFavorite"
+          >
+            <svg
+              class="h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m11.48 3.499-2.27 4.61a.75.75 0 0 1-.564.41l-5.067.736c-.613.089-.857.843-.414 1.276l3.664 3.57a.75.75 0 0 1 .216.664l-.864 5.04c-.105.616.54 1.088 1.09.797l4.52-2.377a.75.75 0 0 1 .698 0l4.52 2.377c.55.29 1.195-.18 1.09-.798l-.864-5.039a.75.75 0 0 1 .216-.663l3.664-3.57c.443-.433.199-1.187-.414-1.276l-5.067-.737a.75.75 0 0 1-.564-.409l-2.27-4.611a.75.75 0 0 0-1.354 0Z"
+              />
+            </svg>
+            {{ isFavorited ? "已收藏" : "收藏" }}
+          </button>
+          <button
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            @click="downloadWallpaper"
+          >
+            <svg
+              class="h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3v12m0 0 3.75-3.75M12 15 8.25 11.25M4.5 15.75V18A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25"
+              />
+            </svg>
+            下载
+          </button>
+          <p v-if="shareNotice" class="text-sm font-semibold text-emerald-500">
+            {{ shareNotice }}
+          </p>
+        </div>
+      </aside>
+
+      <main
+        class="flex h-full flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-sm font-semibold text-slate-600 dark:text-slate-300">
+            {{ wallpaper.width }} × {{ wallpaper.height }} px · {{ wallpaper.fileSize }} ·
+            {{ wallpaper.format || "未知格式" }}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span
               v-for="resolution in wallpaper.resolutions"
               :key="resolution"
-              class="resolution-btn"
-              @click="selectResolution(resolution)"
+              class="rounded-full border border-cyan-200 bg-cyan-100 px-3 py-1 text-sm font-semibold text-cyan-800 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-100"
             >
               {{ resolution }}
-            </button>
+            </span>
           </div>
-        </section>
-
-        <aside class="info-panel">
-          <div class="info-section">
-            <h3 class="info-title">标签</h3>
-            <div class="tag-list">
-              <span v-for="tag in wallpaper.tags" :key="tag" class="tag-chip">
-                {{ tag }}
-              </span>
-            </div>
+        </div>
+        <div
+          class="relative w-full flex-1 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900"
+        >
+          <img
+            :src="wallpaper.imageUrl"
+            class="h-full w-full object-contain"
+            @load="imageLoaded = true"
+          />
+          <div
+            v-if="!imageLoaded"
+            class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70"
+          >
+            <span class="loading loading-spinner loading-lg"></span>
           </div>
-
-          <div class="info-section">
-            <h3 class="info-title">尺寸与格式</h3>
-            <p class="info-text">{{ wallpaper.width }} × {{ wallpaper.height }} px</p>
-            <p class="info-subtext">
-              {{ wallpaper.fileSize }} · {{ wallpaper.format || "未知格式" }}
-            </p>
-          </div>
-
-          <div class="info-section">
-            <h3 class="info-title">上传者</h3>
-            <div class="uploader">
-              <div class="uploader-avatar">
-                <img
-                  :src="wallpaper.uploader.avatar"
-                  :alt="wallpaper.uploader.name"
-                  @error="handleAvatarError"
-                />
-              </div>
-              <div>
-                <p class="uploader-name">
-                  {{ wallpaper.uploader.name }}
-                </p>
-                <p class="uploader-time">{{ wallpaper.uploadDate }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-grid">
-            <div class="stat-pill">
-              <i class="i-mdi-thumb-up text-base text-emerald-600"></i>
-              <div>
-                <p class="stat-label">点赞</p>
-                <p class="stat-value">{{ wallpaper.likes }}</p>
-              </div>
-            </div>
-            <div class="stat-pill">
-              <i class="i-mdi-star text-base text-amber-500"></i>
-              <div>
-                <p class="stat-label">收藏</p>
-                <p class="stat-value">{{ wallpaper.favorites }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="action-row">
-            <button
-              class="action-btn action-btn--like"
-              :class="{ 'is-active': isLiked }"
-              @click="handleLike"
-            >
-              <i class="i-mdi-heart text-sm"></i>
-              {{ isLiked ? "已点赞" : "点赞" }}
-            </button>
-            <button
-              class="action-btn action-btn--favorite"
-              :class="{ 'is-active': isFavorited }"
-              @click="handleFavorite"
-            >
-              <i class="i-mdi-star text-sm"></i>
-              {{ isFavorited ? "已收藏" : "收藏" }}
-            </button>
-          </div>
-
-          <div class="action-stack">
-            <button class="action-cta" @click="downloadWallpaper">
-              <i class="i-mdi-download text-base"></i>
-              下载壁纸
-            </button>
-            <p v-if="shareNotice" class="share-notice">
-              {{ shareNotice }}
-            </p>
-          </div>
-        </aside>
-      </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>
@@ -154,7 +202,6 @@ import { useRoute } from "vue-router"
 import { wallpaperService } from "@/services/wallpaper"
 import { useUserStore } from "@/stores"
 
-// 壁纸详情接口
 interface WallpaperDetail {
   id: number
   title: string
@@ -188,7 +235,6 @@ const error = ref<string | null>(null)
 const detailTimeoutId = ref<NodeJS.Timeout | null>(null)
 const shareNotice = ref("")
 
-// 壁纸详情数据
 const wallpaper = ref<WallpaperDetail>({
   id: 0,
   title: "",
@@ -219,12 +265,10 @@ const categoryLabelMap = {
 
 const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
 
-// 页面加载时获取壁纸详情
 onMounted(() => {
   fetchWallpaperDetail()
 })
 
-// 获取壁纸详情
 const fetchWallpaperDetail = async () => {
   loading.value = true
   error.value = null
@@ -235,18 +279,15 @@ const fetchWallpaperDetail = async () => {
       throw new Error("无效的壁纸ID")
     }
 
-    // 同时获取壁纸详情和关联标签
     const [wallpaperResponse, tagsResponse] = await Promise.all([
       wallpaperService.getWallpaperDetail(id),
       wallpaperService.getWallpaperTags(id),
     ])
 
-    // 检查响应是否成功
     if (!wallpaperResponse.success) {
       throw new Error(wallpaperResponse.message || "获取壁纸详情失败")
     }
 
-    // 转换API数据格式以匹配组件接口
     wallpaper.value = {
       id: wallpaperResponse.data.id,
       title: wallpaperResponse.data.title || "",
@@ -260,39 +301,32 @@ const fetchWallpaperDetail = async () => {
       width: wallpaperResponse.data.width,
       height: wallpaperResponse.data.height,
       fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
-      tags: tagsResponse.success ? tagsResponse.data.map((tag: any) => tag.name) : [], // 从标签接口获取标签名称
+      tags: tagsResponse.success ? tagsResponse.data.map((tag: any) => tag.name) : [],
       uploader: {
         id: wallpaperResponse.data.uploaderId,
         name: wallpaperResponse.data.uploader?.username || "未知用户",
-        avatar: wallpaperResponse.data.uploader?.avatarUrl || "", // 使用后端处理后的完整头像URL
+        avatar: wallpaperResponse.data.uploader?.avatarUrl || "",
       },
       uploadDate: new Date(wallpaperResponse.data.createdAt).toLocaleDateString(),
       likes: wallpaperResponse.data.likeCount,
       favorites: wallpaperResponse.data.favoriteCount,
-      resolutions: [`${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`], // 简化处理
+      resolutions: [`${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`],
     }
 
-    // 初始化点赞和收藏状态（如果API返回则使用，否则设为false）
     isLiked.value = wallpaperResponse.data.isLiked || false
     isFavorited.value = wallpaperResponse.data.isFavorited || false
   } catch (err: any) {
     console.error("获取壁纸详情失败:", err)
-
-    // 静默处理请求被取消的情况，不显示错误信息
     if (err.message === "请求已取消" || err.name === "REQUEST_CANCELLED" || err.isCancelled) {
       return
     }
-
-    // 其他错误才显示错误信息
     error.value = err instanceof Error ? err.message : "获取壁纸详情失败"
   } finally {
     loading.value = false
   }
 }
 
-// 处理点赞
 const handleLike = async () => {
-  // 检查登录状态
   if (!userStore.isLoggedIn) {
     alert("请先登录后再点赞")
     return
@@ -304,34 +338,21 @@ const handleLike = async () => {
     return
   }
 
-  // 保存当前状态用于错误回滚
   const previousLiked = isLiked.value
   const previousLikes = wallpaper.value.likes
-
-  // 确定要执行的操作（根据当前状态）
   const shouldLike = !previousLiked
-
-  // 乐观更新UI
   isLiked.value = shouldLike
-  if (shouldLike) {
-    wallpaper.value.likes++
-  } else {
-    wallpaper.value.likes--
-  }
+  wallpaper.value.likes += shouldLike ? 1 : -1
 
   try {
-    // 调用API
     if (shouldLike) {
       await wallpaperService.likeWallpaper(id)
     } else {
       await wallpaperService.unlikeWallpaper(id)
     }
   } catch (err: any) {
-    // API调用失败，回滚状态
     isLiked.value = previousLiked
     wallpaper.value.likes = previousLikes
-
-    // 处理错误
     if (err.response?.status === 401) {
       alert("登录已过期，请重新登录")
     } else {
@@ -342,9 +363,7 @@ const handleLike = async () => {
   }
 }
 
-// 处理收藏
 const handleFavorite = async () => {
-  // 检查登录状态
   if (!userStore.isLoggedIn) {
     alert("请先登录后再收藏")
     return
@@ -356,34 +375,21 @@ const handleFavorite = async () => {
     return
   }
 
-  // 保存当前状态用于错误回滚
   const previousFavorited = isFavorited.value
   const previousFavorites = wallpaper.value.favorites
-
-  // 确定要执行的操作（根据当前状态）
   const shouldFavorite = !previousFavorited
-
-  // 乐观更新UI
   isFavorited.value = shouldFavorite
-  if (shouldFavorite) {
-    wallpaper.value.favorites++
-  } else {
-    wallpaper.value.favorites--
-  }
+  wallpaper.value.favorites += shouldFavorite ? 1 : -1
 
   try {
-    // 调用API
     if (shouldFavorite) {
       await wallpaperService.favoriteWallpaper(id)
     } else {
       await wallpaperService.unfavoriteWallpaper(id)
     }
   } catch (err: any) {
-    // API调用失败，回滚状态
     isFavorited.value = previousFavorited
     wallpaper.value.favorites = previousFavorites
-
-    // 处理错误
     if (err.response?.status === 401) {
       alert("登录已过期，请重新登录")
     } else {
@@ -394,17 +400,10 @@ const handleFavorite = async () => {
   }
 }
 
-// 处理头像加载失败
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  // 设置默认头像
   img.src = "/uploads/profile-pictures/defaultAvatar.png"
-  img.onerror = null // 防止无限循环
-}
-
-// 选择分辨率
-const selectResolution = (_resolution: string) => {
-  // TODO: 这里可以处理分辨率选择逻辑，比如显示不同分辨率的图片
+  img.onerror = null
 }
 
 const pushShareNotice = (message: string) => {
@@ -414,33 +413,11 @@ const pushShareNotice = (message: string) => {
   }, 2500)
 }
 
-const handleShare = async () => {
-  const shareUrl = `${window.location.origin}/wallpaper/${wallpaper.value.id}`
-  const shareTitle = wallpaper.value.title || "随心壁纸"
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: shareTitle,
-        text: wallpaper.value.description || shareTitle,
-        url: shareUrl,
-      })
-      pushShareNotice("已发起分享")
-      return
-    }
-    await navigator.clipboard.writeText(shareUrl)
-    pushShareNotice("链接已复制")
-  } catch (err) {
-    console.error("分享失败:", err)
-    pushShareNotice("分享失败，请稍后重试")
-  }
-}
-
 const downloadWallpaper = () => {
   if (!wallpaper.value.imageUrl) {
     pushShareNotice("图片链接无效，无法下载")
     return
   }
-
   const fileName = `${wallpaper.value.title || "wallpaper"}-${wallpaper.value.id}`
   const link = document.createElement("a")
   link.href = wallpaper.value.imageUrl
@@ -452,451 +429,11 @@ const downloadWallpaper = () => {
   pushShareNotice("开始下载壁纸")
 }
 
-// 组件卸载时清理所有pending请求和计时器
 onUnmounted(() => {
-  // 清理可能存在的重试计时器
   if (detailTimeoutId.value) {
     clearTimeout(detailTimeoutId.value)
     detailTimeoutId.value = null
   }
-
-  // 重置加载状态
   loading.value = false
 })
 </script>
-
-<style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Sora:wght@400;500;600;700&display=swap");
-
-.detail-shell {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(251, 191, 36, 0.18), transparent 50%),
-    radial-gradient(circle at 88% 80%, rgba(15, 118, 110, 0.18), transparent 55%),
-    linear-gradient(135deg, #f8f3ea, #f1efe9 50%, #eef2f1);
-  color: #0f172a;
-  font-family: "Sora", "Noto Sans SC", sans-serif;
-}
-
-.detail-nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  background: rgba(249, 246, 238, 0.88);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-  backdrop-filter: blur(10px);
-}
-
-.nav-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  background: rgba(255, 255, 255, 0.7);
-  font-weight: 600;
-  color: #0f172a;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.nav-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
-}
-
-.nav-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  background: rgba(255, 255, 255, 0.7);
-  color: #0f172a;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.nav-icon-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
-}
-
-.detail-loader {
-  display: flex;
-  justify-content: center;
-  padding: 4rem 0;
-}
-
-.detail-error {
-  display: flex;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-}
-
-.detail-error__card {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-radius: 16px;
-  background: rgba(254, 226, 226, 0.8);
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #b91c1c;
-  font-weight: 600;
-}
-
-.detail-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
-}
-
-.detail-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-}
-
-.detail-kicker {
-  font-size: 0.72rem;
-  letter-spacing: 0.45em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: rgba(15, 118, 110, 0.7);
-}
-
-.detail-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-
-.detail-title {
-  font-family: "Cormorant Garamond", "Noto Serif SC", serif;
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.detail-id {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(15, 23, 42, 0.7);
-}
-
-.detail-desc {
-  font-size: 1rem;
-  color: #475569;
-  max-width: 640px;
-}
-
-.detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.meta-pill {
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(15, 118, 110, 0.12);
-  color: #0f766e;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 2rem;
-}
-
-.media-card {
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 26px;
-  padding: 1.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow: 0 32px 60px rgba(15, 23, 42, 0.12);
-}
-
-.media-frame {
-  position: relative;
-  border-radius: 20px;
-  padding: 0.75rem;
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.18), rgba(251, 191, 36, 0.2));
-  overflow: hidden;
-}
-
-.media-img {
-  width: 100%;
-  height: 100%;
-  max-height: 520px;
-  object-fit: contain;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
-  transition: transform 0.35s ease;
-}
-
-.media-img:hover {
-  transform: scale(1.01);
-}
-
-.media-loader {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.media-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.2rem;
-}
-
-.resolution-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  background: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #0f172a;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.resolution-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
-}
-
-.info-panel {
-  background: rgba(255, 255, 255, 0.88);
-  border-radius: 26px;
-  padding: 1.75rem;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow: 0 28px 55px rgba(15, 23, 42, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.info-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.6);
-}
-
-.info-text {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.info-subtext {
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag-chip {
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 118, 110, 0.25);
-  background: rgba(15, 118, 110, 0.08);
-  color: #0f766e;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.uploader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.uploader-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: #fff;
-}
-
-.uploader-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.uploader-name {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.uploader-time {
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.stat-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.6);
-}
-
-.stat-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.action-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  font-weight: 600;
-  font-size: 0.9rem;
-  background: rgba(255, 255, 255, 0.85);
-  color: #0f172a;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
-}
-
-.action-btn--like.is-active {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #0f766e;
-}
-
-.action-btn--favorite.is-active {
-  background: rgba(245, 158, 11, 0.18);
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #b45309;
-}
-
-.action-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.action-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  width: 100%;
-  border-radius: 16px;
-  padding: 0.85rem 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(120deg, #0f766e, #f59e0b);
-  box-shadow: 0 20px 35px rgba(15, 23, 42, 0.18);
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.action-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.22);
-}
-
-.share-notice {
-  font-size: 0.85rem;
-  color: #0f766e;
-  font-weight: 600;
-}
-
-@media (max-width: 1024px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .media-img {
-    max-height: 420px;
-  }
-}
-
-@media (max-width: 640px) {
-  .detail-title {
-    font-size: 2.2rem;
-  }
-
-  .detail-container {
-    padding: 2rem 1rem 3rem;
-  }
-}
-</style>
