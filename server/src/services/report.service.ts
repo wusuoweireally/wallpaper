@@ -18,6 +18,18 @@ import {
   ReportTargetType,
 } from "../entities/report.entity";
 
+// TypeORM 查询结果类型
+
+interface ReportStatsByReason {
+  reason: string;
+  count: number;
+}
+
+interface ReportStatsByType {
+  targetType: string;
+  count: number;
+}
+
 @Injectable()
 export class ReportService {
   constructor(
@@ -215,7 +227,7 @@ export class ReportService {
       .select("report.reason", "reason")
       .addSelect("COUNT(*)", "count")
       .groupBy("report.reason")
-      .getRawMany();
+      .getRawMany<ReportStatsByReason>();
 
     // 按类型统计
     const statsByType = await this.reportRepository
@@ -223,7 +235,7 @@ export class ReportService {
       .select("report.targetType", "targetType")
       .addSelect("COUNT(*)", "count")
       .groupBy("report.targetType")
-      .getRawMany();
+      .getRawMany<ReportStatsByType>();
 
     return {
       total,

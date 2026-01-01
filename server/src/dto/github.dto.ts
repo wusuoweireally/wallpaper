@@ -1,4 +1,36 @@
 /**
+ * Passport-GitHub2 的 profile 参数接口
+ * 来自 passport-github2 返回的原始数据
+ */
+export interface PassportGitHubProfile {
+  id: number;
+  username: string;
+  displayName?: string;
+  _json: {
+    avatar_url: string;
+    bio: string | null;
+    email: string | null;
+    name: string | null;
+    html_url: string;
+    location: string | null;
+    blog: string | null;
+    company: string | null;
+    public_repos: number;
+    followers: number;
+    following: number;
+    created_at: string;
+    updated_at: string;
+  };
+  emails?: Array<{
+    value: string;
+    primary: boolean;
+    verified: boolean;
+    visibility: string | null;
+  }>;
+  provider?: string;
+}
+
+/**
  * GitHub 用户资料接口
  * 从 GitHub OAuth API 返回的用户信息
  */

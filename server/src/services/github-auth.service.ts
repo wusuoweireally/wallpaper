@@ -87,8 +87,10 @@ export class GitHubAuthService {
     // 保存到数据库
     try {
       const savedUsers = await this.userRepository.save(newUser);
-      const savedUser = Array.isArray(savedUsers) ? savedUsers[0] : savedUsers;
-      return savedUser as User;
+      const savedUser: User = Array.isArray(savedUsers)
+        ? savedUsers[0]
+        : savedUsers;
+      return savedUser;
     } catch (error: unknown) {
       // 处理用户名或ID冲突
       if (

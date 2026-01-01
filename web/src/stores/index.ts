@@ -75,9 +75,12 @@ export const useUserStore = defineStore("user", () => {
   const currentUser = computed(() => user.value)
 
   const userAvatar = computed(() => {
-    if (!user.value?.avatarUrl || user.value.avatarUrl === "defaultAvatar.webp")
+    // 如果没有头像，或者头像就是默认头像，返回默认头像
+    if (!user.value?.avatarUrl || user.value.avatarUrl === "defaultAvatar.png" || user.value.avatarUrl === "defaultAvatar.webp")
       return "/api/uploads/profile-pictures/defaultAvatar.png"
+    // 如果是完整的 HTTP(S) URL，直接返回
     if (user.value.avatarUrl.startsWith("http")) return user.value.avatarUrl
+    // 否则拼接相对路径
     return `/api/uploads/profile-pictures/${user.value.avatarUrl}`
   })
 

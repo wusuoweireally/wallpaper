@@ -22,6 +22,7 @@ import {
 } from "../dto/post.dto";
 import { LimitQueryDto, PaginationQueryDto } from "../dto/pagination.dto";
 import { PostService } from "../services/post.service";
+import { getErrorMessage } from "../utils/error.helper";
 
 const bodyValidationPipe = new ValidationPipe({
   whitelist: true,
@@ -71,7 +72,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "帖子创建失败",
+        message: getErrorMessage(error, "帖子创建失败"),
       };
     }
   }
@@ -96,7 +97,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取帖子列表失败",
+        message: getErrorMessage(error, "获取帖子列表失败"),
       };
     }
   }
@@ -119,7 +120,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取帖子失败",
+        message: getErrorMessage(error, "获取帖子失败"),
       };
     }
   }
@@ -153,7 +154,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "帖子更新失败",
+        message: getErrorMessage(error, "帖子更新失败"),
       };
     }
   }
@@ -180,7 +181,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "帖子删除失败",
+        message: getErrorMessage(error, "帖子删除失败"),
       };
     }
   }
@@ -207,7 +208,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "点赞失败",
+        message: getErrorMessage(error, "点赞失败"),
       };
     }
   }
@@ -234,7 +235,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "取消点赞失败",
+        message: getErrorMessage(error, "取消点赞失败"),
       };
     }
   }
@@ -262,7 +263,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取点赞状态失败",
+        message: getErrorMessage(error, "获取点赞状态失败"),
       };
     }
   }
@@ -286,7 +287,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取热门帖子失败",
+        message: getErrorMessage(error, "获取热门帖子失败"),
       };
     }
   }
@@ -310,7 +311,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取最新帖子失败",
+        message: getErrorMessage(error, "获取最新帖子失败"),
       };
     }
   }
@@ -344,7 +345,7 @@ export class PostController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取用户帖子失败",
+        message: getErrorMessage(error, "获取用户帖子失败"),
       };
     }
   }

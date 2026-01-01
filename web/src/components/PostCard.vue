@@ -57,23 +57,12 @@
         <div class="flex items-center justify-between border-t border-slate-200/70 pt-3">
           <div class="flex items-center gap-3">
             <div class="avatar">
-              <div
-                v-if="authorAvatar"
-                class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50"
-              >
+              <div class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
                 <img
                   :src="authorAvatar"
                   :alt="post.author?.username || '用户头像'"
                   class="h-full w-full object-cover"
                 />
-              </div>
-              <div
-                v-else
-                class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/10"
-              >
-                <span class="text-sm font-semibold text-slate-900">
-                  {{ post.author?.username?.charAt(0)?.toUpperCase() || "U" }}
-                </span>
               </div>
             </div>
             <div class="leading-tight">
@@ -89,12 +78,7 @@
               </p>
             </div>
           </div>
-
           <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1 text-xs text-slate-500">
-              <i class="i-mdi-eye text-sm"></i>
-              <span>{{ formatNumber(post.viewCount) }}</span>
-            </div>
             <button
               class="flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition"
               :class="

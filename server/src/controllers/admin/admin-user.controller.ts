@@ -62,8 +62,8 @@ export class AdminUserController {
   @Post()
   async create(@Body() dto: AdminCreateUserDto) {
     const user = await this.userService.create(dto, dto.role ?? UserRole.USER);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-    const { passwordHash, ...rest } = user as any;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...rest } = user;
     return {
       success: true,
       message: "创建用户成功",

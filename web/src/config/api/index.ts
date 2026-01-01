@@ -13,11 +13,20 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   skipAuthExpiredHandler?: boolean
 }
 
+// 分页元数据
+export interface PaginationMeta {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
 // 定义 API 响应的数据格式
 export interface ApiResponse<T = Record<string, any>> {
   success: boolean
   message?: string
   data?: T | null
+  pagination?: PaginationMeta
 }
 
 // 创建 axios 实例

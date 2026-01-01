@@ -5,20 +5,12 @@
       <!-- 用户头像 -->
       <div class="flex-shrink-0">
         <div class="avatar">
-          <div
-            v-if="avatarSrc"
-            class="h-8 w-8 overflow-hidden rounded-full border border-base-200 bg-base-100"
-          >
+          <div class="h-8 w-8 overflow-hidden rounded-full border border-base-200 bg-base-100">
             <img
               :src="avatarSrc"
               :alt="comment.author?.username || '用户头像'"
               class="h-full w-full object-cover"
             />
-          </div>
-          <div v-else class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full">
-            <span class="text-sm font-semibold text-primary">
-              {{ comment.author?.username?.charAt(0)?.toUpperCase() || "U" }}
-            </span>
           </div>
         </div>
       </div>

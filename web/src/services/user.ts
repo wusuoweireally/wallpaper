@@ -196,12 +196,15 @@ class UserService {
   /**
    * 获取用户收藏的壁纸列表
    */
-  async getUserFavorites(page: number = 1, limit: number = 20) {
+  async getUserFavorites(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<ApiResponse<PaginatedResponse<Wallpaper>>> {
     try {
       const response = await api.get("/users/favorites", {
         params: { page, limit },
       })
-      return response
+      return response as ApiResponse<PaginatedResponse<Wallpaper>>
     } catch (error) {
       console.error("获取用户收藏列表失败:", error)
       throw error
@@ -211,12 +214,15 @@ class UserService {
   /**
    * 获取用户上传的壁纸列表
    */
-  async getUserWallpapers(page: number = 1, limit: number = 20) {
+  async getUserWallpapers(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<ApiResponse<PaginatedResponse<Wallpaper>>> {
     try {
       const response = await api.get("/users/wallpapers", {
         params: { page, limit },
       })
-      return response
+      return response as ApiResponse<PaginatedResponse<Wallpaper>>
     } catch (error) {
       console.error("获取用户上传壁纸列表失败:", error)
       throw error

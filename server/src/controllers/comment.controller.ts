@@ -22,6 +22,7 @@ import {
 } from "../dto/comment.dto";
 import { LimitQueryDto, PaginationQueryDto } from "../dto/pagination.dto";
 import { CommentService } from "../services/comment.service";
+import { getErrorMessage } from "../utils/error.helper";
 
 const bodyValidationPipe = new ValidationPipe({
   whitelist: true,
@@ -74,7 +75,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "评论创建失败",
+        message: getErrorMessage(error, "评论创建失败"),
       };
     }
   }
@@ -97,7 +98,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取评论失败",
+        message: getErrorMessage(error, "获取评论失败"),
       };
     }
   }
@@ -126,7 +127,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取评论列表失败",
+        message: getErrorMessage(error, "获取评论列表失败"),
       };
     }
   }
@@ -152,7 +153,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取回复列表失败",
+        message: getErrorMessage(error, "获取回复列表失败"),
       };
     }
   }
@@ -186,7 +187,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "评论更新失败",
+        message: getErrorMessage(error, "评论更新失败"),
       };
     }
   }
@@ -213,7 +214,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "评论删除失败",
+        message: getErrorMessage(error, "评论删除失败"),
       };
     }
   }
@@ -236,7 +237,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取评论统计失败",
+        message: getErrorMessage(error, "获取评论统计失败"),
       };
     }
   }
@@ -270,7 +271,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取用户评论失败",
+        message: getErrorMessage(error, "获取用户评论失败"),
       };
     }
   }
@@ -294,7 +295,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取最新评论失败",
+        message: getErrorMessage(error, "获取最新评论失败"),
       };
     }
   }
@@ -322,7 +323,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "评论点赞操作失败",
+        message: getErrorMessage(error, "评论点赞操作失败"),
       };
     }
   }
@@ -358,7 +359,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取点赞状态失败",
+        message: getErrorMessage(error, "获取点赞状态失败"),
       };
     }
   }
@@ -392,7 +393,7 @@ export class CommentController {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "获取用户点赞评论失败",
+        message: getErrorMessage(error, "获取用户点赞评论失败"),
       };
     }
   }
