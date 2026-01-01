@@ -1,5 +1,5 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { Transform, Type } from 'class-transformer';
+import { PartialType } from "@nestjs/mapped-types";
+import { Transform, Type } from "class-transformer";
 import {
   IsEnum,
   IsIn,
@@ -9,9 +9,9 @@ import {
   IsString,
   MaxLength,
   Min,
-} from 'class-validator';
-import { PostCategory } from '../entities/post.entity';
-import { PaginationQueryDto } from './pagination.dto';
+} from "class-validator";
+import { PostCategory } from "../entities/post.entity";
+import { PaginationQueryDto } from "./pagination.dto";
 
 const parseTags = (value: unknown): string[] | undefined => {
   if (!value) {
@@ -21,15 +21,15 @@ const parseTags = (value: unknown): string[] | undefined => {
   let values: string[];
   if (Array.isArray(value)) {
     values = value as string[];
-  } else if (typeof value === 'string') {
-    values = value.split(',');
+  } else if (typeof value === "string") {
+    values = value.split(",");
   } else {
     // 对于非数组非字符串的值，返回undefined
     return undefined;
   }
 
   const normalized = values
-    .map((tag) => (typeof tag === 'string' ? tag.trim() : String(tag).trim()))
+    .map((tag) => (typeof tag === "string" ? tag.trim() : String(tag).trim()))
     .filter(Boolean);
 
   return normalized.length > 0 ? normalized : undefined;
@@ -65,30 +65,30 @@ export class CreatePostDto {
 
 export class UpdatePostDto extends PartialType(CreatePostDto) {}
 
-type SortOrder = 'ASC' | 'DESC';
+type SortOrder = "ASC" | "DESC";
 type PostSortField =
-  | 'createdAt'
-  | 'updatedAt'
-  | 'viewCount'
-  | 'likeCount'
-  | 'commentCount'
-  | 'popular';
+  | "createdAt"
+  | "updatedAt"
+  | "viewCount"
+  | "likeCount"
+  | "commentCount"
+  | "popular";
 
 export class PostListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn([
-    'createdAt',
-    'updatedAt',
-    'viewCount',
-    'likeCount',
-    'commentCount',
-    'popular',
+    "createdAt",
+    "updatedAt",
+    "viewCount",
+    "likeCount",
+    "commentCount",
+    "popular",
   ])
-  sortBy: PostSortField = 'createdAt';
+  sortBy: PostSortField = "createdAt";
 
   @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  sortOrder: SortOrder = 'DESC';
+  @IsIn(["ASC", "DESC"])
+  sortOrder: SortOrder = "DESC";
 
   @IsOptional()
   @IsEnum(PostCategory)

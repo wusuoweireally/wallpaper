@@ -10,11 +10,11 @@ import {
   IsBoolean,
   Max,
   Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { UserRole } from '../entities/user.entity';
-import { CreateUserDto, UpdateUserDto } from './user.dto';
-import { UpdateWallpaperDto } from './wallpaper.dto';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { UserRole } from "../entities/user.entity";
+import { CreateUserDto, UpdateUserDto } from "./user.dto";
+import { UpdateWallpaperDto } from "./wallpaper.dto";
 
 export class AdminUserQueryDto {
   @Type(() => Number)
@@ -67,11 +67,11 @@ export class UpdateUserStatusDto {
 export class AdminWallpaperQueryDto {
   @IsOptional()
   @IsNumberString()
-  page?: string = '1';
+  page?: string = "1";
 
   @IsOptional()
   @IsNumberString()
-  limit?: string = '20';
+  limit?: string = "20";
 
   @IsOptional()
   @IsString()
@@ -87,7 +87,7 @@ export class AdminWallpaperQueryDto {
 
   @IsOptional()
   @IsString()
-  category?: 'general' | 'anime' | 'people';
+  category?: "general" | "anime" | "people";
 }
 
 export class AdminUpdateWallpaperDto extends UpdateWallpaperDto {

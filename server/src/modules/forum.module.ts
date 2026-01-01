@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Post } from '../entities/post.entity';
-import { Comment } from '../entities/comment.entity';
-import { PostLike } from '../entities/post-like.entity';
-import { CommentLike } from '../entities/comment-like.entity';
-import { Report } from '../entities/report.entity';
-import { User } from '../entities/user.entity';
-import { PostController } from '../controllers/post.controller';
-import { CommentController } from '../controllers/comment.controller';
-import { ReportController } from '../controllers/report.controller';
-import { PostService } from '../services/post.service';
-import { CommentService } from '../services/comment.service';
-import { ReportService } from '../services/report.service';
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { Post } from "../entities/post.entity";
+import { Comment } from "../entities/comment.entity";
+import { PostLike } from "../entities/post-like.entity";
+import { CommentLike } from "../entities/comment-like.entity";
+import { Report } from "../entities/report.entity";
+import { User } from "../entities/user.entity";
+import { PostController } from "../controllers/post.controller";
+import { CommentController } from "../controllers/comment.controller";
+import { ReportController } from "../controllers/report.controller";
+import { PostService } from "../services/post.service";
+import { CommentService } from "../services/comment.service";
+import { ReportService } from "../services/report.service";
 
 /**
  * 论坛模块

@@ -8,19 +8,19 @@ import {
   Patch,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import { RolesGuard } from '../../guards/roles.guard';
-import { Roles } from '../../decorators/roles.decorator';
-import { UserRole } from '../../entities/user.entity';
-import { WallpaperService } from '../../services/wallpaper.service';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
+import { RolesGuard } from "../../guards/roles.guard";
+import { Roles } from "../../decorators/roles.decorator";
+import { UserRole } from "../../entities/user.entity";
+import { WallpaperService } from "../../services/wallpaper.service";
 import {
   AdminUpdateWallpaperDto,
   AdminWallpaperQueryDto,
   AdminUpdateWallpaperTagsDto,
-} from '../../dto/admin.dto';
+} from "../../dto/admin.dto";
 
-@Controller('admin/wallpapers')
+@Controller("admin/wallpapers")
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminWallpaperController {
@@ -54,8 +54,8 @@ export class AdminWallpaperController {
     };
   }
 
-  @Get(':id')
-  async detail(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  async detail(@Param("id", ParseIntPipe) id: number) {
     const wallpaper = await this.wallpaperService.findById(id);
     return {
       success: true,
@@ -63,22 +63,22 @@ export class AdminWallpaperController {
     };
   }
 
-  @Patch(':id')
+  @Patch(":id")
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateWallpaperDto,
   ) {
     const wallpaper = await this.wallpaperService.update(id, dto);
     return {
       success: true,
-      message: '壁纸信息已更新',
+      message: "壁纸信息已更新",
       data: wallpaper,
     };
   }
 
-  @Patch(':id/tags')
+  @Patch(":id/tags")
   async updateTags(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateWallpaperTagsDto,
   ) {
     const tags = await this.wallpaperService.updateWallpaperTags(
@@ -87,17 +87,17 @@ export class AdminWallpaperController {
     );
     return {
       success: true,
-      message: '标签已更新',
+      message: "标签已更新",
       data: tags,
     };
   }
 
-  @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  async remove(@Param("id", ParseIntPipe) id: number) {
     await this.wallpaperService.delete(id);
     return {
       success: true,
-      message: '壁纸已删除',
+      message: "壁纸已删除",
     };
   }
 }

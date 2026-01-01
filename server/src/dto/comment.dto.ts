@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsIn,
   IsInt,
@@ -7,8 +7,8 @@ import {
   IsString,
   MaxLength,
   Min,
-} from 'class-validator';
-import { PaginationQueryDto } from './pagination.dto';
+} from "class-validator";
+import { PaginationQueryDto } from "./pagination.dto";
 
 export class CreateCommentDto {
   @IsString()
@@ -34,17 +34,17 @@ export class UpdateCommentDto {
   content: string;
 }
 
-type CommentSortField = 'createdAt' | 'updatedAt' | 'likeCount';
-type SortOrder = 'ASC' | 'DESC';
+type CommentSortField = "createdAt" | "updatedAt" | "likeCount";
+type SortOrder = "ASC" | "DESC";
 
 export class CommentQueryDto extends PaginationQueryDto {
   @IsOptional()
-  @IsIn(['createdAt', 'updatedAt', 'likeCount'])
-  sortBy: CommentSortField = 'createdAt';
+  @IsIn(["createdAt", "updatedAt", "likeCount"])
+  sortBy: CommentSortField = "createdAt";
 
   @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  sortOrder: SortOrder = 'ASC';
+  @IsIn(["ASC", "DESC"])
+  sortOrder: SortOrder = "ASC";
 
   @Type(() => Number)
   @IsOptional()

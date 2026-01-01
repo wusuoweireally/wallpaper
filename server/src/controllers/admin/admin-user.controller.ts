@@ -9,20 +9,20 @@ import {
   Post,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { UserService } from '../../services/user.service';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import { Roles } from '../../decorators/roles.decorator';
-import { UserRole } from '../../entities/user.entity';
+} from "@nestjs/common";
+import { UserService } from "../../services/user.service";
+import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
+import { Roles } from "../../decorators/roles.decorator";
+import { UserRole } from "../../entities/user.entity";
 import {
   AdminCreateUserDto,
   AdminUpdateUserDto,
   AdminUserQueryDto,
   UpdateUserStatusDto,
-} from '../../dto/admin.dto';
-import { RolesGuard } from '../../guards/roles.guard';
+} from "../../dto/admin.dto";
+import { RolesGuard } from "../../guards/roles.guard";
 
-@Controller('admin/users')
+@Controller("admin/users")
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminUserController {
@@ -48,8 +48,8 @@ export class AdminUserController {
     };
   }
 
-  @Get(':id')
-  async detail(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  async detail(@Param("id", ParseIntPipe) id: number) {
     const user = await this.userService.findById(id);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...rest } = user;
@@ -66,14 +66,14 @@ export class AdminUserController {
     const { passwordHash, ...rest } = user as any;
     return {
       success: true,
-      message: '创建用户成功',
+      message: "创建用户成功",
       data: rest,
     };
   }
 
-  @Patch(':id')
+  @Patch(":id")
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateUserDto,
   ) {
     const user = await this.userService.adminUpdateUser(id, dto);
@@ -81,14 +81,14 @@ export class AdminUserController {
     const { passwordHash, ...rest } = user;
     return {
       success: true,
-      message: '更新用户信息成功',
+      message: "更新用户信息成功",
       data: rest,
     };
   }
 
-  @Patch(':id/status')
+  @Patch(":id/status")
   async updateStatus(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateUserStatusDto,
   ) {
     const user = await this.userService.setStatus(id, dto.status);
@@ -96,17 +96,17 @@ export class AdminUserController {
     const { passwordHash, ...rest } = user;
     return {
       success: true,
-      message: dto.status === 1 ? '用户已启用' : '用户已禁用',
+      message: dto.status === 1 ? "用户已启用" : "用户已禁用",
       data: rest,
     };
   }
 
-  @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  async remove(@Param("id", ParseIntPipe) id: number) {
     await this.userService.remove(id);
     return {
       success: true,
-      message: '用户已删除',
+      message: "用户已删除",
     };
   }
 }

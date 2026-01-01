@@ -43,21 +43,25 @@ npx tsc --noEmit
 ## 核心架构
 
 ### 模块结构
+
 - **UserModule** - 用户管理、认证、头像上传
 - **WallpaperModule** - 壁纸核心功能（上传、搜索、管理）
 - **TagModule** - 标签管理功能
 
 ### 认证系统
+
 - JWT token存储在HTTP-only Cookie中
 - CurrentUser装饰器获取认证用户信息
 - 所有敏感操作需要JwtAuthGuard保护
 
 ### 文件处理
+
 - **壁纸文件**: `/uploads/wallpapers/` 和 `/uploads/thumbnails/`
 - **用户头像**: `/uploads/profile-pictures/`
 - 支持多格式验证和自动缩略图生成
 
 ### 数据库实体
+
 - User - 用户信息（密码哈希存储）
 - Wallpaper - 壁纸元数据和文件信息
 - Tag/WallpaperTag - 标签系统
@@ -82,6 +86,7 @@ npx tsc --noEmit
 ## 项目结构
 
 ### 后端架构 (server/src/)
+
 ```
 ├── main.ts                # 应用入口文件
 ├── app.module.ts          # 根模块

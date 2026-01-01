@@ -6,13 +6,13 @@ import {
   UseGuards,
   HttpException,
   HttpStatus,
-} from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { AuthGuard } from '@nestjs/passport';
-import { ConfigService } from '@nestjs/config';
-import { GitHubAuthService } from '../services/github-auth.service';
-import { AuthService } from '../services/auth.service';
-import { GitHubProfile } from '../dto/github.dto';
+} from "@nestjs/common";
+import type { Request, Response } from "express";
+import { AuthGuard } from "@nestjs/passport";
+import { ConfigService } from "@nestjs/config";
+import { GitHubAuthService } from "../services/github-auth.service";
+import { AuthService } from "../services/auth.service";
+import { GitHubProfile } from "../dto/github.dto";
 
 /**
  * GitHub OAuth 认证控制器
@@ -21,7 +21,7 @@ import { GitHubProfile } from '../dto/github.dto';
  * - GET /api/auth/github - 发起 GitHub OAuth 登录
  * - GET /api/auth/github/callback - GitHub OAuth 回调
  */
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   constructor(
     private configService: ConfigService,
@@ -33,8 +33,8 @@ export class AuthController {
    * 发起 GitHub OAuth 登录
    * 重定向到 GitHub 授权页面
    */
-  @Get('github')
-  @UseGuards(AuthGuard('github'))
+  @Get("github")
+  @UseGuards(AuthGuard("github"))
   async githubAuth(): Promise<void> {
     // Passport 会自动处理重定向到 GitHub OAuth 页面
     // 这个方法不需要实现任何逻辑
@@ -49,8 +49,8 @@ export class AuthController {
    * 4. 生成 JWT Token 并设置 Cookie
    * 5. 重定向到前端成功页面
    */
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
+  @Get("github/callback")
+  @UseGuards(AuthGuard("github"))
   async githubAuthCallback(
     @Req() req: Request,
     @Res() response: Response,
@@ -60,7 +60,7 @@ export class AuthController {
       const githubProfile = req.user as GitHubProfile;
 
       if (!githubProfile || !githubProfile.id) {
-        throw new HttpException('GitHub 用户信息无效', HttpStatus.BAD_REQUEST);
+        throw new HttpException("GitHub 用户信息无效", HttpStatus.BAD_REQUEST);
       }
 
       // 查找或创建系统用户
@@ -73,28 +73,28 @@ export class AuthController {
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
       const cookieOptions = {
         httpOnly: true,
-        secure: this.configService.get<string>('NODE_ENV') === 'production',
-        sameSite: 'lax' as const,
+        secure: this.configService.get<string>("NODE_ENV") === "production",
+        sameSite: "lax" as const,
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60天
-        path: '/',
+        path: "/",
       };
 
       response.cookie(
-        'Authentication',
+        "Authentication",
         loginResult.access_token,
         cookieOptions,
       );
 
       // 重定向到前端成功页面
-      const successUrl = this.configService.get<string>('GITHUB_SUCCESS_URL');
-      response.redirect(successUrl || '/auth/github/success');
+      const successUrl = this.configService.get<string>("GITHUB_SUCCESS_URL");
+      response.redirect(successUrl || "/auth/github/success");
     } catch (error) {
-      console.error('GitHub OAuth 回调处理失败:', error);
+      console.error("GitHub OAuth 回调处理失败:", error);
 
       // 重定向到前端失败页面，携带错误信息
-      const failureUrl = this.configService.get<string>('GITHUB_FAILURE_URL');
+      const failureUrl = this.configService.get<string>("GITHUB_FAILURE_URL");
       const errorMessage =
-        error instanceof Error ? error.message : 'GitHub 登录失败';
+        error instanceof Error ? error.message : "GitHub 登录失败";
       const errorParam = encodeURIComponent(errorMessage);
       const redirectUrl = failureUrl
         ? `${failureUrl}?error=${errorParam}`
@@ -107,11 +107,11 @@ export class AuthController {
    * GitHub OAuth 成功页面
    * 前端会显示此页面并自动跳转到首页
    */
-  @Get('github/success')
+  @Get("github/success")
   githubSuccess(): { success: true; message: string } {
     return {
       success: true,
-      message: 'GitHub 登录成功',
+      message: "GitHub 登录成功",
     };
   }
 
@@ -119,7 +119,7 @@ export class AuthController {
    * GitHub OAuth 失败页面
    * 前端会显示此页面并提供返回登录页的选项
    */
-  @Get('github/failure')
+  @Get("github/failure")
   githubFailure(@Req() req: Request): {
     success: false;
     message: string;
@@ -128,8 +128,8 @@ export class AuthController {
     const error = req.query.error as string | undefined;
     return {
       success: false,
-      message: 'GitHub 登录失败',
-      error: error || '未知错误',
+      message: "GitHub 登录失败",
+      error: error || "未知错误",
     };
   }
 }

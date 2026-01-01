@@ -1,25 +1,25 @@
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { User } from '../entities/user.entity';
-import { Wallpaper } from '../entities/wallpaper.entity';
-import { Tag } from '../entities/tag.entity';
-import { WallpaperTag } from '../entities/wallpaper-tag.entity';
-import { UserFavorite } from '../entities/user-favorite.entity';
-import { UserLike } from '../entities/user-like.entity';
-import { ViewHistory } from '../entities/view-history.entity';
-import { Post } from '../entities/post.entity';
-import { Comment } from '../entities/comment.entity';
-import { PostLike } from '../entities/post-like.entity';
-import { CommentLike } from '../entities/comment-like.entity';
-import { Report } from '../entities/report.entity';
+import { TypeOrmModuleOptions } from "@nestjs/typeorm";
+import { User } from "../entities/user.entity";
+import { Wallpaper } from "../entities/wallpaper.entity";
+import { Tag } from "../entities/tag.entity";
+import { WallpaperTag } from "../entities/wallpaper-tag.entity";
+import { UserFavorite } from "../entities/user-favorite.entity";
+import { UserLike } from "../entities/user-like.entity";
+import { ViewHistory } from "../entities/view-history.entity";
+import { Post } from "../entities/post.entity";
+import { Comment } from "../entities/comment.entity";
+import { PostLike } from "../entities/post-like.entity";
+import { CommentLike } from "../entities/comment-like.entity";
+import { Report } from "../entities/report.entity";
 
 // 数据库配置
 export const databaseConfig: TypeOrmModuleOptions = {
-  type: 'mysql',
-  host: 'localhost',
+  type: "mysql",
+  host: "localhost",
   port: 3306,
-  username: 'root',
-  password: '12345678',
-  database: 'wallpaper_site',
+  username: "root",
+  password: "12345678",
+  database: "wallpaper_site",
   entities: [
     User,
     Wallpaper,
@@ -38,8 +38,8 @@ export const databaseConfig: TypeOrmModuleOptions = {
   // 生产环境必须关闭同步(synchronize: false)并使用迁移文件
   synchronize: true,
   logging: true,
-  charset: 'utf8mb4',
-  timezone: '+08:00',
+  charset: "utf8mb4",
+  timezone: "+08:00",
 };
 
 /**

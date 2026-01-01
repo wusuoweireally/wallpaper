@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tag } from '../entities/tag.entity';
-import { WallpaperTag } from '../entities/wallpaper-tag.entity';
-import { CreateTagDto } from '../dto/tag.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Tag } from "../entities/tag.entity";
+import { WallpaperTag } from "../entities/wallpaper-tag.entity";
+import { CreateTagDto } from "../dto/tag.dto";
 
 @Injectable()
 export class TagService {
@@ -15,7 +15,7 @@ export class TagService {
   ) {}
 
   private generateSlug(name: string): string {
-    return name.trim().toLowerCase().replace(/\s+/g, '-');
+    return name.trim().toLowerCase().replace(/\s+/g, "-");
   }
 
   /**
@@ -24,13 +24,13 @@ export class TagService {
    * @param limit 返回数量限制
    */
   async searchTags(keyword?: string, limit: number = 10): Promise<Tag[]> {
-    const queryBuilder = this.tagRepository.createQueryBuilder('tag');
+    const queryBuilder = this.tagRepository.createQueryBuilder("tag");
 
     if (keyword) {
-      queryBuilder.where('tag.name LIKE :keyword', { keyword: `%${keyword}%` });
+      queryBuilder.where("tag.name LIKE :keyword", { keyword: `%${keyword}%` });
     }
 
-    queryBuilder.orderBy('tag.usageCount', 'DESC').take(limit);
+    queryBuilder.orderBy("tag.usageCount", "DESC").take(limit);
 
     return queryBuilder.getMany();
   }
@@ -70,27 +70,27 @@ export class TagService {
     limit?: number;
     keyword?: string;
     sortBy?: string;
-    sortOrder?: 'ASC' | 'DESC';
+    sortOrder?: "ASC" | "DESC";
   }): Promise<{ data: Tag[]; total: number; page: number; limit: number }> {
     const {
       page = 1,
       limit = 20,
       keyword,
-      sortBy = 'usageCount',
-      sortOrder = 'DESC',
+      sortBy = "usageCount",
+      sortOrder = "DESC",
     } = query;
 
-    const qb = this.tagRepository.createQueryBuilder('tag');
+    const qb = this.tagRepository.createQueryBuilder("tag");
 
     if (keyword && keyword.trim()) {
-      qb.where('(tag.name LIKE :keyword OR tag.slug LIKE :keyword)', {
+      qb.where("(tag.name LIKE :keyword OR tag.slug LIKE :keyword)", {
         keyword: `%${keyword.trim()}%`,
       });
     }
 
-    const validSort = ['usageCount', 'name', 'createdAt'];
-    const orderField = validSort.includes(sortBy) ? sortBy : 'usageCount';
-    const orderDirection = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+    const validSort = ["usageCount", "name", "createdAt"];
+    const orderField = validSort.includes(sortBy) ? sortBy : "usageCount";
+    const orderDirection = sortOrder === "ASC" ? "ASC" : "DESC";
 
     const take = Math.min(Math.max(limit, 1), 100);
     const currentPage = Math.max(page, 1);
@@ -116,7 +116,7 @@ export class TagService {
   async getTagsByWallpaperId(wallpaperId: number): Promise<Tag[]> {
     const wallpaperTags = await this.wallpaperTagRepository.find({
       where: { wallpaperId },
-      relations: ['tag'],
+      relations: ["tag"],
     });
 
     return wallpaperTags.map((wt) => wt.tag);
@@ -133,7 +133,7 @@ export class TagService {
   async updateTag(id: number, name: string): Promise<Tag> {
     const tag = await this.tagRepository.findOne({ where: { id } });
     if (!tag) {
-      throw new NotFoundException('标签不存在');
+      throw new NotFoundException("标签不存在");
     }
 
     const normalizedName = name.trim();
@@ -146,7 +146,7 @@ export class TagService {
   async deleteTag(id: number): Promise<void> {
     const tag = await this.tagRepository.findOne({ where: { id } });
     if (!tag) {
-      throw new NotFoundException('标签不存在');
+      throw new NotFoundException("标签不存在");
     }
 
     await this.tagRepository.delete(id);
@@ -158,7 +158,7 @@ export class TagService {
    */
 
   async incrementUsageCount(tagId: number): Promise<void> {
-    await this.tagRepository.increment({ id: tagId }, 'usageCount', 1);
+    await this.tagRepository.increment({ id: tagId }, "usageCount", 1);
   }
 
   /**
@@ -166,7 +166,7 @@ export class TagService {
    * @param tagId 标签ID
    */
   async decrementUsageCount(tagId: number): Promise<void> {
-    await this.tagRepository.decrement({ id: tagId }, 'usageCount', 1);
+    await this.tagRepository.decrement({ id: tagId }, "usageCount", 1);
   }
 
   /**
@@ -222,7 +222,7 @@ export class TagService {
 
     const currentTags = await this.wallpaperTagRepository.find({
       where: { wallpaperId },
-      relations: ['tag'],
+      relations: ["tag"],
     });
 
     if (currentTags.length > 0) {

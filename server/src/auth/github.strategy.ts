@@ -1,8 +1,8 @@
-import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-github2';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { GitHubProfile } from '../dto/github.dto';
+import { PassportStrategy } from "@nestjs/passport";
+import { Strategy } from "passport-github2";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { GitHubProfile } from "../dto/github.dto";
 
 /**
  * GitHub OAuth 2.0 认证策略
@@ -14,13 +14,13 @@ import { GitHubProfile } from '../dto/github.dto';
  * 4. 验证 state 参数防止 CSRF 攻击
  */
 @Injectable()
-export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
+export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
   constructor(private configService: ConfigService) {
     super({
-      clientID: configService.get<string>('GITHUB_CLIENT_ID') || '',
-      clientSecret: configService.get<string>('GITHUB_CLIENT_SECRET') || '',
-      callbackURL: configService.get<string>('GITHUB_CALLBACK_URL') || '',
-      scope: ['user:email'], // 请求读取用户邮箱的权限
+      clientID: configService.get<string>("GITHUB_CLIENT_ID") || "",
+      clientSecret: configService.get<string>("GITHUB_CLIENT_SECRET") || "",
+      callbackURL: configService.get<string>("GITHUB_CALLBACK_URL") || "",
+      scope: ["user:email"], // 请求读取用户邮箱的权限
     });
   }
 
@@ -46,13 +46,13 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       id: profile.id,
       login: profile.username || profile.login,
       avatar_url: profile._json.avatar_url,
-      bio: profile._json.bio || '',
+      bio: profile._json.bio || "",
       email: profile.emails?.[0]?.value || profile._json.email,
       name: profile.displayName || profile._json.name,
       html_url: profile._json.html_url,
-      location: profile._json.location || '',
-      blog: profile._json.blog || '',
-      company: profile._json.company || '',
+      location: profile._json.location || "",
+      blog: profile._json.blog || "",
+      company: profile._json.company || "",
       public_repos: profile._json.public_repos,
       followers: profile._json.followers,
       following: profile._json.following,
@@ -62,7 +62,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
 
     // 验证必需字段
     if (!githubProfile.id || !githubProfile.login) {
-      done(new UnauthorizedException('GitHub 用户信息无效'), undefined);
+      done(new UnauthorizedException("GitHub 用户信息无效"), undefined);
       return;
     }
 

@@ -1,9 +1,9 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { join } from 'path';
-import * as express from 'express';
-import cookieParser from 'cookie-parser';
-import { AppModule } from './app.module';
+import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
+import { join } from "path";
+import * as express from "express";
+import cookieParser from "cookie-parser";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,10 +18,10 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // 配置静态文件服务
-  app.use(express.static(join(__dirname, '..', 'public')));
+  app.use(express.static(join(__dirname, "..", "public")));
 
   // 配置上传文件静态服务 - 统一管理
-  app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
+  app.use("/uploads", express.static(join(__dirname, "..", "uploads")));
 
   // 全局验证管道
   app.useGlobalPipes(
@@ -42,6 +42,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ 应用启动失败:', error);
+  console.error("❌ 应用启动失败:", error);
   process.exit(1);
 });

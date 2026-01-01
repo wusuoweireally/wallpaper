@@ -7,29 +7,29 @@ import {
   Post,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import {
   CurrentUser,
   type CurrentUserType,
-} from '../decorators/current-user.decorator';
-import { CreateReportDto } from '../dto/report.dto';
-import { ReportTargetType } from '../entities/report.entity';
-import { ReportService } from '../services/report.service';
+} from "../decorators/current-user.decorator";
+import { CreateReportDto } from "../dto/report.dto";
+import { ReportTargetType } from "../entities/report.entity";
+import { ReportService } from "../services/report.service";
 
-@Controller('reports')
+@Controller("reports")
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
   /**
    * 获取举报原因选项（公开接口）
    */
-  @Get('reasons/options')
+  @Get("reasons/options")
   getReportReasons() {
     const reasons = this.reportService.getReportReasons();
     return {
       success: true,
-      message: '获取举报原因选项成功',
+      message: "获取举报原因选项成功",
       data: reasons,
     };
   }
@@ -49,7 +49,7 @@ export class ReportController {
     );
     return {
       success: true,
-      message: '举报提交成功，我们会尽快处理',
+      message: "举报提交成功，我们会尽快处理",
       data: report,
     };
   }
@@ -57,15 +57,15 @@ export class ReportController {
   /**
    * 获取当前用户的举报历史
    */
-  @Get('user/my')
+  @Get("user/my")
   @UseGuards(JwtAuthGuard)
   async getUserReports(
     @CurrentUser() user: CurrentUserType,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    const pageNum = parseInt(page || '1') || 1;
-    const limitNum = parseInt(limit || '20') || 20;
+    const pageNum = parseInt(page || "1") || 1;
+    const limitNum = parseInt(limit || "20") || 20;
 
     const reports = await this.reportService.getUserReports(
       user.userId,
@@ -74,7 +74,7 @@ export class ReportController {
     );
     return {
       success: true,
-      message: '获取用户举报历史成功',
+      message: "获取用户举报历史成功",
       data: reports.data,
       pagination: {
         page: pageNum,
@@ -88,11 +88,11 @@ export class ReportController {
   /**
    * 检查是否可以举报
    */
-  @Get('check/:targetType/:targetId')
+  @Get("check/:targetType/:targetId")
   @UseGuards(JwtAuthGuard)
   async checkCanReport(
-    @Param('targetType') targetType: string,
-    @Param('targetId', ParseIntPipe) targetId: number,
+    @Param("targetType") targetType: string,
+    @Param("targetId", ParseIntPipe) targetId: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     const result = await this.reportService.checkCanReport(
@@ -102,7 +102,7 @@ export class ReportController {
     );
     return {
       success: true,
-      message: '检查完成',
+      message: "检查完成",
       data: result,
     };
   }

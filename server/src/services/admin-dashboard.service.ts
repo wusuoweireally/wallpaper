@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Wallpaper } from '../entities/wallpaper.entity';
-import { Post, PostStatus } from '../entities/post.entity';
-import { Report, ReportStatus } from '../entities/report.entity';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Between, Repository } from "typeorm";
+import { User } from "../entities/user.entity";
+import { Wallpaper } from "../entities/wallpaper.entity";
+import { Post, PostStatus } from "../entities/post.entity";
+import { Report, ReportStatus } from "../entities/report.entity";
 
 export interface DashboardStats {
   totalUsers: number;
@@ -19,7 +19,7 @@ export interface DashboardStats {
 
 export interface RecentActivityItem {
   id: number;
-  reason: Report['reason'];
+  reason: Report["reason"];
   status: ReportStatus;
   createdAt: Date;
   reporterId: number;
@@ -93,8 +93,8 @@ export class AdminDashboardService {
 
   async getRecentActivity(limit = 8): Promise<RecentActivityItem[]> {
     const reports = await this.reportRepository.find({
-      relations: ['user'],
-      order: { createdAt: 'DESC' },
+      relations: ["user"],
+      order: { createdAt: "DESC" },
       take: limit,
     });
 

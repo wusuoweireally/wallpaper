@@ -1,10 +1,10 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
-import { User, UserRole } from '../entities/user.entity';
-import { GitHubProfile } from '../dto/github.dto';
+import { Injectable, ConflictException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
+import { User, UserRole } from "../entities/user.entity";
+import { GitHubProfile } from "../dto/github.dto";
 
 /**
  * GitHub 认证服务
@@ -76,11 +76,11 @@ export class GitHubAuthService {
       newUser.email = githubProfile.email;
     }
     newUser.avatarUrl = githubProfile.avatar_url;
-    newUser.bio = githubProfile.bio || '';
+    newUser.bio = githubProfile.bio || "";
     newUser.githubId = githubProfile.id;
     newUser.githubLogin = githubProfile.login;
     newUser.githubAvatarUrl = githubProfile.avatar_url;
-    newUser.githubBio = githubProfile.bio || '';
+    newUser.githubBio = githubProfile.bio || "";
     newUser.role = UserRole.USER; // 使用枚举值
     newUser.status = 1;
 
@@ -93,10 +93,10 @@ export class GitHubAuthService {
       // 处理用户名或ID冲突
       if (
         error instanceof Error &&
-        'code' in error &&
-        error.code === 'ER_DUP_ENTRY'
+        "code" in error &&
+        error.code === "ER_DUP_ENTRY"
       ) {
-        throw new ConflictException('用户创建失败：用户名或ID已存在');
+        throw new ConflictException("用户创建失败：用户名或ID已存在");
       }
       throw error;
     }
@@ -112,7 +112,7 @@ export class GitHubAuthService {
    */
   private generateUsername(githubLogin: string, githubId: number): string {
     // 清理用户名：移除特殊字符，只保留字母、数字、下划线和减号
-    const cleanLogin = githubLogin.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanLogin = githubLogin.replace(/[^a-zA-Z0-9_-]/g, "");
     return `github_${cleanLogin}_${githubId}`;
   }
 
@@ -124,12 +124,12 @@ export class GitHubAuthService {
   private generateRandomPassword(): string {
     const length = 32;
     const charset =
-      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-    let password = '';
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+    let password = "";
 
     // 使用 crypto 生成安全的随机密码
     const array = new Uint32Array(length);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // 浏览器环境
       window.crypto.getRandomValues(array);
     } else {
@@ -174,16 +174,16 @@ export class GitHubAuthService {
     // 更新 GitHub 相关字段
     user.githubLogin = githubProfile.login;
     user.githubAvatarUrl = githubProfile.avatar_url;
-    user.githubBio = githubProfile.bio || '';
+    user.githubBio = githubProfile.bio || "";
 
     // 如果用户没有头像，使用 GitHub 头像
-    if (!user.avatarUrl || user.avatarUrl === 'defaultAvatar.png') {
+    if (!user.avatarUrl || user.avatarUrl === "defaultAvatar.png") {
       user.avatarUrl = githubProfile.avatar_url;
     }
 
     // 如果用户没有简介，使用 GitHub 简介
     if (!user.bio) {
-      user.bio = githubProfile.bio || '';
+      user.bio = githubProfile.bio || "";
     }
 
     // 如果用户没有邮箱，使用 GitHub 邮箱
@@ -216,7 +216,7 @@ export class GitHubAuthService {
   async isGitHubLinked(userId: number): Promise<boolean> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['githubId'],
+      select: ["githubId"],
     });
     return Boolean(user?.githubId);
   }

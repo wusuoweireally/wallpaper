@@ -1,21 +1,21 @@
 // @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import eslint from "@eslint/js";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
     ignores: [
-      'eslint.config.mjs',
-      'eslint.config.mjs',
-      'dist/**/*', // 构建输出目录
-      'build/**/*', // 构建目录
-      'node_modules/**/*', // 依赖目录
-      '**/*.d.ts', // TypeScript 声明文件
-      'coverage/**/*', // 测试覆盖率目录
-      '*.log', // 日志文件
-      '.env*',
+      "eslint.config.mjs",
+      "eslint.config.mjs",
+      "dist/**/*", // 构建输出目录
+      "build/**/*", // 构建目录
+      "node_modules/**/*", // 依赖目录
+      "**/*.d.ts", // TypeScript 声明文件
+      "coverage/**/*", // 测试覆盖率目录
+      "*.log", // 日志文件
+      ".env*",
     ],
   },
   eslint.configs.recommended,
@@ -27,7 +27,7 @@ export default tseslint.config(
         ...globals.node,
         ...globals.jest,
       },
-      sourceType: 'commonjs',
+      sourceType: "commonjs",
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
@@ -36,9 +36,9 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
+      "@typescript-eslint/no-unsafe-assignment": "warn",
+      "@typescript-eslint/no-unsafe-member-access": "warn",
+      "@typescript-eslint/no-unsafe-call": "warn",
     },
   },
 );

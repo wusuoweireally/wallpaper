@@ -2,13 +2,13 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { User, UserRole } from '../entities/user.entity';
-import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
-import { AdminUpdateUserDto, AdminUserQueryDto } from '../dto/admin.dto';
-import * as bcrypt from 'bcryptjs';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Like } from "typeorm";
+import { User, UserRole } from "../entities/user.entity";
+import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
+import { AdminUpdateUserDto, AdminUserQueryDto } from "../dto/admin.dto";
+import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class UserService {
@@ -20,16 +20,16 @@ export class UserService {
   // 生成随机用户名
   private generateRandomUsername(): string {
     const adjectives = [
-      '快乐的',
-      '聪明的',
-      '勇敢的',
-      '优雅的',
-      '神秘的',
-      '活泼的',
-      '温柔的',
-      '可爱的',
+      "快乐的",
+      "聪明的",
+      "勇敢的",
+      "优雅的",
+      "神秘的",
+      "活泼的",
+      "温柔的",
+      "可爱的",
     ];
-    const nouns = ['用户', '朋友', '探索者', '旅行者', '梦想家', '创造者'];
+    const nouns = ["用户", "朋友", "探索者", "旅行者", "梦想家", "创造者"];
     const randomAdjective =
       adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
@@ -47,7 +47,7 @@ export class UserService {
       where: { id: createUserDto.id },
     });
     if (existingUser) {
-      throw new ConflictException('用户ID已存在');
+      throw new ConflictException("用户ID已存在");
     }
 
     // 检查邮箱是否已存在
@@ -56,7 +56,7 @@ export class UserService {
         where: { email: createUserDto.email },
       });
       if (existingEmail) {
-        throw new ConflictException('邮箱已被使用');
+        throw new ConflictException("邮箱已被使用");
       }
     }
 
@@ -82,7 +82,7 @@ export class UserService {
         where: { username },
       });
       if (existingUsername) {
-        throw new ConflictException('用户名已存在');
+        throw new ConflictException("用户名已存在");
       }
     }
 
@@ -97,8 +97,8 @@ export class UserService {
       username,
       email: createUserDto.email,
       passwordHash: hashedPassword,
-      avatarUrl: 'defaultAvatar.png', // 默认头像
-      bio: createUserDto.bio || '',
+      avatarUrl: "defaultAvatar.png", // 默认头像
+      bio: createUserDto.bio || "",
       role: userRole,
     });
 
@@ -127,7 +127,7 @@ export class UserService {
   async findById(id: number): Promise<User> {
     // 验证ID的有效性
     if (!id || isNaN(id) || id <= 0) {
-      throw new NotFoundException('用户ID无效');
+      throw new NotFoundException("用户ID无效");
     }
 
     const user = await this.userRepository.findOne({
@@ -135,7 +135,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('用户不存在');
+      throw new NotFoundException("用户不存在");
     }
 
     return user;
@@ -149,7 +149,7 @@ export class UserService {
     const [users, total] = await this.userRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return { users, total };
@@ -165,7 +165,7 @@ export class UserService {
       where: { username: Like(`%${username}%`) },
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return { users, total };
@@ -181,7 +181,7 @@ export class UserService {
         where: { username: updateUserDto.username },
       });
       if (existingUsername) {
-        throw new ConflictException('用户名已存在');
+        throw new ConflictException("用户名已存在");
       }
     }
 
@@ -194,7 +194,7 @@ export class UserService {
         where: { email: updateUserDto.email },
       });
       if (existingEmail) {
-        throw new ConflictException('邮箱已被使用');
+        throw new ConflictException("邮箱已被使用");
       }
     }
 
@@ -248,24 +248,24 @@ export class UserService {
     query: AdminUserQueryDto,
   ): Promise<{ data: User[]; total: number }> {
     const { page = 1, limit = 20, keyword, status, role } = query;
-    const qb = this.userRepository.createQueryBuilder('user');
+    const qb = this.userRepository.createQueryBuilder("user");
 
     if (keyword) {
-      qb.andWhere('(user.username LIKE :keyword OR user.email LIKE :keyword)', {
+      qb.andWhere("(user.username LIKE :keyword OR user.email LIKE :keyword)", {
         keyword: `%${keyword}%`,
       });
     }
 
     if (status !== undefined) {
-      qb.andWhere('user.status = :status', { status });
+      qb.andWhere("user.status = :status", { status });
     }
 
     if (role) {
-      qb.andWhere('user.role = :role', { role });
+      qb.andWhere("user.role = :role", { role });
     }
 
     const [data, total] = await qb
-      .orderBy('user.createdAt', 'DESC')
+      .orderBy("user.createdAt", "DESC")
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();

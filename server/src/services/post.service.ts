@@ -2,17 +2,17 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
-import { PaginatedResult } from '../common/pagination';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, SelectQueryBuilder } from "typeorm";
+import { PaginatedResult } from "../common/pagination";
 import {
   CreatePostDto,
   PostListQueryDto,
   UpdatePostDto,
-} from '../dto/post.dto';
-import { Post, PostStatus } from '../entities/post.entity';
-import { PostLike } from '../entities/post-like.entity';
+} from "../dto/post.dto";
+import { Post, PostStatus } from "../entities/post.entity";
+import { PostLike } from "../entities/post-like.entity";
 
 /**
  * 帖子服务
@@ -34,9 +34,9 @@ export class PostService {
 
   private buildPublishedPostQuery(): SelectQueryBuilder<Post> {
     return this.postRepository
-      .createQueryBuilder('post')
-      .where('post.status = :status', { status: PostStatus.PUBLISHED })
-      .leftJoinAndSelect('post.author', 'author');
+      .createQueryBuilder("post")
+      .where("post.status = :status", { status: PostStatus.PUBLISHED })
+      .leftJoinAndSelect("post.author", "author");
   }
 
   private serializeTags(tags?: string[]): string | undefined {
@@ -46,7 +46,7 @@ export class PostService {
 
     const normalized = tags.map((tag) => tag.trim()).filter(Boolean);
 
-    return normalized.length > 0 ? normalized.join(',') : undefined;
+    return normalized.length > 0 ? normalized.join(",") : undefined;
   }
 
   /**
@@ -79,7 +79,7 @@ export class PostService {
   async findById(id: number, incrementView = true): Promise<Post> {
     const post = await this.postRepository.findOne({
       where: { id, status: PostStatus.PUBLISHED },
-      relations: ['author'],
+      relations: ["author"],
     });
 
     if (!post) {
@@ -104,8 +104,8 @@ export class PostService {
     const {
       page = 1,
       limit = 20,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
+      sortBy = "createdAt",
+      sortOrder = "DESC",
       category,
       search,
       authorId,
@@ -122,19 +122,19 @@ export class PostService {
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
       queryBuilder.andWhere(
-        '(post.title LIKE :search OR post.content LIKE :search OR post.summary LIKE :search)',
+        "(post.title LIKE :search OR post.content LIKE :search OR post.summary LIKE :search)",
         { search: searchTerm },
       );
     }
 
     // 添加分类筛选
     if (category) {
-      queryBuilder.andWhere('post.category = :category', { category });
+      queryBuilder.andWhere("post.category = :category", { category });
     }
 
     // 添加作者筛选
     if (authorId) {
-      queryBuilder.andWhere('post.authorId = :authorId', { authorId });
+      queryBuilder.andWhere("post.authorId = :authorId", { authorId });
     }
 
     // 添加标签筛选
@@ -150,19 +150,19 @@ export class PostService {
 
     // 处理排序逻辑
     const validSortFields = [
-      'createdAt',
-      'updatedAt',
-      'viewCount',
-      'likeCount',
-      'commentCount',
-      'popular',
+      "createdAt",
+      "updatedAt",
+      "viewCount",
+      "likeCount",
+      "commentCount",
+      "popular",
     ];
 
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    if (sortField === 'popular') {
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    if (sortField === "popular") {
       queryBuilder
-        .orderBy('post.viewCount', 'DESC')
-        .addOrderBy('post.likeCount', 'DESC');
+        .orderBy("post.viewCount", "DESC")
+        .addOrderBy("post.likeCount", "DESC");
     } else {
       queryBuilder.orderBy(`post.${sortField}`, sortOrder);
     }
@@ -196,7 +196,7 @@ export class PostService {
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('只能编辑自己的帖子');
+      throw new ForbiddenException("只能编辑自己的帖子");
     }
 
     const { tags, ...rest } = updateData;
@@ -222,7 +222,7 @@ export class PostService {
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('只能删除自己的帖子');
+      throw new ForbiddenException("只能删除自己的帖子");
     }
 
     // 删除相关的点赞记录
@@ -241,7 +241,7 @@ export class PostService {
    * @param id 帖子ID
    */
   async incrementViewCount(id: number): Promise<void> {
-    await this.postRepository.increment({ id }, 'viewCount', 1);
+    await this.postRepository.increment({ id }, "viewCount", 1);
   }
 
   /**
@@ -275,7 +275,7 @@ export class PostService {
         userId,
       });
       await this.postLikeRepository.save(postLike);
-      await this.postRepository.increment({ id: postId }, 'likeCount', 1);
+      await this.postRepository.increment({ id: postId }, "likeCount", 1);
     }
   }
 
@@ -292,7 +292,7 @@ export class PostService {
     });
 
     if (result.affected && result.affected > 0) {
-      await this.postRepository.decrement({ id: postId }, 'likeCount', 1);
+      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
     }
   }
 
@@ -304,8 +304,8 @@ export class PostService {
    */
   async getPopularPosts(limit: number = 10): Promise<Post[]> {
     return await this.buildPublishedPostQuery()
-      .orderBy('post.viewCount', 'DESC')
-      .addOrderBy('post.likeCount', 'DESC')
+      .orderBy("post.viewCount", "DESC")
+      .addOrderBy("post.likeCount", "DESC")
       .take(limit)
       .getMany();
   }
@@ -318,7 +318,7 @@ export class PostService {
    */
   async getLatestPosts(limit: number = 10): Promise<Post[]> {
     return await this.buildPublishedPostQuery()
-      .orderBy('post.createdAt', 'DESC')
+      .orderBy("post.createdAt", "DESC")
       .take(limit)
       .getMany();
   }
@@ -340,8 +340,8 @@ export class PostService {
 
     const [posts, total] = await this.postRepository.findAndCount({
       where: { authorId: userId, status: PostStatus.PUBLISHED },
-      relations: ['author'],
-      order: { createdAt: 'DESC' },
+      relations: ["author"],
+      order: { createdAt: "DESC" },
       skip,
       take: limit,
     });

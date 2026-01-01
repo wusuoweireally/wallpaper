@@ -12,21 +12,21 @@ import {
   BadRequestException,
   UseGuards,
   Req,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import type { Request } from 'express';
-import { WallpaperService } from '../services/wallpaper.service';
-import { UploadService } from '../services/upload.service';
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Request } from "express";
+import { WallpaperService } from "../services/wallpaper.service";
+import { UploadService } from "../services/upload.service";
 import {
   CreateWallpaperDto,
   UpdateWallpaperDto,
   WallpaperQueryDto,
-} from '../dto/wallpaper.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { TagService } from '../services/tag.service';
-import { ViewHistoryService } from '../services/view-history.service';
+} from "../dto/wallpaper.dto";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
+import { CurrentUser } from "../decorators/current-user.decorator";
+import { TagService } from "../services/tag.service";
+import { ViewHistoryService } from "../services/view-history.service";
 
 interface CreateWallpaperData extends CreateWallpaperDto {
   fileUrl: string;
@@ -38,7 +38,7 @@ interface CreateWallpaperData extends CreateWallpaperDto {
   aspectRatio: number;
 }
 
-@Controller('wallpapers')
+@Controller("wallpapers")
 export class WallpaperController {
   constructor(
     private readonly wallpaperService: WallpaperService,
@@ -50,9 +50,9 @@ export class WallpaperController {
   /**
    * 上传壁纸
    */
-  @Post('upload')
+  @Post("upload")
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor("file"))
   async uploadWallpaper(
     @UploadedFile() file: Express.Multer.File,
     @Body() createWallpaperDto: CreateWallpaperDto,
@@ -60,7 +60,7 @@ export class WallpaperController {
   ) {
     console.log(user);
     if (!file) {
-      throw new BadRequestException('请选择要上传的文件');
+      throw new BadRequestException("请选择要上传的文件");
     }
 
     try {
@@ -92,14 +92,14 @@ export class WallpaperController {
 
       return {
         success: true,
-        message: '壁纸上传成功',
+        message: "壁纸上传成功",
         data: wallpaper,
       };
     } catch (error) {
       if (error instanceof Error) {
-        throw new BadRequestException(error.message || '上传失败');
+        throw new BadRequestException(error.message || "上传失败");
       }
-      throw new BadRequestException('上传失败');
+      throw new BadRequestException("上传失败");
     }
   }
 
@@ -111,8 +111,8 @@ export class WallpaperController {
     const {
       page = 1,
       limit = 20,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
+      sortBy = "createdAt",
+      sortOrder = "DESC",
       tags,
       minWidth,
       maxWidth,
@@ -160,8 +160,8 @@ export class WallpaperController {
   /**
    * 获取热门壁纸（必须放在 :id 路由之前，避免被参数化路由覆盖）
    */
-  @Get('popular')
-  async getPopularWallpapers(@Query('limit') limit: string = '10') {
+  @Get("popular")
+  async getPopularWallpapers(@Query("limit") limit: string = "10") {
     const wallpapers = await this.wallpaperService.getPopularWallpapers(
       Number(limit),
     );
@@ -175,15 +175,15 @@ export class WallpaperController {
   /**
    * 获取指定上传者的壁纸列表
    */
-  @Get('uploader/:uploaderId')
+  @Get("uploader/:uploaderId")
   async getWallpapersByUploader(
-    @Param('uploaderId') uploaderId: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20',
+    @Param("uploaderId") uploaderId: string,
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
   ) {
     const id = Number(uploaderId);
     if (isNaN(id)) {
-      throw new BadRequestException('无效的上传者ID');
+      throw new BadRequestException("无效的上传者ID");
     }
 
     const result = await this.wallpaperService.findByUploaderId(
@@ -207,12 +207,12 @@ export class WallpaperController {
   /**
    * 获取壁纸详情
    */
-  @Get(':id')
+  @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
-  async getWallpaper(@Param('id') id: string, @Req() request: Request) {
+  async getWallpaper(@Param("id") id: string, @Req() request: Request) {
     const wallpaperId = Number(id);
     if (isNaN(wallpaperId)) {
-      throw new BadRequestException('无效的壁纸ID');
+      throw new BadRequestException("无效的壁纸ID");
     }
 
     const wallpaper = await this.wallpaperService.findById(wallpaperId);
@@ -242,8 +242,8 @@ export class WallpaperController {
     let avatarUrl: string | null = null;
     if (uploader?.avatarUrl) {
       // 如果头像URL是默认头像，返回默认路径
-      if (uploader.avatarUrl === 'defaultAvatar.png') {
-        avatarUrl = '/uploads/profile-pictures/defaultAvatar.png';
+      if (uploader.avatarUrl === "defaultAvatar.png") {
+        avatarUrl = "/uploads/profile-pictures/defaultAvatar.png";
       } else {
         // 为用户上传的头像添加完整路径
         avatarUrl = `/uploads/profile-pictures/${uploader.avatarUrl}`;
@@ -257,7 +257,7 @@ export class WallpaperController {
         isLiked,
         isFavorited,
         // 添加 uploaderName 字段以方便前端使用
-        uploaderName: wallpaper.uploader?.username || '未知用户',
+        uploaderName: wallpaper.uploader?.username || "未知用户",
         // 处理上传者头像URL
         uploader: {
           ...uploader,
@@ -270,8 +270,8 @@ export class WallpaperController {
   /**
    * 获取壁纸的标签
    */
-  @Get(':id/tags')
-  async getWallpaperTags(@Param('id') id: string) {
+  @Get(":id/tags")
+  async getWallpaperTags(@Param("id") id: string) {
     // 验证壁纸是否存在
     await this.wallpaperService.findById(Number(id));
 
@@ -286,17 +286,17 @@ export class WallpaperController {
   /**
    * 更新壁纸信息
    */
-  @Put(':id')
+  @Put(":id")
   @UseGuards(JwtAuthGuard)
   async updateWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateData: UpdateWallpaperDto,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
     if (wallpaper.uploaderId !== user.userId) {
-      throw new BadRequestException('无权修改此壁纸');
+      throw new BadRequestException("无权修改此壁纸");
     }
 
     const updatedWallpaper = await this.wallpaperService.update(
@@ -306,7 +306,7 @@ export class WallpaperController {
 
     return {
       success: true,
-      message: '壁纸更新成功',
+      message: "壁纸更新成功",
       data: updatedWallpaper,
     };
   }
@@ -314,16 +314,16 @@ export class WallpaperController {
   /**
    * 删除壁纸
    */
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(JwtAuthGuard)
   async deleteWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
     if (wallpaper.uploaderId !== user.userId) {
-      throw new BadRequestException('无权删除此壁纸');
+      throw new BadRequestException("无权删除此壁纸");
     }
 
     await this.wallpaperService.delete(Number(id));
@@ -336,75 +336,75 @@ export class WallpaperController {
 
     return {
       success: true,
-      message: '壁纸删除成功',
+      message: "壁纸删除成功",
     };
   }
 
   /**
    * 点赞壁纸
    */
-  @Post(':id/like')
+  @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async likeWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     await this.wallpaperService.incrementLikeCount(user.userId, Number(id));
 
     return {
       success: true,
-      message: '点赞成功',
+      message: "点赞成功",
     };
   }
 
   /**
    * 取消点赞壁纸
    */
-  @Post(':id/unlike')
+  @Post(":id/unlike")
   @UseGuards(JwtAuthGuard)
   async unlikeWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     await this.wallpaperService.decrementLikeCount(user.userId, Number(id));
 
     return {
       success: true,
-      message: '取消点赞成功',
+      message: "取消点赞成功",
     };
   }
 
   /**
    * 收藏壁纸
    */
-  @Post(':id/favorite')
+  @Post(":id/favorite")
   @UseGuards(JwtAuthGuard)
   async favoriteWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     await this.wallpaperService.incrementFavoriteCount(user.userId, Number(id));
 
     return {
       success: true,
-      message: '收藏成功',
+      message: "收藏成功",
     };
   }
 
   /**
    * 取消收藏壁纸
    */
-  @Post(':id/unfavorite')
+  @Post(":id/unfavorite")
   @UseGuards(JwtAuthGuard)
   async unfavoriteWallpaper(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
     await this.wallpaperService.decrementFavoriteCount(user.userId, Number(id));
 
     return {
       success: true,
-      message: '取消收藏成功',
+      message: "取消收藏成功",
     };
   }
 }

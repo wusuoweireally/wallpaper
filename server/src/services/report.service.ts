@@ -3,20 +3,20 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import {
   CreateReportDto,
   GetReportsDto,
   UpdateReportDto,
-} from '../dto/report.dto';
+} from "../dto/report.dto";
 import {
   Report,
   ReportReason,
   ReportStatus,
   ReportTargetType,
-} from '../entities/report.entity';
+} from "../entities/report.entity";
 
 @Injectable()
 export class ReportService {
@@ -42,7 +42,7 @@ export class ReportService {
     });
 
     if (existingReport) {
-      throw new ConflictException('您已经举报过此内容');
+      throw new ConflictException("您已经举报过此内容");
     }
 
     const report = this.reportRepository.create({
@@ -71,34 +71,34 @@ export class ReportService {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reportRepository
-      .createQueryBuilder('report')
-      .leftJoinAndSelect('report.user', 'user')
-      .leftJoinAndSelect('report.post', 'post')
-      .leftJoinAndSelect('report.comment', 'comment')
-      .leftJoinAndSelect('report.reviewer', 'reviewer')
-      .orderBy('report.createdAt', 'DESC')
+      .createQueryBuilder("report")
+      .leftJoinAndSelect("report.user", "user")
+      .leftJoinAndSelect("report.post", "post")
+      .leftJoinAndSelect("report.comment", "comment")
+      .leftJoinAndSelect("report.reviewer", "reviewer")
+      .orderBy("report.createdAt", "DESC")
       .skip(skip)
       .take(limit);
 
     if (targetType) {
-      queryBuilder.andWhere('report.targetType = :targetType', { targetType });
+      queryBuilder.andWhere("report.targetType = :targetType", { targetType });
     }
 
     if (reason) {
-      queryBuilder.andWhere('report.reason = :reason', { reason });
+      queryBuilder.andWhere("report.reason = :reason", { reason });
     }
 
     if (status) {
-      queryBuilder.andWhere('report.status = :status', { status });
+      queryBuilder.andWhere("report.status = :status", { status });
     }
 
     if (userId) {
-      queryBuilder.andWhere('report.userId = :userId', { userId });
+      queryBuilder.andWhere("report.userId = :userId", { userId });
     }
 
     if (keyword && keyword.trim()) {
       queryBuilder.andWhere(
-        '(report.description LIKE :keyword OR user.username LIKE :keyword)',
+        "(report.description LIKE :keyword OR user.username LIKE :keyword)",
         { keyword: `%${keyword.trim()}%` },
       );
     }
@@ -119,11 +119,11 @@ export class ReportService {
   async getReportById(id: number): Promise<Report> {
     const report = await this.reportRepository.findOne({
       where: { id },
-      relations: ['user', 'post', 'comment', 'reviewer'],
+      relations: ["user", "post", "comment", "reviewer"],
     });
 
     if (!report) {
-      throw new NotFoundException('举报记录不存在');
+      throw new NotFoundException("举报记录不存在");
     }
 
     return report;
@@ -144,7 +144,7 @@ export class ReportService {
       report.status === ReportStatus.RESOLVED ||
       report.status === ReportStatus.DISMISSED
     ) {
-      throw new ForbiddenException('该举报已经处理完成');
+      throw new ForbiddenException("该举报已经处理完成");
     }
 
     // 更新状态
@@ -176,8 +176,8 @@ export class ReportService {
 
     const [data, total] = await this.reportRepository.findAndCount({
       where: { userId },
-      relations: ['post', 'comment'],
-      order: { createdAt: 'DESC' },
+      relations: ["post", "comment"],
+      order: { createdAt: "DESC" },
       skip,
       take: limit,
     });
@@ -211,18 +211,18 @@ export class ReportService {
 
     // 按原因统计
     const statsByReason = await this.reportRepository
-      .createQueryBuilder('report')
-      .select('report.reason', 'reason')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('report.reason')
+      .createQueryBuilder("report")
+      .select("report.reason", "reason")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("report.reason")
       .getRawMany();
 
     // 按类型统计
     const statsByType = await this.reportRepository
-      .createQueryBuilder('report')
-      .select('report.targetType', 'targetType')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('report.targetType')
+      .createQueryBuilder("report")
+      .select("report.targetType", "targetType")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("report.targetType")
       .getRawMany();
 
     return {
@@ -266,7 +266,7 @@ export class ReportService {
     const canReport = await this.canReport(userId, targetType, targetId);
     return {
       canReport,
-      reason: canReport ? undefined : '您已经举报过此内容',
+      reason: canReport ? undefined : "您已经举报过此内容",
     };
   }
 
@@ -281,38 +281,38 @@ export class ReportService {
     return [
       {
         value: ReportReason.SPAM,
-        label: '垃圾信息',
-        description: '广告、灌水、重复内容等',
+        label: "垃圾信息",
+        description: "广告、灌水、重复内容等",
       },
       {
         value: ReportReason.INAPPROPRIATE,
-        label: '不当内容',
-        description: '不适当、冒犯性或令人不适的内容',
+        label: "不当内容",
+        description: "不适当、冒犯性或令人不适的内容",
       },
       {
         value: ReportReason.HARASSMENT,
-        label: '骚扰行为',
-        description: '人身攻击、霸凌、骚扰等',
+        label: "骚扰行为",
+        description: "人身攻击、霸凌、骚扰等",
       },
       {
         value: ReportReason.VIOLENCE,
-        label: '暴力内容',
-        description: '暴力、血腥或危险行为相关内容',
+        label: "暴力内容",
+        description: "暴力、血腥或危险行为相关内容",
       },
       {
         value: ReportReason.COPYRIGHT,
-        label: '版权问题',
-        description: '侵犯版权、盗用他人作品等',
+        label: "版权问题",
+        description: "侵犯版权、盗用他人作品等",
       },
       {
         value: ReportReason.MISINFORMATION,
-        label: '虚假信息',
-        description: '虚假、误导性或错误的信息',
+        label: "虚假信息",
+        description: "虚假、误导性或错误的信息",
       },
       {
         value: ReportReason.OTHER,
-        label: '其他问题',
-        description: '其他违规或问题内容',
+        label: "其他问题",
+        description: "其他违规或问题内容",
       },
     ];
   }

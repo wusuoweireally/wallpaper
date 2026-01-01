@@ -10,18 +10,18 @@ import {
   Query,
   UseGuards,
   ValidationPipe,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { buildPaginationMeta } from '../common/pagination';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import type { CurrentUserType } from '../decorators/current-user.decorator';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { buildPaginationMeta } from "../common/pagination";
+import { CurrentUser } from "../decorators/current-user.decorator";
+import type { CurrentUserType } from "../decorators/current-user.decorator";
 import {
   CreatePostDto,
   PostListQueryDto,
   UpdatePostDto,
-} from '../dto/post.dto';
-import { LimitQueryDto, PaginationQueryDto } from '../dto/pagination.dto';
-import { PostService } from '../services/post.service';
+} from "../dto/post.dto";
+import { LimitQueryDto, PaginationQueryDto } from "../dto/pagination.dto";
+import { PostService } from "../services/post.service";
 
 const bodyValidationPipe = new ValidationPipe({
   whitelist: true,
@@ -44,7 +44,7 @@ const queryValidationPipe = new ValidationPipe({
  * - 点赞功能（需要登录）
  * - 用户帖子管理（需要登录）
  */
-@Controller('posts')
+@Controller("posts")
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
@@ -65,13 +65,13 @@ export class PostController {
       const post = await this.postService.create(createPostDto, user.userId);
       return {
         success: true,
-        message: '帖子创建成功',
+        message: "帖子创建成功",
         data: post,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '帖子创建失败',
+        message: error.message || "帖子创建失败",
       };
     }
   }
@@ -89,14 +89,14 @@ export class PostController {
 
       return {
         success: true,
-        message: '获取帖子列表成功',
+        message: "获取帖子列表成功",
         data: result.data,
         pagination: buildPaginationMeta(result),
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取帖子列表失败',
+        message: error.message || "获取帖子列表失败",
       };
     }
   }
@@ -107,19 +107,19 @@ export class PostController {
    * @param id 帖子ID
    * @returns 帖子详情
    */
-  @Get(':id')
-  async getPost(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  async getPost(@Param("id", ParseIntPipe) id: number) {
     try {
       const post = await this.postService.findById(id);
       return {
         success: true,
-        message: '获取帖子成功',
+        message: "获取帖子成功",
         data: post,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取帖子失败',
+        message: error.message || "获取帖子失败",
       };
     }
   }
@@ -132,10 +132,10 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 更新后的帖子信息
    */
-  @Put(':id')
+  @Put(":id")
   @UseGuards(JwtAuthGuard)
   async updatePost(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body(bodyValidationPipe) updatePostDto: UpdatePostDto,
     @CurrentUser() user: CurrentUserType,
   ) {
@@ -147,13 +147,13 @@ export class PostController {
       );
       return {
         success: true,
-        message: '帖子更新成功',
+        message: "帖子更新成功",
         data: post,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '帖子更新失败',
+        message: error.message || "帖子更新失败",
       };
     }
   }
@@ -165,22 +165,22 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 操作结果
    */
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(JwtAuthGuard)
   async deletePost(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     try {
       await this.postService.delete(id, user.userId);
       return {
         success: true,
-        message: '帖子删除成功',
+        message: "帖子删除成功",
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '帖子删除失败',
+        message: error.message || "帖子删除失败",
       };
     }
   }
@@ -192,22 +192,22 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 操作结果
    */
-  @Post(':id/like')
+  @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async likePost(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     try {
       await this.postService.incrementLikeCount(id, user.userId);
       return {
         success: true,
-        message: '点赞成功',
+        message: "点赞成功",
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '点赞失败',
+        message: error.message || "点赞失败",
       };
     }
   }
@@ -219,22 +219,22 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 操作结果
    */
-  @Delete(':id/like')
+  @Delete(":id/like")
   @UseGuards(JwtAuthGuard)
   async unlikePost(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     try {
       await this.postService.decrementLikeCount(id, user.userId);
       return {
         success: true,
-        message: '取消点赞成功',
+        message: "取消点赞成功",
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '取消点赞失败',
+        message: error.message || "取消点赞失败",
       };
     }
   }
@@ -246,23 +246,23 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 点赞状态
    */
-  @Get(':id/like')
+  @Get(":id/like")
   @UseGuards(JwtAuthGuard)
   async checkLikeStatus(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     try {
       const hasLiked = await this.postService.hasLiked(id, user.userId);
       return {
         success: true,
-        message: '获取点赞状态成功',
+        message: "获取点赞状态成功",
         data: { hasLiked },
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取点赞状态失败',
+        message: error.message || "获取点赞状态失败",
       };
     }
   }
@@ -273,20 +273,20 @@ export class PostController {
    * @param query 查询参数
    * @returns 热门帖子列表
    */
-  @Get('popular/list')
+  @Get("popular/list")
   async getPopularPosts(@Query(queryValidationPipe) query: LimitQueryDto) {
     try {
       const posts = await this.postService.getPopularPosts(query.limit);
 
       return {
         success: true,
-        message: '获取热门帖子成功',
+        message: "获取热门帖子成功",
         data: posts,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取热门帖子失败',
+        message: error.message || "获取热门帖子失败",
       };
     }
   }
@@ -297,20 +297,20 @@ export class PostController {
    * @param query 查询参数
    * @returns 最新帖子列表
    */
-  @Get('latest/list')
+  @Get("latest/list")
   async getLatestPosts(@Query(queryValidationPipe) query: LimitQueryDto) {
     try {
       const posts = await this.postService.getLatestPosts(query.limit);
 
       return {
         success: true,
-        message: '获取最新帖子成功',
+        message: "获取最新帖子成功",
         data: posts,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取最新帖子失败',
+        message: error.message || "获取最新帖子失败",
       };
     }
   }
@@ -322,7 +322,7 @@ export class PostController {
    * @param user 当前登录用户
    * @returns 用户帖子列表
    */
-  @Get('user/my')
+  @Get("user/my")
   @UseGuards(JwtAuthGuard)
   async getMyPosts(
     @Query(queryValidationPipe) query: PaginationQueryDto,
@@ -337,14 +337,14 @@ export class PostController {
 
       return {
         success: true,
-        message: '获取用户帖子成功',
+        message: "获取用户帖子成功",
         data: result.data,
         pagination: buildPaginationMeta(result),
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || '获取用户帖子失败',
+        message: error.message || "获取用户帖子失败",
       };
     }
   }

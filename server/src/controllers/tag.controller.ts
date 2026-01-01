@@ -9,16 +9,16 @@ import {
   Post,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { TagService } from '../services/tag.service';
-import { CreateTagDto, SearchTagsDto, UpdateTagDto } from '../dto/tag.dto';
-import { Tag } from '../entities/tag.entity';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
-import { UserRole } from '../entities/user.entity';
+} from "@nestjs/common";
+import { TagService } from "../services/tag.service";
+import { CreateTagDto, SearchTagsDto, UpdateTagDto } from "../dto/tag.dto";
+import { Tag } from "../entities/tag.entity";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../guards/roles.guard";
+import { Roles } from "../decorators/roles.decorator";
+import { UserRole } from "../entities/user.entity";
 
-@Controller('tags')
+@Controller("tags")
 export class TagController {
   constructor(private readonly tagService: TagService) {}
 
@@ -65,9 +65,9 @@ export class TagController {
    * 根据ID获取标签详情
    * @param id 标签ID
    */
-  @Get(':id')
+  @Get(":id")
   async getTagById(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
   ): Promise<{ success: boolean; data: Tag | null }> {
     const tag = await this.tagService.getTagById(id);
     return {
@@ -76,29 +76,29 @@ export class TagController {
     };
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async updateTag(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() updateTagDto: UpdateTagDto,
   ) {
     const tag = await this.tagService.updateTag(id, updateTagDto.name);
     return {
       success: true,
-      message: '标签已更新',
+      message: "标签已更新",
       data: tag,
     };
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async deleteTag(@Param('id', ParseIntPipe) id: number) {
+  async deleteTag(@Param("id", ParseIntPipe) id: number) {
     await this.tagService.deleteTag(id);
     return {
       success: true,
-      message: '标签已删除',
+      message: "标签已删除",
     };
   }
 }

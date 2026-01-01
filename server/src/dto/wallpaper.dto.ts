@@ -5,22 +5,22 @@ import {
   IsEnum,
   IsNumberString,
   Length,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateWallpaperDto {
   @IsOptional()
   @IsString()
-  @Length(1, 100, { message: '标题长度必须在1-100个字符之间' })
+  @Length(1, 100, { message: "标题长度必须在1-100个字符之间" })
   title?: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 500, { message: '描述长度不能超过500个字符' })
+  @Length(0, 500, { message: "描述长度不能超过500个字符" })
   description?: string;
 
-  @IsEnum(['general', 'anime', 'people'])
+  @IsEnum(["general", "anime", "people"])
   @IsOptional()
-  category?: 'general' | 'anime' | 'people';
+  category?: "general" | "anime" | "people";
 
   @IsArray()
   @IsOptional()
@@ -30,27 +30,27 @@ export class CreateWallpaperDto {
 export class UpdateWallpaperDto {
   @IsOptional()
   @IsString()
-  @Length(1, 100, { message: '标题长度必须在1-100个字符之间' })
+  @Length(1, 100, { message: "标题长度必须在1-100个字符之间" })
   title?: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 500, { message: '描述长度不能超过500个字符' })
+  @Length(0, 500, { message: "描述长度不能超过500个字符" })
   description?: string;
 
-  @IsEnum(['general', 'anime', 'people'])
+  @IsEnum(["general", "anime", "people"])
   @IsOptional()
-  category?: 'general' | 'anime' | 'people';
+  category?: "general" | "anime" | "people";
 }
 
 export class WallpaperQueryDto {
   @IsNumberString()
   @IsOptional()
-  page?: string = '1';
+  page?: string = "1";
 
   @IsNumberString()
   @IsOptional()
-  limit?: string = '20';
+  limit?: string = "20";
 
   @IsString()
   @IsOptional()
@@ -58,11 +58,11 @@ export class WallpaperQueryDto {
 
   @IsString()
   @IsOptional()
-  sortBy?: string = 'createdAt';
+  sortBy?: string = "createdAt";
 
   @IsString()
   @IsOptional()
-  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+  sortOrder?: "ASC" | "DESC" = "DESC";
 
   @IsArray()
   @IsOptional()
@@ -90,7 +90,7 @@ export class WallpaperQueryDto {
 
   @IsString()
   @IsOptional()
-  category?: 'general' | 'anime' | 'people';
+  category?: "general" | "anime" | "people";
 
   @IsString()
   @IsOptional()

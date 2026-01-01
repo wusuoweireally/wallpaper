@@ -3,11 +3,11 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRole } from '../entities/user.entity';
-import { CurrentUserType } from '../decorators/current-user.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+import { UserRole } from "../entities/user.entity";
+import { CurrentUserType } from "../decorators/current-user.decorator";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -29,11 +29,11 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.role) {
-      throw new ForbiddenException('没有访问此资源的权限');
+      throw new ForbiddenException("没有访问此资源的权限");
     }
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('当前账号无权执行该操作');
+      throw new ForbiddenException("当前账号无权执行该操作");
     }
 
     return true;

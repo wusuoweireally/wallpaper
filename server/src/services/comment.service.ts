@@ -2,14 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
-import { PaginatedResult } from '../common/pagination';
-import { CommentQueryDto, CreateCommentDto } from '../dto/comment.dto';
-import { Comment } from '../entities/comment.entity';
-import { Post } from '../entities/post.entity';
-import { CommentLike } from '../entities/comment-like.entity';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { IsNull, Repository } from "typeorm";
+import { PaginatedResult } from "../common/pagination";
+import { CommentQueryDto, CreateCommentDto } from "../dto/comment.dto";
+import { Comment } from "../entities/comment.entity";
+import { Post } from "../entities/post.entity";
+import { CommentLike } from "../entities/comment-like.entity";
 
 /**
  * 评论服务
@@ -63,7 +63,7 @@ export class CommentService {
 
       // 确保父评论属于同一帖子
       if (parentComment.postId !== commentData.postId) {
-        throw new ForbiddenException('父评论不属于指定帖子');
+        throw new ForbiddenException("父评论不属于指定帖子");
       }
     }
 
@@ -79,7 +79,7 @@ export class CommentService {
     // 更新帖子评论数 & 最后评论时间
     await this.postRepository.increment(
       { id: commentData.postId },
-      'commentCount',
+      "commentCount",
       1,
     );
     await this.postRepository.update(commentData.postId, {
@@ -90,7 +90,7 @@ export class CommentService {
     if (commentData.parentId) {
       await this.commentRepository.increment(
         { id: commentData.parentId },
-        'replyCount',
+        "replyCount",
         1,
       );
     }
@@ -107,7 +107,7 @@ export class CommentService {
   async findById(id: number): Promise<Comment> {
     const comment = await this.commentRepository.findOne({
       where: { id },
-      relations: ['author'],
+      relations: ["author"],
     });
 
     if (!comment) {
@@ -131,8 +131,8 @@ export class CommentService {
     const {
       page = 1,
       limit = 20,
-      sortBy = 'createdAt',
-      sortOrder = 'ASC', // 评论默认按时间升序排列
+      sortBy = "createdAt",
+      sortOrder = "ASC", // 评论默认按时间升序排列
       parentId,
     } = params;
 
@@ -140,23 +140,23 @@ export class CommentService {
 
     // 构建查询条件
     const queryBuilder = this.commentRepository
-      .createQueryBuilder('comment')
-      .where('comment.postId = :postId', { postId });
+      .createQueryBuilder("comment")
+      .where("comment.postId = :postId", { postId });
 
     // 如果指定了父评论ID，获取该评论的子评论
     if (parentId !== undefined) {
-      queryBuilder.andWhere('comment.parentId = :parentId', { parentId });
+      queryBuilder.andWhere("comment.parentId = :parentId", { parentId });
     } else {
       // 否则获取顶级评论
-      queryBuilder.andWhere('comment.parentId IS NULL');
+      queryBuilder.andWhere("comment.parentId IS NULL");
     }
 
     // 添加作者信息关联
-    queryBuilder.leftJoinAndSelect('comment.author', 'author');
+    queryBuilder.leftJoinAndSelect("comment.author", "author");
 
     // 处理排序
-    const validSortFields = ['createdAt', 'updatedAt', 'likeCount'];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const validSortFields = ["createdAt", "updatedAt", "likeCount"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
     queryBuilder.orderBy(`comment.${sortField}`, sortOrder);
 
     // 执行分页查询
@@ -177,8 +177,8 @@ export class CommentService {
   async getChildComments(parentCommentId: number): Promise<Comment[]> {
     return await this.commentRepository.find({
       where: { parentId: parentCommentId },
-      relations: ['author'],
-      order: { createdAt: 'ASC' },
+      relations: ["author"],
+      order: { createdAt: "ASC" },
     });
   }
 
@@ -198,7 +198,7 @@ export class CommentService {
     }
 
     if (comment.authorId !== userId) {
-      throw new ForbiddenException('只能删除自己的评论');
+      throw new ForbiddenException("只能删除自己的评论");
     }
 
     // 递归删除子评论
@@ -213,14 +213,14 @@ export class CommentService {
     // 更新帖子评论数
     await this.postRepository.decrement(
       { id: comment.postId },
-      'commentCount',
+      "commentCount",
       1,
     );
 
     if (comment.parentId) {
       await this.commentRepository.decrement(
         { id: comment.parentId },
-        'replyCount',
+        "replyCount",
         1,
       );
     }
@@ -246,7 +246,7 @@ export class CommentService {
       // 更新帖子评论数
       await this.postRepository.decrement(
         { id: child.postId },
-        'commentCount',
+        "commentCount",
         1,
       );
     }
@@ -268,7 +268,7 @@ export class CommentService {
     }
 
     if (comment.authorId !== userId) {
-      throw new ForbiddenException('只能编辑自己的评论');
+      throw new ForbiddenException("只能编辑自己的评论");
     }
 
     await this.commentRepository.update(id, { content });
@@ -292,8 +292,8 @@ export class CommentService {
 
     const [comments, total] = await this.commentRepository.findAndCount({
       where: { authorId: userId },
-      relations: ['author', 'post'],
-      order: { createdAt: 'DESC' },
+      relations: ["author", "post"],
+      order: { createdAt: "DESC" },
       skip,
       take: limit,
     });
@@ -346,8 +346,8 @@ export class CommentService {
    */
   async getLatestComments(limit: number = 10): Promise<Comment[]> {
     return await this.commentRepository.find({
-      relations: ['author', 'post'],
-      order: { createdAt: 'DESC' },
+      relations: ["author", "post"],
+      order: { createdAt: "DESC" },
       take: limit,
     });
   }
@@ -385,7 +385,7 @@ export class CommentService {
       await this.commentLikeRepository.delete(existingLike.id);
 
       // 减少点赞数
-      await this.commentRepository.decrement({ id: commentId }, 'likeCount', 1);
+      await this.commentRepository.decrement({ id: commentId }, "likeCount", 1);
 
       // 获取更新后的点赞数
       const updatedComment = await this.commentRepository.findOne({
@@ -405,7 +405,7 @@ export class CommentService {
       await this.commentLikeRepository.save(like);
 
       // 增加点赞数
-      await this.commentRepository.increment({ id: commentId }, 'likeCount', 1);
+      await this.commentRepository.increment({ id: commentId }, "likeCount", 1);
 
       // 获取更新后的点赞数
       const updatedComment = await this.commentRepository.findOne({
@@ -454,8 +454,8 @@ export class CommentService {
     const [commentLikes, total] = await this.commentLikeRepository.findAndCount(
       {
         where: { userId },
-        relations: ['comment', 'comment.author', 'comment.post'],
-        order: { createdAt: 'DESC' },
+        relations: ["comment", "comment.author", "comment.post"],
+        order: { createdAt: "DESC" },
         skip,
         take: limit,
       },

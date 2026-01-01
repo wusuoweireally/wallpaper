@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Request } from 'express';
-import { UserRole } from '../entities/user.entity';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { Request } from "express";
+import { UserRole } from "../entities/user.entity";
 
 interface JwtPayload {
   sub: number | string; // sub 可能是数字或字符串
@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     };
 
     const secretOrKey =
-      configService.get<string>('JWT_SECRET') || 'your-secret-key';
+      configService.get<string>("JWT_SECRET") || "your-secret-key";
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -38,25 +38,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   validate(payload: JwtPayload) {
     // 验证payload的有效性
     if (!payload) {
-      throw new UnauthorizedException('JWT token无效 - payload为空');
+      throw new UnauthorizedException("JWT token无效 - payload为空");
     }
     if (!payload.sub) {
-      throw new UnauthorizedException('JWT token无效 - 缺少用户ID');
+      throw new UnauthorizedException("JWT token无效 - 缺少用户ID");
     }
     if (!payload.username) {
-      throw new UnauthorizedException('JWT token无效 - 缺少用户名');
+      throw new UnauthorizedException("JWT token无效 - 缺少用户名");
     }
 
     // 将 sub 转换为数字（兼容字符串和数字类型）
     const userId =
-      typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+      typeof payload.sub === "string" ? parseInt(payload.sub, 10) : payload.sub;
 
     // 验证用户ID的有效性
     if (isNaN(userId)) {
-      throw new UnauthorizedException('用户ID无效 - 转换失败');
+      throw new UnauthorizedException("用户ID无效 - 转换失败");
     }
     if (userId <= 0) {
-      throw new UnauthorizedException('用户ID无效 - 必须是正数');
+      throw new UnauthorizedException("用户ID无效 - 必须是正数");
     }
 
     const result = {
@@ -66,7 +66,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     };
 
     console.log(
-      '✅ JWT validation successful, returning:',
+      "✅ JWT validation successful, returning:",
       JSON.stringify(result),
     );
     return result;

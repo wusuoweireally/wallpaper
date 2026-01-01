@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ViewHistory } from '../entities/view-history.entity';
-import { CreateViewHistoryDto } from '../dto/view-history.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, LessThan } from "typeorm";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ViewHistory } from "../entities/view-history.entity";
+import { CreateViewHistoryDto } from "../dto/view-history.dto";
 
 @Injectable()
 export class ViewHistoryService {
@@ -23,7 +23,7 @@ export class ViewHistoryService {
     // 检查是否已存在相同的浏览记录（同一用户同一壁纸）
     const existingHistory = await this.viewHistoryRepository.findOne({
       where: { userId, wallpaperId },
-      order: { viewedAt: 'DESC' },
+      order: { viewedAt: "DESC" },
     });
 
     // 如果存在记录，更新浏览时间
@@ -56,8 +56,8 @@ export class ViewHistoryService {
       where: {
         userId,
       },
-      relations: ['wallpaper', 'wallpaper.uploader'],
-      order: { viewedAt: 'DESC' },
+      relations: ["wallpaper", "wallpaper.uploader"],
+      order: { viewedAt: "DESC" },
       skip,
       take: limit,
     });

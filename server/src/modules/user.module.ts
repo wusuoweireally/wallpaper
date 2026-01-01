@@ -1,19 +1,19 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PassportModule } from '@nestjs/passport';
-import type { StringValue } from 'ms';
-import { User } from '../entities/user.entity';
-import { UserService } from '../services/user.service';
-import { AuthService } from '../services/auth.service';
-import { GitHubAuthService } from '../services/github-auth.service';
-import { UserController } from '../controllers/user.controller';
-import { AuthController } from '../controllers/auth.controller';
-import { JwtStrategy } from '../auth/jwt.strategy';
-import { GitHubStrategy } from '../auth/github.strategy';
-import { WallpaperModule } from './wallpaper.module';
-import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { JwtModule } from "@nestjs/jwt";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { PassportModule } from "@nestjs/passport";
+import type { StringValue } from "ms";
+import { User } from "../entities/user.entity";
+import { UserService } from "../services/user.service";
+import { AuthService } from "../services/auth.service";
+import { GitHubAuthService } from "../services/github-auth.service";
+import { UserController } from "../controllers/user.controller";
+import { AuthController } from "../controllers/auth.controller";
+import { JwtStrategy } from "../auth/jwt.strategy";
+import { GitHubStrategy } from "../auth/github.strategy";
+import { WallpaperModule } from "./wallpaper.module";
+import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 
 @Module({
   imports: [
@@ -25,10 +25,10 @@ import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const expiresIn: StringValue = (configService.get<string>(
-          'JWT_EXPIRES_IN',
-        ) || '180d') as StringValue;
+          "JWT_EXPIRES_IN",
+        ) || "180d") as StringValue;
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'your-secret-key',
+          secret: configService.get<string>("JWT_SECRET") || "your-secret-key",
           signOptions: {
             expiresIn,
           },

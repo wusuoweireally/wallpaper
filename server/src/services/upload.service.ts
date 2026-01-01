@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import sharp from 'sharp';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { Injectable, BadRequestException } from "@nestjs/common";
+import sharp from "sharp";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 @Injectable()
 export class UploadService {
@@ -26,33 +26,33 @@ export class UploadService {
     try {
       // 验证文件类型
       const allowedMimeTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/gif',
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
       ];
       if (!allowedMimeTypes.includes(file.mimetype)) {
         throw new BadRequestException(
-          '不支持的文件类型，仅支持 JPG、PNG、WebP、GIF 格式',
+          "不支持的文件类型，仅支持 JPG、PNG、WebP、GIF 格式",
         );
       }
 
       // 验证文件大小 (最大50MB)
       const maxSize = 50 * 1024 * 1024;
       if (file.size > maxSize) {
-        throw new BadRequestException('文件大小不能超过50MB');
+        throw new BadRequestException("文件大小不能超过50MB");
       }
 
       // 生成文件名 (日期+用户ID)
       const fileExtension = path.extname(file.originalname);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const fileName = `${timestamp}__${uploaderId}${fileExtension}`;
       const thumbnailName = `${timestamp}__${uploaderId}_thumbnail.webp`;
 
       // 创建上传目
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      const thumbnailsDir = path.join(uploadDir, 'thumbnails');
-      const fileDir = path.join(uploadDir, 'wallpapers');
+      const uploadDir = path.join(process.cwd(), "uploads");
+      const thumbnailsDir = path.join(uploadDir, "thumbnails");
+      const fileDir = path.join(uploadDir, "wallpapers");
       await fs.mkdir(uploadDir, { recursive: true });
       await fs.mkdir(thumbnailsDir, { recursive: true });
 
@@ -72,7 +72,7 @@ export class UploadService {
 
       // 生成缩略图 (300px宽，保持比例)
       const thumbnailBuffer = await image
-        .resize(300, null, { fit: 'inside' })
+        .resize(300, null, { fit: "inside" })
         .webp({ quality: 100 })
         .toBuffer();
 
@@ -85,14 +85,14 @@ export class UploadService {
         fileSize: file.size,
         width: metadata.width || 0,
         height: metadata.height || 0,
-        format: metadata.format || '',
+        format: metadata.format || "",
         aspectRatio,
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException('文件处理失败');
+      throw new BadRequestException("文件处理失败");
     }
   }
 
@@ -115,7 +115,7 @@ export class UploadService {
       }
     } catch (error) {
       // 文件删除失败不影响主要逻辑
-      console.error('删除文件失败:', error);
+      console.error("删除文件失败:", error);
     }
   }
 }

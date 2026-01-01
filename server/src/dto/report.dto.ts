@@ -4,35 +4,35 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 import {
   ReportReason,
   ReportStatus,
   ReportTargetType,
-} from '../entities/report.entity';
+} from "../entities/report.entity";
 
 export class CreateReportDto {
   @IsEnum(ReportTargetType)
-  @IsNotEmpty({ message: '举报目标类型不能为空' })
+  @IsNotEmpty({ message: "举报目标类型不能为空" })
   targetType: ReportTargetType;
 
-  @IsNotEmpty({ message: '举报目标ID不能为空' })
+  @IsNotEmpty({ message: "举报目标ID不能为空" })
   targetId: number;
 
   @IsEnum(ReportReason)
-  @IsNotEmpty({ message: '举报原因不能为空' })
+  @IsNotEmpty({ message: "举报原因不能为空" })
   reason: ReportReason;
 
   @IsString()
   @IsOptional()
-  @MaxLength(500, { message: '举报描述不能超过500个字符' })
+  @MaxLength(500, { message: "举报描述不能超过500个字符" })
   description?: string;
 }
 
 export class UpdateReportDto {
   @IsString()
   @IsOptional()
-  @MaxLength(500, { message: '处理说明不能超过500个字符' })
+  @MaxLength(500, { message: "处理说明不能超过500个字符" })
   reviewNote?: string;
 
   @IsEnum(ReportStatus)

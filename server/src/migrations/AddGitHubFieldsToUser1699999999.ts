@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableIndex } from "typeorm";
 
 export class AddGitHubFieldsToUser1699999999 implements MigrationInterface {
-  name = 'AddGitHubFieldsToUser1699999999';
+  name = "AddGitHubFieldsToUser1699999999";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 添加 GitHub 相关字段到 users 表
@@ -15,10 +15,10 @@ export class AddGitHubFieldsToUser1699999999 implements MigrationInterface {
 
     // 为 github_id 添加索引以提高查询性能
     await queryRunner.createIndex(
-      'users',
+      "users",
       new TableIndex({
-        name: 'IDX_GITHUB_ID',
-        columnNames: ['github_id'],
+        name: "IDX_GITHUB_ID",
+        columnNames: ["github_id"],
         isUnique: true,
       }),
     );
@@ -26,7 +26,7 @@ export class AddGitHubFieldsToUser1699999999 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // 删除索引
-    await queryRunner.dropIndex('users', 'IDX_GITHUB_ID');
+    await queryRunner.dropIndex("users", "IDX_GITHUB_ID");
 
     // 删除添加的字段
     await queryRunner.query(`
