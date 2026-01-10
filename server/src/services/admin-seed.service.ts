@@ -88,7 +88,7 @@ export class AdminSeedService implements OnModuleInit {
       finalUsername = `admin${adminId}`;
     }
 
-    let finalEmail: string | null = null;
+    let finalEmail: string | undefined;
     if (adminEmail) {
       const emailOwner = await this.userRepository.findOne({
         where: { email: adminEmail },
@@ -103,13 +103,15 @@ export class AdminSeedService implements OnModuleInit {
     const adminUser = this.userRepository.create({
       id: adminId,
       username: finalUsername,
-      email: finalEmail,
       passwordHash,
       avatarUrl: "defaultAvatar.png",
       bio: "",
       role: UserRole.ADMIN,
       status: 1,
     });
+    if (finalEmail) {
+      adminUser.email = finalEmail;
+    }
 
     await this.userRepository.save(adminUser);
     this.logger.log("管理员账号已创建。");
