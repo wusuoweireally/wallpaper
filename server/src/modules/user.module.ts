@@ -8,6 +8,7 @@ import { User } from "../entities/user.entity";
 import { UserService } from "../services/user.service";
 import { AuthService } from "../services/auth.service";
 import { GitHubAuthService } from "../services/github-auth.service";
+import { AdminSeedService } from "../services/admin-seed.service";
 import { UserController } from "../controllers/user.controller";
 import { AuthController } from "../controllers/auth.controller";
 import { JwtStrategy } from "../auth/jwt.strategy";
@@ -42,6 +43,7 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
     UserService,
     AuthService,
     GitHubAuthService,
+    AdminSeedService,
     JwtStrategy,
     GitHubStrategy,
     OptionalJwtAuthGuard,
