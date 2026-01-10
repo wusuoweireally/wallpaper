@@ -268,6 +268,37 @@ export class WallpaperService {
   }
 
   /**
+   * 批量删除壁纸
+   * @param ids - 壁纸ID数组
+   * @returns 删除结果统计
+   */
+  async batchDelete(ids: number[]): Promise<{
+    deletedCount: number;
+    failedIds: number[];
+  }> {
+    let deletedCount = 0;
+    const failedIds: number[] = [];
+
+    // 批量处理（分批执行避免一次性处理太多）
+    const batchSize = 50;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize);
+
+      for (const id of batch) {
+        try {
+          await this.delete(id);
+          deletedCount++;
+        } catch (error) {
+          console.error(`删除壁纸 ID ${id} 失败:`, error);
+          failedIds.push(id);
+        }
+      }
+    }
+
+    return { deletedCount, failedIds };
+  }
+
+  /**
    * 增加查看次数
    */
   async incrementViewCount(id: number): Promise<void> {
@@ -336,6 +367,32 @@ export class WallpaperService {
       where: { wallpaperId, userId },
     });
     return !!favorite;
+  }
+
+  /**
+   * 获取用户对壁纸的交互状态（点赞和收藏）
+   * 使用单次查询优化性能
+   */
+  async getUserInteractionStatus(
+    wallpaperId: number,
+    userId: number,
+  ): Promise<{ isLiked: boolean; isFavorited: boolean }> {
+    // 并行查询点赞和收藏状态（已在 controller 层使用 Promise.all）
+    const [like, favorite] = await Promise.all([
+      this.userLikeRepository.findOne({
+        where: { wallpaperId, userId },
+        select: ["id"], // 只查询 ID，减少数据传输
+      }),
+      this.userFavoriteRepository.findOne({
+        where: { wallpaperId, userId },
+        select: ["id"],
+      }),
+    ]);
+
+    return {
+      isLiked: !!like,
+      isFavorited: !!favorite,
+    };
   }
 
   /**

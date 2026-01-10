@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Index,
 } from "typeorm";
 import { User } from "./user.entity";
 import { Post } from "./post.entity";
@@ -33,6 +34,7 @@ export enum ReportStatus {
 }
 
 @Entity("reports")
+@Index(["status", "createdAt"]) // 复合索引：状态 + 创建时间
 export class Report {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "举报记录ID" })
   id: number;

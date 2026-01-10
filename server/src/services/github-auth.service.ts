@@ -62,11 +62,10 @@ export class GitHubAuthService {
     const randomPassword = this.generateRandomPassword();
     const passwordHash = await bcrypt.hash(randomPassword, 10);
 
-    // 生成新的用户ID（使用数据库自增或雪花算法）
-    // 这里使用当前时间戳 + 随机数作为简单ID
-    const newUserId = this.generateUserId();
+    // 生成新的用户ID（基于数据库最大ID + 1，确保唯一性）
+    const newUserId = await this.generateUniqueUserId();
 
-    // 创建用户实例（不设置 id，让数据库自动生成）
+    // 创建用户实例
     const newUser = new User();
     newUser.id = newUserId; // 手动设置主键
     newUser.username = username;
@@ -151,15 +150,19 @@ export class GitHubAuthService {
 
   /**
    * 生成新的用户ID
-   * 使用时间戳 + 随机数确保唯一性
+   * 基于数据库最大ID + 1，确保唯一性
    *
    * @returns 用户ID
    */
-  private generateUserId(): number {
-    // 使用当前时间戳（毫秒）的最后7位 + 随机4位数
-    const timestamp = Date.now() % 10000000;
-    const random = Math.floor(Math.random() * 10000);
-    return timestamp * 10000 + random;
+  private async generateUniqueUserId(): Promise<number> {
+    // 查询当前最大ID
+    const maxIdResult = await this.userRepository
+      .createQueryBuilder("user")
+      .select("MAX(user.id)", "maxId")
+      .getRawOne();
+
+    const maxId = maxIdResult.maxId ? Number(maxIdResult.maxId) : 0;
+    return maxId + 1;
   }
 
   /**

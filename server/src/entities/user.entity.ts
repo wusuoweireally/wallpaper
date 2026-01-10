@@ -4,6 +4,7 @@ import {
   PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from "typeorm";
 
 export enum UserRole {
@@ -86,4 +87,7 @@ export class User {
     comment: "GitHub个人简介",
   })
   githubBio: string;
+
+  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  deletedAt: Date;
 }

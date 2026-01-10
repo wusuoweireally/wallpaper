@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -98,6 +99,31 @@ export class AdminWallpaperController {
     return {
       success: true,
       message: "壁纸已删除",
+    };
+  }
+
+  /**
+   * 批量删除壁纸
+   */
+  @Post("batch-delete")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async batchRemove(@Body() body: { ids: number[] }) {
+    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供要删除的壁纸ID列表",
+      };
+    }
+
+    const result = await this.wallpaperService.batchDelete(body.ids);
+    return {
+      success: true,
+      message: `成功删除 ${result.deletedCount} 个壁纸`,
+      data: {
+        deletedCount: result.deletedCount,
+        failedIds: result.failedIds,
+      },
     };
   }
 }

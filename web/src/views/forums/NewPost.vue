@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 dark:bg-slate-900">
     <div class="mx-auto max-w-6xl px-4 py-8">
       <!-- Header -->
-      <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6">
+      <div class="mb-6 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">发布新帖子</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100">发布新帖子</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-slate-400">
               把灵感、案例或技巧写下来，让更多壁纸爱好者看到你的创意
             </p>
           </div>
@@ -27,8 +27,8 @@
         <!-- Main Content -->
         <div class="space-y-6 lg:col-span-2">
           <!-- Title -->
-          <div class="rounded-lg border border-gray-200 bg-white p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900">
+          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
               标题 <span class="text-red-500">*</span>
             </label>
             <input
@@ -39,15 +39,15 @@
               maxlength="100"
               @input="validateTitle"
             />
-            <div class="mt-2 flex justify-between text-xs text-gray-500">
+            <div class="mt-2 flex justify-between text-xs text-gray-500 dark:text-slate-400">
               <span v-if="errors.title" class="text-red-500">{{ errors.title }}</span>
               <span class="ml-auto">{{ formData.title.length }}/100</span>
             </div>
           </div>
 
           <!-- Category -->
-          <div class="rounded-lg border border-gray-200 bg-white p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900">
+          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
               分类 <span class="text-red-500">*</span>
             </label>
             <select
@@ -67,8 +67,8 @@
           </div>
 
           <!-- Content -->
-          <div class="rounded-lg border border-gray-200 bg-white p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900">
+          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
               内容 <span class="text-red-500">*</span>
             </label>
             <RichTextEditor
@@ -85,29 +85,29 @@
         <!-- Sidebar -->
         <div class="space-y-6">
           <!-- Publishing Guide -->
-          <div class="rounded-lg border border-gray-200 bg-white p-5">
+          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
             <div class="mb-4 flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
-                <span class="text-lg text-orange-600">💡</span>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                <span class="text-lg text-orange-600 dark:text-orange-400">💡</span>
               </div>
-              <h3 class="font-bold text-gray-900">发布指南</h3>
+              <h3 class="font-bold text-gray-900 dark:text-slate-100">发布指南</h3>
             </div>
             <ul class="space-y-3 text-sm">
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-blue-600">✓</span>
-                <span class="text-gray-700">标题突出主题，便于检索</span>
+                <span class="mt-0.5 text-blue-600 dark:text-blue-400">✓</span>
+                <span class="text-gray-700 dark:text-slate-300">标题突出主题，便于检索</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-indigo-600">✓</span>
-                <span class="text-gray-700">内容可包含创作思路、配色方案或技术要点</span>
+                <span class="mt-0.5 text-indigo-600 dark:text-indigo-400">✓</span>
+                <span class="text-gray-700 dark:text-slate-300">内容可包含创作思路、配色方案或技术要点</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-purple-600">✓</span>
-                <span class="text-gray-700">标签最多 5 个，帮助系统推荐给合适的人</span>
+                <span class="mt-0.5 text-purple-600 dark:text-purple-400">✓</span>
+                <span class="text-gray-700 dark:text-slate-300">标签最多 5 个，帮助系统推荐给合适的人</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-amber-600">✓</span>
-                <span class="text-gray-700">随时预览或保存草稿，稍后继续编辑</span>
+                <span class="mt-0.5 text-amber-600 dark:text-amber-400">✓</span>
+                <span class="text-gray-700 dark:text-slate-300">随时预览或保存草稿，稍后继续编辑</span>
               </li>
             </ul>
             <div class="mt-5 flex flex-col gap-2">
@@ -126,27 +126,27 @@
           </div>
 
           <!-- Live Preview -->
-          <div class="rounded-lg border border-gray-200 bg-white p-5">
-            <h3 class="mb-4 flex items-center gap-2 font-bold text-gray-900">
-              <span class="text-blue-600">👁</span>
+          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+            <h3 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-slate-100">
+              <span class="text-blue-600 dark:text-blue-400">👁</span>
               实时预览
             </h3>
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h4 class="text-lg font-bold text-gray-900">
+            <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700 p-4">
+              <h4 class="text-lg font-bold text-gray-900 dark:text-slate-100">
                 {{ formData.title || "请输入标题" }}
               </h4>
-              <div class="mt-2 text-sm text-gray-600">
-                <span class="inline-block rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+              <div class="mt-2 text-sm text-gray-600 dark:text-slate-400">
+                <span class="inline-block rounded bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs text-blue-700 dark:text-blue-300">
                   {{ getCategoryName(formData.category) }}
                 </span>
               </div>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
-                class="mt-3 line-clamp-3 text-sm text-gray-700"
+                class="mt-3 line-clamp-3 text-sm text-gray-700 dark:text-slate-300"
                 v-if="formData.content"
                 v-html="sanitizeHtml(formData.content)"
               ></div>
-              <div class="mt-3 text-xs text-gray-400" v-else>预览内容将在这里显示</div>
+              <div class="mt-3 text-xs text-gray-400 dark:text-slate-500" v-else>预览内容将在这里显示</div>
             </div>
           </div>
         </div>

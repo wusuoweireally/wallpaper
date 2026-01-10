@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -22,6 +23,7 @@ import { CommentLike } from "./comment-like.entity";
  * - 作者关联和统计信息
  */
 @Entity("comments")
+@Index(["postId", "createdAt"]) // 复合索引：帖子ID + 创建时间
 export class Comment {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "评论ID" })
   id: number;
@@ -93,4 +95,7 @@ export class Comment {
   })
   @Index("idx_comment_updated_at")
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  deletedAt: Date;
 }

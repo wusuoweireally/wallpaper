@@ -201,6 +201,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRoute } from "vue-router"
 import { wallpaperService } from "@/services/wallpaper"
 import { useUserStore } from "@/stores"
+import { useGlobalToast } from "@/composables/useToast"
 
 interface WallpaperDetail {
   id: number
@@ -227,6 +228,7 @@ interface WallpaperDetail {
 const route = useRoute()
 const wallpaperId = route.params.id
 const userStore = useUserStore()
+const toast = useGlobalToast()
 const imageLoaded = ref(false)
 const isLiked = ref(false)
 const isFavorited = ref(false)
@@ -328,7 +330,7 @@ const fetchWallpaperDetail = async () => {
 
 const handleLike = async () => {
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再点赞")
+    toast.warning("请先登录后再点赞")
     return
   }
 
@@ -354,18 +356,18 @@ const handleLike = async () => {
     isLiked.value = previousLiked
     wallpaper.value.likes = previousLikes
     if (err.response?.status === 401) {
-      alert("登录已过期，请重新登录")
+      toast.error("登录已过期，请重新登录")
     } else {
       const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
       console.error("点赞操作失败:", errorMessage)
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 }
 
 const handleFavorite = async () => {
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再收藏")
+    toast.warning("请先登录后再收藏")
     return
   }
 
@@ -391,11 +393,11 @@ const handleFavorite = async () => {
     isFavorited.value = previousFavorited
     wallpaper.value.favorites = previousFavorites
     if (err.response?.status === 401) {
-      alert("登录已过期，请重新登录")
+      toast.error("登录已过期，请重新登录")
     } else {
       const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
       console.error("收藏操作失败:", errorMessage)
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 }

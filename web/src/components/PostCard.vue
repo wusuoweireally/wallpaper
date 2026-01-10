@@ -1,6 +1,6 @@
 <template>
   <article
-    class="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+    class="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-700/70 dark:bg-slate-800 dark:shadow-slate-900/30"
     @click="handlePostClick"
   >
     <div
@@ -26,18 +26,18 @@
             <i class="i-mdi-star mr-1 text-xs"></i>
             精华
           </span>
-          <span class="ml-auto text-xs text-slate-500">
+          <span class="ml-auto text-xs text-slate-500 dark:text-slate-400">
             {{ formatTime(post.createdAt) }}
           </span>
         </div>
 
         <h3
-          class="line-clamp-2 text-[20px] font-semibold leading-snug text-slate-900 transition-colors group-hover:text-slate-900"
+          class="line-clamp-2 text-[20px] font-semibold leading-snug text-slate-900 transition-colors group-hover:text-slate-900 dark:text-slate-100 dark:group-hover:text-white"
         >
           {{ post.title }}
         </h3>
 
-        <p class="line-clamp-3 text-sm leading-relaxed text-slate-600">
+        <p class="line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           {{ post.summary ? post.summary : stripHtml(post.content) }}
         </p>
 
@@ -45,19 +45,26 @@
           <span
             v-for="tag in post.tags.split(',').slice(0, 4)"
             :key="tag.trim()"
-            class="badge badge-xs border border-slate-300 bg-slate-50 text-slate-700"
+            class="badge badge-xs border border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
           >
             {{ tag.trim() }}
           </span>
-          <span v-if="post.tags.split(',').length > 4" class="badge badge-ghost badge-xs text-xs">
+          <span
+            v-if="post.tags.split(',').length > 4"
+            class="badge badge-ghost badge-xs text-xs dark:text-slate-300"
+          >
             +{{ post.tags.split(",").length - 4 }}
           </span>
         </div>
 
-        <div class="flex items-center justify-between border-t border-slate-200/70 pt-3">
+        <div
+          class="flex items-center justify-between border-t border-slate-200/70 pt-3 dark:border-slate-700/70"
+        >
           <div class="flex items-center gap-3">
             <div class="avatar">
-              <div class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+              <div
+                class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
+              >
                 <img
                   :src="authorAvatar"
                   :alt="post.author?.username || '用户头像'"
@@ -66,12 +73,12 @@
               </div>
             </div>
             <div class="leading-tight">
-              <p class="text-sm font-medium text-slate-900">
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">
                 {{ post.author?.username || "匿名用户" }}
               </p>
               <p
                 v-if="post.lastCommentAt"
-                class="flex items-center gap-1 text-[11px] text-slate-500"
+                class="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"
               >
                 <i class="i-mdi-clock-outline text-xs"></i>
                 最后回复 {{ formatTime(post.lastCommentAt) }}
@@ -84,7 +91,7 @@
               :class="
                 post.isLiked
                   ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
               "
               @click.stop="handleLike"
               :disabled="loading"
@@ -93,14 +100,14 @@
               <span>{{ formatNumber(post.likeCount) }}</span>
             </button>
             <button
-              class="flex items-center gap-1 text-xs text-slate-600 transition hover:text-slate-900"
+              class="flex items-center gap-1 text-xs text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
               @click.stop="handleComment"
             >
               <i class="i-mdi-comment-outline text-sm"></i>
               <span>{{ formatNumber(post.commentCount) }}</span>
             </button>
             <button
-              class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900"
+              class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               @click.stop="handleShare"
             >
               <i class="i-mdi-share-variant text-sm"></i>
@@ -108,13 +115,13 @@
             <div v-if="isAuthor" class="dropdown dropdown-end" @click.stop>
               <label
                 tabindex="0"
-                class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900"
+                class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               >
                 <i class="i-mdi-dots-horizontal text-sm"></i>
               </label>
               <ul
                 tabindex="0"
-                class="dropdown-content menu w-36 rounded-box border border-slate-200 bg-white p-1.5 shadow-lg"
+                class="dropdown-content menu w-36 rounded-box border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
                 <li>
                   <a class="text-sm" @click="handleEdit">

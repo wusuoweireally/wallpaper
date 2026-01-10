@@ -23,10 +23,15 @@ declare module "passport-github2" {
 @Injectable()
 export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
   constructor(private configService: ConfigService) {
+    const clientID = configService.get<string>("GITHUB_CLIENT_ID");
+    const clientSecret = configService.get<string>("GITHUB_CLIENT_SECRET");
+    const callbackURL = configService.get<string>("GITHUB_CALLBACK_URL");
+
+    // 如果 GitHub OAuth 配置缺失,使用占位符值(此时 GitHub 登录将不可用)
     super({
-      clientID: configService.get<string>("GITHUB_CLIENT_ID") || "",
-      clientSecret: configService.get<string>("GITHUB_CLIENT_SECRET") || "",
-      callbackURL: configService.get<string>("GITHUB_CALLBACK_URL") || "",
+      clientID: clientID && !clientID.includes("placeholder") ? clientID : "placeholder_client_id",
+      clientSecret: clientSecret && !clientSecret.includes("placeholder") ? clientSecret : "placeholder_client_secret",
+      callbackURL: callbackURL || "http://localhost:1234/auth/github/callback",
       scope: ["user:email"], // 请求读取用户邮箱的权限
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);

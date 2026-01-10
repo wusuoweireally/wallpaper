@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -119,4 +120,7 @@ export class Wallpaper {
     inverseJoinColumn: { name: "tag_id", referencedColumnName: "id" },
   })
   tags: Tag[];
+
+  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  deletedAt: Date;
 }

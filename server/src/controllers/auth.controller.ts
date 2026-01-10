@@ -86,19 +86,18 @@ export class AuthController {
       );
 
       // 重定向到前端成功页面
-      const successUrl = this.configService.get<string>("GITHUB_SUCCESS_URL");
-      response.redirect(successUrl || "/auth/github/success");
+      const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:1234");
+      const successUrl = `${frontendUrl}/auth/github/success`;
+      response.redirect(successUrl);
     } catch (error) {
       console.error("GitHub OAuth 回调处理失败:", error);
 
       // 重定向到前端失败页面，携带错误信息
-      const failureUrl = this.configService.get<string>("GITHUB_FAILURE_URL");
+      const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:1234");
       const errorMessage =
         error instanceof Error ? error.message : "GitHub 登录失败";
       const errorParam = encodeURIComponent(errorMessage);
-      const redirectUrl = failureUrl
-        ? `${failureUrl}?error=${errorParam}`
-        : `/auth/github/failure?error=${errorParam}`;
+      const redirectUrl = `${frontendUrl}/auth/github/failure?error=${errorParam}`;
       response.redirect(redirectUrl);
     }
   }

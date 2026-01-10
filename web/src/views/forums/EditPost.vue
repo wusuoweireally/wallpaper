@@ -1,22 +1,22 @@
 <template>
-  <div class="relative min-h-screen bg-[#f5f6fa]">
+  <div class="relative min-h-screen bg-[#f5f6fa] dark:bg-slate-900">
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
       <div
-        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl"
+        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl dark:bg-blue-900/20"
       ></div>
       <div
-        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl"
+        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl dark:bg-orange-900/20"
       ></div>
       <div
-        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl"
+        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl dark:bg-purple-900/20"
       ></div>
     </div>
     <div class="relative mx-auto max-w-6xl space-y-8 px-4 py-10">
       <div
-        class="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50"
+        class="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-900/50"
       >
         <div
-          class="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-3xl"
+          class="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"
         ></div>
         <div class="relative">
           <div
@@ -27,32 +27,32 @@
           >
             <div class="space-y-3">
               <div
-                class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 py-1.5"
+                class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 py-1.5 dark:border-emerald-700/50 dark:from-emerald-500/20 dark:to-teal-500/20"
               >
-                <i class="i-mdi-pencil-circle text-emerald-600"></i>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+                <i class="i-mdi-pencil-circle text-emerald-600 dark:text-emerald-400"></i>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-300">
                   Update
                 </p>
               </div>
               <h1
-                class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-4xl font-bold text-transparent"
+                class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-4xl font-bold text-transparent dark:from-slate-100 dark:to-slate-400"
               >
                 编辑帖子
               </h1>
-              <p class="max-w-xl text-base text-slate-600">
+              <p class="max-w-xl text-base text-slate-600 dark:text-slate-400">
                 修正、补充或更新内容，保存后会记录最新编辑时间。
               </p>
             </div>
             <div class="flex flex-wrap gap-3">
               <button
-                class="btn btn-ghost shadow-sm transition-all hover:bg-slate-100 hover:shadow-md"
+                class="btn btn-ghost shadow-sm transition-all hover:bg-slate-100 hover:shadow-md dark:hover:bg-slate-700"
                 @click="handleCancel"
               >
                 <i class="i-mdi-close text-lg"></i>
                 取消
               </button>
               <button
-                class="group btn btn-outline border-amber-300 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-50 hover:shadow-md"
+                class="group btn btn-outline border-amber-300 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-50 hover:shadow-md dark:border-amber-700/50 dark:hover:bg-amber-900/20"
                 @click="resetToOriginal"
                 :disabled="!hasChanges"
               >
@@ -62,7 +62,7 @@
                 恢复原始
               </button>
               <button
-                class="group btn btn-outline border-slate-300 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 hover:shadow-md"
+                class="group btn btn-outline border-slate-300 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 hover:shadow-md dark:border-slate-600 dark:hover:bg-slate-700"
                 @click="previewPost"
                 :disabled="!hasContent"
               >
@@ -75,7 +75,7 @@
                 :disabled="isSubmitting || !isFormValid"
               >
                 <span
-                  class="absolute inset-0 -translate-x-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-700 group-hover:translate-x-full"
+                  class="absolute inset-0 -translate-x-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-700 group-hover:translate-x-full dark:from-white/0 dark:via-white/10 dark:to-white/0"
                 ></span>
                 <i
                   class="i-mdi-content-save relative z-10 text-lg transition-transform group-hover:-translate-y-0.5"
@@ -93,9 +93,9 @@
 
       <div
         v-if="loading"
-        class="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-200/70 bg-white/90 shadow"
+        class="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-200/70 bg-white/90 shadow dark:border-slate-700/70 dark:bg-slate-800/90"
       >
-        <div class="flex flex-col items-center gap-3 text-slate-500">
+        <div class="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
           <span class="loading loading-spinner loading-lg text-primary"></span>
           <p class="text-sm">正在加载帖子...</p>
         </div>
@@ -103,7 +103,7 @@
 
       <div
         v-else-if="error"
-        class="border-error/30 bg-error/5 rounded-2xl border p-6 text-error shadow"
+        class="border-error/30 bg-error/5 rounded-2xl border p-6 text-error shadow dark:bg-error/10"
       >
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
@@ -116,17 +116,17 @@
 
       <div v-else-if="originalPost" class="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div
-          class="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/50 backdrop-blur-sm"
+          class="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/50 backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-800 dark:shadow-slate-900/50"
         >
           <div
-            class="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-100/40 to-teal-100/40 blur-3xl"
+            class="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-100/40 to-teal-100/40 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"
           ></div>
           <div class="relative space-y-7">
             <div class="grid gap-5 md:grid-cols-2">
               <div class="form-control group">
                 <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800">
-                    <i class="i-mdi-format-title text-blue-600"></i>
+                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                    <i class="i-mdi-format-title text-blue-600 dark:text-blue-400"></i>
                     标题 <span class="text-error">*</span>
                   </span>
                 </label>
@@ -134,7 +134,7 @@
                   v-model="formData.title"
                   type="text"
                   placeholder="请输入帖子标题，建议不超过50字"
-                  class="input-bordered input w-full transition-all hover:border-slate-400 focus:border-slate-900"
+                  class="input-bordered input w-full transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
                   :class="{ 'input-error': errors.title }"
                   @input="validateTitle"
                   maxlength="100"
@@ -143,7 +143,7 @@
                   <span class="label-text-alt text-error" v-if="errors.title">{{
                     errors.title
                   }}</span>
-                  <span class="label-text-alt ml-auto text-slate-500"
+                  <span class="label-text-alt ml-auto text-slate-500 dark:text-slate-400"
                     >{{ (formData.title || "").length }}/100</span
                   >
                 </label>
@@ -151,14 +151,14 @@
 
               <div class="form-control group">
                 <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800">
-                    <i class="i-mdi-shape-outline text-indigo-600"></i>
+                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                    <i class="i-mdi-shape-outline text-indigo-600 dark:text-indigo-400"></i>
                     分类 <span class="text-error">*</span>
                   </span>
                 </label>
                 <select
                   v-model="formData.category"
-                  class="select-bordered select w-full cursor-pointer transition-all hover:border-slate-400 focus:border-slate-900"
+                  class="select-bordered select w-full cursor-pointer transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
                   :class="{ 'select-error': errors.category }"
                   @change="validateCategory"
                 >
@@ -178,13 +178,13 @@
 
             <div class="form-control group">
               <label class="label mb-2">
-                <span class="label-text flex items-center gap-2 font-semibold text-slate-800">
-                  <i class="i-mdi-text text-emerald-600"></i>
+                <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                  <i class="i-mdi-text text-emerald-600 dark:text-emerald-400"></i>
                   内容 <span class="text-error">*</span>
                 </span>
               </label>
               <div
-                class="overflow-hidden rounded-2xl border border-slate-200 transition-colors focus-within:border-slate-900"
+                class="overflow-hidden rounded-2xl border border-slate-200 transition-colors focus-within:border-slate-900 dark:border-slate-600 dark:focus-within:border-slate-400"
               >
                 <RichTextEditor
                   v-model="formData.content"
@@ -204,19 +204,19 @@
             <div class="grid gap-5 md:grid-cols-2">
               <div class="form-control group">
                 <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800">
-                    <i class="i-mdi-text-short text-amber-600"></i>
-                    摘要 <span class="text-xs text-slate-500">(可选)</span>
+                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                    <i class="i-mdi-text-short text-amber-600 dark:text-amber-400"></i>
+                    摘要 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
                   </span>
                 </label>
                 <textarea
                   v-model="formData.summary"
                   placeholder="请输入帖子摘要，有助于其他用户快速了解内容"
-                  class="textarea-bordered textarea h-28 w-full resize-none transition-all hover:border-slate-400 focus:border-slate-900"
+                  class="textarea-bordered textarea h-28 w-full resize-none transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
                   maxlength="200"
                 ></textarea>
                 <label class="label mt-1">
-                  <span class="label-text-alt text-slate-500"
+                  <span class="label-text-alt text-slate-500 dark:text-slate-400"
                     >{{ (formData.summary || "").length }}/200</span
                   >
                 </label>
@@ -224,16 +224,16 @@
 
               <div class="form-control group">
                 <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800">
-                    <i class="i-mdi-tag-outline text-purple-600"></i>
-                    标签 <span class="text-xs text-slate-500">(可选)</span>
+                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                    <i class="i-mdi-tag-outline text-purple-600 dark:text-purple-400"></i>
+                    标签 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
                   </span>
                 </label>
                 <div class="mb-3 flex flex-wrap gap-2">
                   <div
                     v-for="(tag, index) in tagList"
                     :key="index"
-                    class="group badge gap-2 border border-slate-300 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-100"
+                    class="group badge gap-2 border border-slate-300 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                   >
                     #{{ tag }}
                     <button
@@ -249,7 +249,7 @@
                     v-model="newTag"
                     type="text"
                     placeholder="添加标签（按回车确认）"
-                    class="input-bordered input input-sm flex-1 transition-all hover:border-slate-400 focus:border-slate-900"
+                    class="input-bordered input input-sm flex-1 transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
                     @keydown.enter.prevent="addTag"
                     maxlength="20"
                   />
@@ -269,10 +269,10 @@
 
         <div class="space-y-5">
           <div
-            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl"
+            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl dark:border-slate-700/80 dark:bg-slate-800 dark:shadow-slate-900/30"
           >
             <div
-              class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-amber-200/30 to-orange-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150"
+              class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-amber-200/30 to-orange-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150 dark:from-amber-900/20 dark:to-orange-900/20"
             ></div>
             <div class="relative">
               <div class="mb-4 flex items-center justify-between">
@@ -282,14 +282,14 @@
                   >
                     <i class="i-mdi-information text-lg text-white"></i>
                   </div>
-                  <h3 class="text-base font-bold text-slate-900">编辑说明</h3>
+                  <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">编辑说明</h3>
                 </div>
                 <span
                   class="badge badge-sm font-medium"
                   :class="
                     hasChanges
-                      ? 'border-amber-200 bg-amber-100 text-amber-700'
-                      : 'border-slate-200 bg-slate-100 text-slate-500'
+                      ? 'border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-300'
+                      : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400'
                   "
                 >
                   {{ hasChanges ? "⚠️ 有未保存更改" : "✓ 已保存" }}
@@ -297,22 +297,22 @@
               </div>
               <ul class="space-y-2.5 text-sm">
                 <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60"
+                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
                 >
-                  <span class="text-emerald-600">✓</span>
-                  <span class="text-slate-700">帖子最后编辑时间将同步更新</span>
+                  <span class="text-emerald-600 dark:text-emerald-400">✓</span>
+                  <span class="text-slate-700 dark:text-slate-300">帖子最后编辑时间将同步更新</span>
                 </li>
                 <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60"
+                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
                 >
-                  <span class="text-blue-600">✓</span>
-                  <span class="text-slate-700">修改范围较大时，可在开头写一段 "更新日志"</span>
+                  <span class="text-blue-600 dark:text-blue-400">✓</span>
+                  <span class="text-slate-700 dark:text-slate-300">修改范围较大时，可在开头写一段 "更新日志"</span>
                 </li>
                 <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60"
+                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
                 >
-                  <span class="text-indigo-600">✓</span>
-                  <span class="text-slate-700">保持格式整洁，去除外部水印或广告</span>
+                  <span class="text-indigo-600 dark:text-indigo-400">✓</span>
+                  <span class="text-slate-700 dark:text-slate-300">保持格式整洁，去除外部水印或广告</span>
                 </li>
               </ul>
               <div class="mt-5 flex flex-col gap-2">
@@ -325,7 +325,7 @@
                   预览效果
                 </button>
                 <button
-                  class="btn btn-ghost btn-sm transition-colors hover:bg-slate-100"
+                  class="btn btn-ghost btn-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
                   @click="handleCancel"
                 >
                   <i class="i-mdi-arrow-left text-base"></i>
@@ -336,29 +336,29 @@
           </div>
 
           <div
-            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl"
+            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl dark:border-slate-700/80 dark:from-slate-800 dark:to-slate-900/80 dark:shadow-slate-900/30"
           >
             <div
-              class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150"
+              class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150 dark:from-emerald-900/20 dark:to-teal-900/20"
             ></div>
             <div class="relative">
               <div class="mb-4 flex items-center justify-between">
-                <h3 class="flex items-center gap-2 text-base font-bold text-slate-900">
-                  <i class="i-mdi-eye-outline text-emerald-600"></i>
+                <h3 class="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
+                  <i class="i-mdi-eye-outline text-emerald-600 dark:text-emerald-400"></i>
                   实时预览
                 </h3>
-                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">{{
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-400">{{
                   getCategoryName(formData.category)
                 }}</span>
               </div>
               <div class="space-y-3">
-                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p class="line-clamp-2 min-h-[3.5rem] text-lg font-bold text-slate-900">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/50">
+                  <p class="line-clamp-2 min-h-[3.5rem] text-lg font-bold text-slate-900 dark:text-slate-100">
                     {{ formData.title || "请输入标题" }}
                   </p>
                   <!-- eslint-disable-next-line vue/no-v-html -->
                   <p
-                    class="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-slate-600"
+                    class="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-slate-600 dark:text-slate-400"
                     v-if="formData.summary || formData.content"
                     v-html="sanitizeHtml(formData.summary || formData.content)"
                   ></p>
@@ -370,7 +370,7 @@
                     >
                       #{{ tag }}
                     </span>
-                    <span v-if="tagList.length === 0" class="text-xs text-slate-400"
+                    <span v-if="tagList.length === 0" class="text-xs text-slate-400 dark:text-slate-500"
                       >添加标签帮助推荐</span
                     >
                   </div>

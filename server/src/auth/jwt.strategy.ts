@@ -22,8 +22,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return token;
     };
 
-    const secretOrKey =
-      configService.get<string>("JWT_SECRET") || "your-secret-key";
+    const secretOrKey = configService.get<string>("JWT_SECRET");
+
+    // 强制要求设置 JWT_SECRET，不允许使用默认值
+    if (!secretOrKey || secretOrKey === "your-secret-key") {
+      throw new Error(
+        "JWT_SECRET must be set in environment variables and cannot be the default value",
+      );
+    }
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -65,10 +71,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role || UserRole.USER,
     };
 
-    console.log(
-      "✅ JWT validation successful, returning:",
-      JSON.stringify(result),
-    );
+    // 仅在开发环境输出日志，且不包含敏感信息
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `✅ JWT validation successful for user: ${result.username} (ID: ${result.userId})`,
+      );
+    }
+
     return result;
   }
 }

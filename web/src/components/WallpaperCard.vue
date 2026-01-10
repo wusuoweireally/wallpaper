@@ -139,6 +139,7 @@ import { useRouter } from "vue-router"
 import type { Wallpaper } from "@/services/wallpaper"
 import { wallpaperService } from "@/services/wallpaper"
 import { useUserStore } from "@/stores"
+import { useGlobalToast } from "@/composables/useToast"
 
 interface Props {
   wallpaper: Wallpaper
@@ -151,6 +152,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 const imageLoaded = ref(false)
 const imageError = ref(false)
@@ -195,6 +197,10 @@ const handleLike = async () => {
     return
   }
 
+  // 保存原始状态，用于失败时恢复
+  const originalIsLiked = isLiked.value
+  const originalLikeCount = likeCount.value
+
   liking.value = true
   try {
     if (isLiked.value) {
@@ -208,7 +214,10 @@ const handleLike = async () => {
     }
   } catch (error) {
     console.error("点赞壁纸失败:", error)
-    alert("点赞失败，请稍后重试")
+    // 恢复原始状态
+    isLiked.value = originalIsLiked
+    likeCount.value = originalLikeCount
+    toast.error("点赞失败，请稍后重试")
   } finally {
     liking.value = false
   }
@@ -218,6 +227,10 @@ const handleFavorite = async () => {
   if (!ensureAuth() || favoriting.value) {
     return
   }
+
+  // 保存原始状态，用于失败时恢复
+  const originalIsFavorited = isFavorited.value
+  const originalFavoriteCount = favoriteCount.value
 
   favoriting.value = true
   try {
@@ -232,7 +245,10 @@ const handleFavorite = async () => {
     }
   } catch (error) {
     console.error("收藏壁纸失败:", error)
-    alert("收藏失败，请稍后重试")
+    // 恢复原始状态
+    isFavorited.value = originalIsFavorited
+    favoriteCount.value = originalFavoriteCount
+    toast.error("收藏失败，请稍后重试")
   } finally {
     favoriting.value = false
   }

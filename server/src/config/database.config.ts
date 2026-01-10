@@ -15,11 +15,11 @@ import { Report } from "../entities/report.entity";
 // 数据库配置
 export const databaseConfig: TypeOrmModuleOptions = {
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "12345678",
-  database: "wallpaper_site",
+  host: process.env.DB_HOST || "localhost",
+  port: Number(process.env.DB_PORT) || 3306,
+  username: process.env.DB_USERNAME || "root",
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE || "wallpaper_site",
   entities: [
     User,
     Wallpaper,

@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -127,4 +128,7 @@ export class Post {
 
   @Column({ type: "text", nullable: true, comment: "元数据" })
   metadata: string;
+
+  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  deletedAt: Date;
 }

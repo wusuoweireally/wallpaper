@@ -15,6 +15,8 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Request } from "express";
+import { InjectConnection } from "@nestjs/typeorm";
+import { Connection } from "typeorm";
 import { WallpaperService } from "../services/wallpaper.service";
 import { UploadService } from "../services/upload.service";
 import {
@@ -45,6 +47,7 @@ export class WallpaperController {
     private readonly uploadService: UploadService,
     private readonly tagService: TagService,
     private readonly viewHistoryService: ViewHistoryService,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   /**
@@ -58,44 +61,64 @@ export class WallpaperController {
     @Body() createWallpaperDto: CreateWallpaperDto,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    console.log(user);
     if (!file) {
       throw new BadRequestException("请选择要上传的文件");
     }
 
+    let fileInfo: {
+      fileUrl: string;
+      thumbnailUrl?: string;
+      fileSize: number;
+      width: number;
+      height: number;
+      format: string;
+      aspectRatio: number;
+    };
+
     try {
-      // 处理文件上传
-      const fileInfo = await this.uploadService.processWallpaperUpload(
-        file,
-        user.userId,
-      );
-      console.log(createWallpaperDto);
-
-      // 创建壁纸记录
-      const createData: CreateWallpaperData = {
-        ...createWallpaperDto,
-        ...fileInfo,
-      };
-
-      const wallpaper = await this.wallpaperService.create(
-        createData,
-        user.userId,
-      );
-
-      // 处理标签关联
-      if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
-        await this.tagService.processWallpaperTags(
-          wallpaper.id,
-          createWallpaperDto.tags,
-        );
+      // 第一步：处理文件上传（不在事务中）
+      fileInfo = await this.uploadService.processWallpaperUpload(file, user.userId);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message || "文件处理失败");
       }
+      throw new BadRequestException("文件处理失败");
+    }
+
+    // 第二步：使用事务处理数据库操作
+    try {
+      await this.connection.transaction(async (manager) => {
+        // 创建壁纸记录
+        const createData: CreateWallpaperData = {
+          ...createWallpaperDto,
+          ...fileInfo,
+        };
+
+        // 创建壁纸（使用事务管理器）
+        const wallpaper = await this.wallpaperService.create(
+          createData,
+          user.userId,
+        );
+
+        // 处理标签关联（在同一事务中）
+        if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
+          await this.tagService.processWallpaperTags(
+            wallpaper.id,
+            createWallpaperDto.tags,
+          );
+        }
+
+        return wallpaper;
+      });
 
       return {
         success: true,
         message: "壁纸上传成功",
-        data: wallpaper,
       };
     } catch (error) {
+      // 如果数据库操作失败，删除已上传的文件
+      await this.uploadService.deleteUploadedFiles(fileInfo.fileUrl, fileInfo.thumbnailUrl || '');
+
       if (error instanceof Error) {
         throw new BadRequestException(error.message || "上传失败");
       }
@@ -231,10 +254,13 @@ export class WallpaperController {
         wallpaperId,
       });
 
-      [isLiked, isFavorited] = await Promise.all([
-        this.wallpaperService.hasLiked(wallpaperId, authUser.userId),
-        this.wallpaperService.hasFavorited(wallpaperId, authUser.userId),
-      ]);
+      // 使用优化方法一次性获取点赞和收藏状态
+      const interactionStatus = await this.wallpaperService.getUserInteractionStatus(
+        wallpaperId,
+        authUser.userId,
+      );
+      isLiked = interactionStatus.isLiked;
+      isFavorited = interactionStatus.isFavorited;
     }
 
     // 处理上传者头像URL，确保返回完整可访问的URL

@@ -11,6 +11,7 @@ import { User } from "./user.entity";
 import { Wallpaper } from "./wallpaper.entity";
 
 @Entity("user_favorites")
+@Index(["userId", "createdAt"]) // 复合索引：用户ID + 创建时间
 export class UserFavorite {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "收藏ID" })
   id: number;

@@ -1,16 +1,20 @@
 <template>
-  <div
-    class="min-h-screen flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300"
-  >
+  <div class="flex min-h-screen flex-col bg-white transition-colors duration-300 dark:bg-slate-950">
     <!-- 条件渲染导航栏 -->
     <transition name="navbar" appear>
       <NavBar v-if="shouldShowNavBar" />
     </transition>
 
     <!-- 主要内容区域 -->
-    <main class="flex-1 transition-[margin-top] duration-300 ease-in-out" :class="{ 'min-h-screen': !shouldShowNavBar }">
+    <main
+      class="flex-1 transition-[margin-top] duration-300 ease-in-out"
+      :class="{ 'min-h-screen': !shouldShowNavBar }"
+    >
       <RouterView />
     </main>
+
+    <!-- 全局 Toast 通知容器 -->
+    <ToastContainer />
   </div>
 </template>
 
@@ -18,6 +22,7 @@
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import NavBar from "@/components/NavBar.vue"
+import ToastContainer from "@/components/ToastContainer.vue"
 
 const route = useRoute()
 
