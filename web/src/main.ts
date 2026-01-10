@@ -3,6 +3,7 @@ import App from "./App.vue"
 import router from "./router"
 import { useUserStore } from "./stores/index"
 import { createPinia } from "pinia"
+import { applyTheme, resolveInitialTheme } from "./utils/theme"
 
 // Import icon collections
 import "@iconify/tailwind"
@@ -10,6 +11,9 @@ import "@iconify/tailwind"
 import "./style.css"
 
 async function bootstrap() {
+  const initialTheme = resolveInitialTheme()
+  applyTheme(initialTheme)
+
   const app = createApp(App)
   const pinia = createPinia()
 

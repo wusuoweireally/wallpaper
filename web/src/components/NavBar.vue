@@ -177,11 +177,12 @@ import { ref, onMounted, onUnmounted } from "vue"
 import { useRoute } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useUserStore } from "@/stores/index"
+import { applyTheme, resolveInitialTheme, setTheme, type ThemeMode } from "@/utils/theme"
 
 const userStore = useUserStore()
 const route = useRoute()
 const showDropdown = ref(false)
-const theme = ref<"light" | "dark">("light")
+const theme = ref<ThemeMode>("light")
 
 // 计算属性
 const { isLoggedIn, user, userAvatar } = storeToRefs(userStore)
@@ -258,13 +259,7 @@ const handleLogout = async () => {
 onMounted(() => {
   // 添加全局点击事件监听，点击外部关闭下拉菜单
   document.addEventListener("click", closeDropdown)
-  const saved = localStorage.getItem("theme")
-  const initial =
-    saved === "dark" || saved === "light"
-      ? saved
-      : window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
+  const initial = resolveInitialTheme()
   theme.value = initial
   applyTheme(initial)
 })
@@ -274,13 +269,9 @@ onUnmounted(() => {
   document.removeEventListener("click", closeDropdown)
 })
 
-const applyTheme = (mode: "light" | "dark") => {
-  document.documentElement.classList.toggle("dark", mode === "dark")
-}
-
 const toggleTheme = () => {
-  theme.value = theme.value === "light" ? "dark" : "light"
-  localStorage.setItem("theme", theme.value)
-  applyTheme(theme.value)
+  const nextTheme = theme.value === "light" ? "dark" : "light"
+  theme.value = nextTheme
+  setTheme(nextTheme)
 }
 </script>

@@ -11,6 +11,7 @@ RUN pnpm install --no-frozen-lockfile
 
 # Build the NestJS app
 COPY server/ ./
+RUN mkdir -p /app/public
 RUN pnpm build
 RUN pnpm prune --prod
 

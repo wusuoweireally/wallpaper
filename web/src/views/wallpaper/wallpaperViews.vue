@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-base-200 dark:bg-slate-900">
+  <div class="min-h-screen bg-base-200">
     <!-- 筛选组件 -->
     <WallpaperFilter v-model="filters" @filter-change="handleFilterChange" />
 
