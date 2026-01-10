@@ -13,6 +13,7 @@ import { ConfigService } from "@nestjs/config";
 import { GitHubAuthService } from "../services/github-auth.service";
 import { AuthService } from "../services/auth.service";
 import { GitHubProfile } from "../dto/github.dto";
+import { getCookieSecure } from "../utils/cookie";
 
 /**
  * GitHub OAuth 认证控制器
@@ -73,7 +74,7 @@ export class AuthController {
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
       const cookieOptions = {
         httpOnly: true,
-        secure: this.configService.get<string>("NODE_ENV") === "production",
+        secure: getCookieSecure(),
         sameSite: "lax" as const,
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60天
         path: "/",

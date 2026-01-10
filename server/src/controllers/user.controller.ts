@@ -36,6 +36,7 @@ import { User } from "../entities/user.entity";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
 import { UserRole } from "../entities/user.entity";
+import { getCookieSecure } from "../utils/cookie";
 
 @Controller("users")
 export class UserController {
@@ -82,7 +83,7 @@ export class UserController {
     // 设置Cookie，有效期60天（与JWT token过期时间一致）
     response.cookie("Authentication", result.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: getCookieSecure(),
       sameSite: "lax",
       maxAge: 60 * 24 * 60 * 60 * 1000, // 60天（毫秒）
       path: "/", // 确保所有接口均可携带
