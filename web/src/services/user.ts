@@ -3,6 +3,11 @@ import type { ApiResponse } from "@/config/api"
 import type { Wallpaper } from "@/services/wallpaper"
 
 /**
+ * 用户角色枚举
+ */
+export type UserRole = "user" | "admin"
+
+/**
  * 用户信息接口
  */
 export type User = {
@@ -12,7 +17,7 @@ export type User = {
   avatarUrl: string
   bio: string
   status: number
-  role: "user" | "admin"
+  role: UserRole
   createdAt: string
   updatedAt: string
 }
