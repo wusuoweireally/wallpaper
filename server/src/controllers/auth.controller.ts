@@ -13,7 +13,7 @@ import { ConfigService } from "@nestjs/config";
 import { GitHubAuthService } from "../services/github-auth.service";
 import { AuthService } from "../services/auth.service";
 import { GitHubProfile } from "../dto/github.dto";
-import { getCookieSecure } from "../utils/cookie";
+import { getCookieSecure, getCookieDomain } from "../utils/cookie";
 
 /**
  * GitHub OAuth 认证控制器
@@ -72,13 +72,26 @@ export class AuthController {
       const loginResult = this.authService.login(user);
 
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
-      const cookieOptions = {
+      const cookieDomain = getCookieDomain();
+      const cookieOptions: {
+        httpOnly: boolean;
+        secure: boolean;
+        sameSite: "lax";
+        maxAge: number;
+        path: string;
+        domain?: string;
+      } = {
         httpOnly: true,
         secure: getCookieSecure(),
-        sameSite: "lax" as const,
+        sameSite: "lax",
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60天
         path: "/",
       };
+
+      // 只有在 domain 有值时才设置（避免 IP 地址和 localhost 的问题）
+      if (cookieDomain) {
+        cookieOptions.domain = cookieDomain;
+      }
 
       response.cookie(
         "Authentication",
@@ -87,14 +100,20 @@ export class AuthController {
       );
 
       // 重定向到前端成功页面
-      const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:1234");
+      const frontendUrl = this.configService.get<string>(
+        "FRONTEND_URL",
+        "http://localhost:1234",
+      );
       const successUrl = `${frontendUrl}/auth/github/success`;
       response.redirect(successUrl);
     } catch (error) {
       console.error("GitHub OAuth 回调处理失败:", error);
 
       // 重定向到前端失败页面，携带错误信息
-      const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:1234");
+      const frontendUrl = this.configService.get<string>(
+        "FRONTEND_URL",
+        "http://localhost:1234",
+      );
       const errorMessage =
         error instanceof Error ? error.message : "GitHub 登录失败";
       const errorParam = encodeURIComponent(errorMessage);

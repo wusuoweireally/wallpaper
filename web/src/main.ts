@@ -1,7 +1,7 @@
 import { createApp } from "vue"
 import App from "./App.vue"
 import router from "./router"
-import { useUserStore } from "./stores/index"
+import { useUserStore } from "./stores/user"
 import { createPinia } from "pinia"
 import { applyTheme, resolveInitialTheme } from "./utils/theme"
 

@@ -77,7 +77,10 @@ export class WallpaperController {
 
     try {
       // 第一步：处理文件上传（不在事务中）
-      fileInfo = await this.uploadService.processWallpaperUpload(file, user.userId);
+      fileInfo = await this.uploadService.processWallpaperUpload(
+        file,
+        user.userId,
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message || "文件处理失败");
@@ -87,7 +90,7 @@ export class WallpaperController {
 
     // 第二步：使用事务处理数据库操作
     try {
-      await this.connection.transaction(async (manager) => {
+      await this.connection.transaction(async () => {
         // 创建壁纸记录
         const createData: CreateWallpaperData = {
           ...createWallpaperDto,
@@ -117,7 +120,10 @@ export class WallpaperController {
       };
     } catch (error) {
       // 如果数据库操作失败，删除已上传的文件
-      await this.uploadService.deleteUploadedFiles(fileInfo.fileUrl, fileInfo.thumbnailUrl || '');
+      await this.uploadService.deleteUploadedFiles(
+        fileInfo.fileUrl,
+        fileInfo.thumbnailUrl || "",
+      );
 
       if (error instanceof Error) {
         throw new BadRequestException(error.message || "上传失败");
@@ -255,10 +261,11 @@ export class WallpaperController {
       });
 
       // 使用优化方法一次性获取点赞和收藏状态
-      const interactionStatus = await this.wallpaperService.getUserInteractionStatus(
-        wallpaperId,
-        authUser.userId,
-      );
+      const interactionStatus =
+        await this.wallpaperService.getUserInteractionStatus(
+          wallpaperId,
+          authUser.userId,
+        );
       isLiked = interactionStatus.isLiked;
       isFavorited = interactionStatus.isFavorited;
     }

@@ -1,25 +1,18 @@
 import api from "@/config/api"
 import type { ApiResponse } from "@/config/api"
-
-/**
- * 用户角色枚举
- */
-export enum UserRole {
-  USER = "user",
-  ADMIN = "admin",
-}
+import type { Wallpaper } from "@/services/wallpaper"
 
 /**
  * 用户信息接口
  */
-export interface User {
+export type User = {
   id: number
   username: string
   email: string
   avatarUrl: string
   bio: string
   status: number
-  role: UserRole
+  role: "user" | "admin"
   createdAt: string
   updatedAt: string
 }
@@ -108,7 +101,12 @@ class UserService {
    */
   async logout() {
     try {
-      const response = await api.post("/users/logout", undefined, { skipAuthExpiredHandler: true })
+      const config = { skipAuthExpiredHandler: true }
+      const response = await api.post(
+        "/users/logout",
+        undefined,
+        config as import("axios").AxiosRequestConfig,
+      )
       return response as unknown as ApiResponse
     } catch (error) {
       console.error("登出失败:", error)
@@ -119,10 +117,10 @@ class UserService {
   /**
    * 获取当前用户信息
    */
-  async getProfile() {
+  async getProfile(): Promise<ApiResponse<User>> {
     try {
       const response = await api.get("/users/profile")
-      return response
+      return response as ApiResponse<User>
     } catch (error) {
       console.error("获取用户信息失败:", error)
       throw error
@@ -132,10 +130,10 @@ class UserService {
   /**
    * 根据ID获取用户信息
    */
-  async getUserById(id: number) {
+  async getUserById(id: number): Promise<ApiResponse<User>> {
     try {
       const response = await api.get(`/users/${id}`)
-      return response
+      return response as ApiResponse<User>
     } catch (error) {
       console.error("获取用户信息失败:", error)
       throw error
@@ -145,10 +143,10 @@ class UserService {
   /**
    * 更新用户信息
    */
-  async updateUser(id: number, updateData: UpdateUserDto) {
+  async updateUser(id: number, updateData: UpdateUserDto): Promise<ApiResponse<User>> {
     try {
       const response = await api.patch(`/users/${id}`, updateData)
-      return response
+      return response as ApiResponse<User>
     } catch (error) {
       console.error("更新用户信息失败:", error)
       throw error
@@ -186,7 +184,7 @@ class UserService {
       const response = await api.get("/users/likes", {
         params: { page, limit },
       })
-      return response as unknown as ApiResponse<PaginatedResponse<any>>
+      return response as unknown as ApiResponse<PaginatedResponse<Wallpaper>>
     } catch (error) {
       console.error("获取用户点赞列表失败:", error)
       throw error

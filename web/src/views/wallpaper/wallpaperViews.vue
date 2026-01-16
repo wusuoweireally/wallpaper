@@ -181,13 +181,15 @@ const fetchWallpapers = async (isRetry: boolean = false) => {
       // 请求被取消，静默处理，不更新状态
       return
     }
-  } catch (err: any) {
-    console.error("获取壁纸失败:", err)
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string; code?: string }
+    console.error("获取壁纸失败:", errObj)
 
-    // 智能重试机制 - 针对超时和网络错误
     if (
       retryCount.value < maxRetries &&
-      (err.message.includes("超时") || err.code === "ECONNABORTED" || err.code === "NETWORK_ERROR")
+      (errObj.message?.includes("超时") ||
+        errObj.code === "ECONNABORTED" ||
+        errObj.code === "NETWORK_ERROR")
     ) {
       retryCount.value++
       const retryDelay = 1000 * retryCount.value // 1秒、2秒、3秒递增
@@ -205,7 +207,7 @@ const fetchWallpapers = async (isRetry: boolean = false) => {
     // 重试次数用完或不属于可重试错误，设置错误状态
     wallpapers.value = []
     totalCount.value = 0
-    error.value = err.message || "获取壁纸失败，请稍后重试"
+    error.value = errObj.message || "获取壁纸失败，请稍后重试"
   } finally {
     loading.value = false
   }

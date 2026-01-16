@@ -176,7 +176,7 @@
 import { ref, onMounted, onUnmounted } from "vue"
 import { useRoute } from "vue-router"
 import { storeToRefs } from "pinia"
-import { useUserStore } from "@/stores/index"
+import { useUserStore } from "@/stores/user"
 import { applyTheme, resolveInitialTheme, setTheme, type ThemeMode } from "@/utils/theme"
 
 const userStore = useUserStore()
@@ -214,7 +214,7 @@ const navItems = [
 ]
 
 // 判断导航项是否激活
-const isNavItemActive = (item: any) => {
+const isNavItemActive = (item: { sortValue?: string }) => {
   if (item.sortValue) {
     // 对于有 sortValue 的项，检查路由路径和查询参数
     return route.path === "/wallpapers" && route.query.sort === item.sortValue

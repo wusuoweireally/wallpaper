@@ -175,7 +175,7 @@
 import { ref, computed, reactive } from "vue"
 import { useRouter } from "vue-router"
 import { forumService, type CreatePostDto } from "@/services/forum"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import RichTextEditor from "@/components/RichTextEditor.vue"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
 
@@ -300,9 +300,10 @@ const publishPost = async () => {
 
     alert("帖子发布成功！")
     router.push(`/forums/post/${newPost.id}`)
-  } catch (error: any) {
-    console.error("发布帖子失败:", error)
-    alert(error.message || "发布帖子失败，请稍后重试")
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string }
+    console.error("发布帖子失败:", err)
+    alert(err.message || "发布帖子失败，请稍后重试")
   } finally {
     isSubmitting.value = false
   }

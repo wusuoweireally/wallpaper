@@ -4,15 +4,22 @@ import { join } from "path";
 import * as express from "express";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
+import { HttpExceptionFilter } from "./filters/http-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 启用CORS
+  // 启用CORS - 生产环境限制域名，开发环境允许所有
+  const allowedOrigins = process.env.NODE_ENV === "production"
+    ? [process.env.FRONTEND_URL || "https://yourdomain.com"]
+    : true;
+
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   });
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // 使用cookie解析器
   app.use(cookieParser());

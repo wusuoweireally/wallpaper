@@ -138,7 +138,7 @@ import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import type { Wallpaper } from "@/services/wallpaper"
 import { wallpaperService } from "@/services/wallpaper"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
 
 interface Props {

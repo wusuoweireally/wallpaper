@@ -49,7 +49,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 
 const route = useRoute()
 const router = useRouter()
@@ -115,10 +115,11 @@ const initializeAuth = async () => {
       status.value = "error"
       errorMessage.value = "未能获取登录信息，请重试"
     }
-  } catch (error: any) {
-    console.error("GitHub 登录验证失败:", error)
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string }
+    console.error("GitHub 登录验证失败:", err)
     status.value = "error"
-    errorMessage.value = error.message || "登录验证失败"
+    errorMessage.value = err.message || "登录验证失败"
   }
 }
 

@@ -160,7 +160,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick, computed } from "vue"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 
 const userStore = useUserStore()
 
@@ -300,9 +300,10 @@ const uploadAvatar = async (file: File) => {
     avatarPreview.value = null
 
     return result
-  } catch (err: any) {
-    error.value = err.message || "头像上传失败"
-    throw new Error(err.message || "头像上传失败")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    error.value = errObj.message || "头像上传失败"
+    throw new Error(errObj.message || "头像上传失败")
   } finally {
     loading.value = false
   }
@@ -361,7 +362,7 @@ const updateProfile = async () => {
       return
     }
 
-    const updateData: any = {}
+    const updateData: Partial<{ username: string; email: string; bio: string }> = {}
 
     if (profileForm.username !== userStore.user?.username) {
       updateData.username = profileForm.username
@@ -385,8 +386,9 @@ const updateProfile = async () => {
     setTimeout(() => {
       success.value = ""
     }, 3000)
-  } catch (err: any) {
-    error.value = err.message || "更新失败"
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    error.value = errObj.message || "更新失败"
   } finally {
     loading.value = false
   }

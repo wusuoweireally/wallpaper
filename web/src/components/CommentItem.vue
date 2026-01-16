@@ -129,7 +129,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from "vue"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import type { Comment } from "@/stores/forum"
 import CommentReplyForm from "./CommentReplyForm.vue"
@@ -334,6 +334,7 @@ const formatContent = (content: string) => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

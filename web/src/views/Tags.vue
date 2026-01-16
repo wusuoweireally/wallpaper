@@ -46,7 +46,7 @@
               <label class="label">
                 <span class="label-text">排序方式</span>
               </label>
-              <select v-model="sortBy" class="select-bordered select" @change="loadTags">
+              <select v-model="sortBy" class="select-bordered select" @change="loadTags(true)">
                 <option value="name">按名称</option>
                 <option value="usageCount">按使用次数</option>
                 <option value="createdAt">按创建时间</option>
@@ -57,7 +57,7 @@
               <label class="label">
                 <span class="label-text">排序方向</span>
               </label>
-              <select v-model="sortOrder" class="select-bordered select" @change="loadTags">
+              <select v-model="sortOrder" class="select-bordered select" @change="loadTags(true)">
                 <option value="ASC">升序</option>
                 <option value="DESC">降序</option>
               </select>
@@ -241,7 +241,7 @@ const goToTagDetail = (tag: Tag) => {
 }
 
 const getUsageCount = (tag: Tag) => {
-  return tag.usageCount ?? (tag as any).useCount ?? 0
+  return tag.usageCount ?? (tag as Tag & { useCount?: number }).useCount ?? 0
 }
 
 onMounted(() => {

@@ -245,6 +245,8 @@ import wallpaperService from "@/services/wallpaper"
 import WallpaperGrid from "@/components/WallpaperGrid.vue"
 import type { Wallpaper } from "@/services/wallpaper"
 
+type TagUsage = Tag & { useCount?: number }
+
 const route = useRoute()
 const router = useRouter()
 const tag = ref<Tag | null>(null)
@@ -254,7 +256,9 @@ const loading = ref(true)
 const wallpaperLoading = ref(true)
 const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
 
-const filters = reactive({
+type CategoryFilter = "" | "general" | "anime" | "people"
+
+const filters = reactive<{ category: CategoryFilter; sort: string; search: string }>({
   category: "",
   sort: "latest",
   search: "",
@@ -264,7 +268,7 @@ const loadTag = async () => {
   try {
     loading.value = true
     const response = await tagService.getTagById(Number(route.params.id))
-    tag.value = response.data
+    tag.value = response.data ?? null
   } catch (error) {
     console.error("加载标签详情失败:", error)
   } finally {
@@ -294,8 +298,16 @@ const loadWallpapers = async () => {
       tags: tag.value ? [tag.value.name] : undefined,
       ...sortParams,
     })
-    wallpapers.value = response.data
-    pagination.value = response.pagination
+
+    if (Array.isArray(response.data)) {
+      wallpapers.value = response.data
+    } else {
+      wallpapers.value = []
+    }
+
+    if (response.pagination) {
+      pagination.value = response.pagination
+    }
   } catch (error) {
     console.error("加载壁纸列表失败:", error)
   } finally {
@@ -309,7 +321,8 @@ const loadRelatedTags = async () => {
       sortBy: "usageCount",
       sortOrder: "DESC",
     })
-    relatedTags.value = response.data.filter((t) => t.id !== tag.value?.id).slice(0, 10)
+    const tagList = Array.isArray(response.data) ? response.data : []
+    relatedTags.value = tagList.filter((t) => t.id !== tag.value?.id).slice(0, 10)
   } catch (error) {
     console.error("加载相关标签失败:", error)
   }
@@ -324,7 +337,7 @@ const goToWallpaperDetail = (id: number) => {
   router.push(`/wallpaper/${id}`)
 }
 
-const getUsageCount = (tag?: Tag | null) => tag?.usageCount ?? (tag as any)?.useCount ?? 0
+const getUsageCount = (tag?: TagUsage | null) => tag?.usageCount ?? tag?.useCount ?? 0
 
 onMounted(async () => {
   await loadTag()

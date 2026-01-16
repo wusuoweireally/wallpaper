@@ -110,7 +110,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { ref, onMounted, onUnmounted } from "vue"
 import ProfileSettings from "./settings/ProfileSettings.vue"
 import PasswordSettings from "./settings/PasswordSettings.vue"

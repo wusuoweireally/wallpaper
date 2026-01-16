@@ -430,7 +430,7 @@
 <script lang="ts" setup>
 import { ref, reactive, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { useUserStore, type RegisterDto } from "@/stores"
+import { useUserStore, type RegisterDto } from "@/stores/user"
 import GitHubLoginButton from "@/components/GitHubLoginButton.vue"
 
 type AuthMode = "login" | "register"
@@ -438,6 +438,8 @@ type AuthMode = "login" | "register"
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+
+const user = computed(() => userStore.user)
 
 const isLogin = ref(router.currentRoute.value.name === "Login")
 
@@ -496,9 +498,10 @@ const handleLogin = async () => {
     const redirectPath =
       typeof redirectParam === "string" && redirectParam.startsWith("/") ? redirectParam : "/"
     router.replace(redirectPath)
-  } catch (error: any) {
-    console.error("登录失败:", error)
-    loginError.value = error.message || "登录失败，请重试"
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string }
+    console.error("登录失败:", err)
+    loginError.value = err.message || "登录失败，请重试"
   } finally {
     loginLoading.value = false
   }
@@ -578,9 +581,10 @@ const handleRegister = async () => {
       password: "",
       confirmPassword: "",
     })
-  } catch (error: any) {
-    console.error("注册失败:", error)
-    registerError.value = error.response?.data?.message || "注册失败，请重试"
+  } catch (error: unknown) {
+    const err = error as Error & { response?: { data?: { message?: string } } }
+    console.error("注册失败:", err)
+    registerError.value = err.response?.data?.message || "注册失败，请重试"
   } finally {
     registerLoading.value = false
   }

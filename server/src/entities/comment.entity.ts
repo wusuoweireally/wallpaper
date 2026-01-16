@@ -96,6 +96,10 @@ export class Comment {
   @Index("idx_comment_updated_at")
   updatedAt: Date;
 
-  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  @DeleteDateColumn({
+    name: "deleted_at",
+    nullable: true,
+    comment: "删除时间（软删除）",
+  })
   deletedAt: Date;
 }

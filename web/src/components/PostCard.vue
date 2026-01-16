@@ -148,7 +148,7 @@
 import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
 import { useForumStore } from "@/stores/forum"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import type { Post } from "@/stores/forum"
 import { resolveAvatarUrl } from "@/utils/avatar"

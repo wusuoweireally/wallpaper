@@ -26,7 +26,10 @@
       </div>
     </div>
 
-    <div v-else class="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1400px] grid-cols-1 items-stretch gap-5 px-4 lg:grid-cols-[320px_1fr]">
+    <div
+      v-else
+      class="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1400px] grid-cols-1 items-stretch gap-5 px-4 lg:grid-cols-[320px_1fr]"
+    >
       <aside
         class="flex h-full flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
       >
@@ -200,7 +203,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRoute } from "vue-router"
 import { wallpaperService } from "@/services/wallpaper"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
 
 interface WallpaperDetail {
@@ -303,7 +306,7 @@ const fetchWallpaperDetail = async () => {
       width: wallpaperResponse.data.width,
       height: wallpaperResponse.data.height,
       fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
-      tags: tagsResponse.success ? tagsResponse.data.map((tag: any) => tag.name) : [],
+      tags: tagsResponse.success ? tagsResponse.data.map((tag: { name: string }) => tag.name) : [],
       uploader: {
         id: wallpaperResponse.data.uploaderId,
         name: wallpaperResponse.data.uploader?.username || "未知用户",
@@ -317,12 +320,17 @@ const fetchWallpaperDetail = async () => {
 
     isLiked.value = wallpaperResponse.data.isLiked || false
     isFavorited.value = wallpaperResponse.data.isFavorited || false
-  } catch (err: any) {
-    console.error("获取壁纸详情失败:", err)
-    if (err.message === "请求已取消" || err.name === "REQUEST_CANCELLED" || err.isCancelled) {
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string; name?: string; isCancelled?: boolean }
+    console.error("获取壁纸详情失败:", errObj)
+    if (
+      errObj.message === "请求已取消" ||
+      errObj.name === "REQUEST_CANCELLED" ||
+      errObj.isCancelled
+    ) {
       return
     }
-    error.value = err instanceof Error ? err.message : "获取壁纸详情失败"
+    error.value = errObj instanceof Error ? errObj.message : "获取壁纸详情失败"
   } finally {
     loading.value = false
   }
@@ -352,13 +360,18 @@ const handleLike = async () => {
     } else {
       await wallpaperService.unlikeWallpaper(id)
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errObj = err as Error & {
+      response?: { status?: number; data?: { message?: string } }
+      message?: string
+    }
     isLiked.value = previousLiked
     wallpaper.value.likes = previousLikes
-    if (err.response?.status === 401) {
+    if (errObj.response?.status === 401) {
       toast.error("登录已过期，请重新登录")
     } else {
-      const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
+      const errorMessage =
+        errObj.response?.data?.message || errObj.message || "操作失败，请稍后重试"
       console.error("点赞操作失败:", errorMessage)
       toast.error(errorMessage)
     }
@@ -389,13 +402,18 @@ const handleFavorite = async () => {
     } else {
       await wallpaperService.unfavoriteWallpaper(id)
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errObj = err as Error & {
+      response?: { status?: number; data?: { message?: string } }
+      message?: string
+    }
     isFavorited.value = previousFavorited
     wallpaper.value.favorites = previousFavorites
-    if (err.response?.status === 401) {
+    if (errObj.response?.status === 401) {
       toast.error("登录已过期，请重新登录")
     } else {
-      const errorMessage = err.response?.data?.message || err.message || "操作失败，请稍后重试"
+      const errorMessage =
+        errObj.response?.data?.message || errObj.message || "操作失败，请稍后重试"
       console.error("收藏操作失败:", errorMessage)
       toast.error(errorMessage)
     }

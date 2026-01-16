@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { HttpModule } from "@nestjs/axios";
 import { ScheduleModule } from "@nestjs/schedule";
+import { join } from "path";
 
 //用户自定义的模块
 import { UserModule } from "./modules/user.module";
@@ -15,25 +16,39 @@ import { AdminModule } from "./modules/admin.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ".env",
+      envFilePath: (() => {
+        const nodeEnv = process.env.NODE_ENV || "development";
+        const envSuffix = nodeEnv === "dev" ? "dev" : nodeEnv;
+        return [`.env.${envSuffix}`, ".env"];
+      })(),
     }),
-    // 使用异步配置,确保环境变量先加载
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: "mysql",
-        host: configService.get<string>("DB_HOST") || "localhost",
-        port: configService.get<number>("DB_PORT") || 3306,
-        username: configService.get<string>("DB_USERNAME") || "root",
-        password: configService.get<string>("DB_PASSWORD"),
-        database: configService.get<string>("DB_DATABASE") || "wallpaper_site",
-        entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: true,
-        logging: true,
-        charset: "utf8mb4",
-        timezone: "+08:00",
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbConfig = {
+          type: "mysql" as const,
+          host: configService.get<string>("DB_HOST") || "127.0.0.1",
+          port: configService.get<number>("DB_PORT") || 3306,
+          username: configService.get<string>("DB_USERNAME") || "root",
+          password: configService.get<string>("DB_PASSWORD") || "12345678",
+          database: configService.get<string>("DB_DATABASE") || "wallpaper_site",
+          entities: [join(__dirname, "**", "*.entity{.ts,.js}")],
+          synchronize: true,
+          logging: true,
+          charset: "utf8mb4",
+          timezone: "+08:00",
+          retryAttempts: 10,
+          retryDelay: 3000,
+          keepConnectionAlive: true,
+          connectorPackage: "mysql2" as const,
+        };
+        console.log("DB Config (sanitized):", {
+          ...dbConfig,
+          password: "***",
+        });
+        return dbConfig;
+      },
     }),
     HttpModule,
     ScheduleModule.forRoot(),

@@ -481,7 +481,7 @@ const formatDate = (value: string) => {
   return new Date(value).toLocaleString("zh-CN")
 }
 
-const getUsageCount = (tag: Tag) => tag.usageCount ?? (tag as any).useCount ?? 0
+const getUsageCount = (tag: Tag) => tag.usageCount ?? (tag as Tag & { useCount?: number }).useCount ?? 0
 
 onMounted(() => {
   loadTags()

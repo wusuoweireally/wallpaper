@@ -1,17 +1,21 @@
 import axios, {
-  type AxiosResponse,
   type CancelTokenSource,
+  type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios"
+import { useGlobalToast } from "@/composables/useToast"
+
 
 const AUTH_EXPIRED_EVENT = "auth-expired"
 let isDispatchingAuthExpired = false
+const { error: toastError } = useGlobalToast()
 
 // 扩展Axios请求配置类型
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   requestId?: string
   skipAuthExpiredHandler?: boolean
 }
+
 
 // 分页元数据
 export interface PaginationMeta {
@@ -22,7 +26,7 @@ export interface PaginationMeta {
 }
 
 // 定义 API 响应的数据格式
-export interface ApiResponse<T = Record<string, any>> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   message?: string
   data?: T | null
@@ -112,7 +116,7 @@ api.interceptors.response.use(
 
     return response.data
   },
-  (error: any) => {
+  (error: Error & { response?: { status: number; data?: { message?: string } }; code?: string; config?: CustomAxiosRequestConfig; request?: unknown; isCancelled?: boolean }) => {
     // 清理取消令牌
     if (error.config) {
       const config = error.config as CustomAxiosRequestConfig
@@ -140,7 +144,7 @@ api.interceptors.response.use(
     if (error.code === "ECONNABORTED") {
       errorMessage = "请求超时，请检查网络连接或稍后重试"
       console.error("请求超时:", error.message)
-      alert(errorMessage)
+      toastError(errorMessage)
 
       const enhancedError = {
         ...error,
@@ -208,16 +212,16 @@ api.interceptors.response.use(
 
       // 401 登录过期交由全局处理，其余错误给出提示
       if (status !== 401 || requestConfig?.skipAuthExpiredHandler) {
-        alert(errorMessage)
+        toastError(errorMessage)
       }
     } else if (error.request) {
       errorMessage = "网络连接失败，请检查网络"
       console.error("网络错误:", error.request)
-      alert(errorMessage)
+      toastError(errorMessage)
     } else {
       errorMessage = "请求配置错误"
       console.error("配置错误:", error.message)
-      alert(errorMessage)
+      toastError(errorMessage)
     }
 
     // 包装错误对象，添加上下文信息
@@ -247,11 +251,15 @@ export default api
 
 // 扩展 axios 类型定义，让所有请求自动返回 ApiResponse 格式
 declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipAuthExpiredHandler?: boolean
+  }
+
   export interface AxiosInstance {
-    get<T = any>(url: string, config?: any): Promise<ApiResponse<T>>
-    post<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>>
-    put<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>>
-    patch<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>>
-    delete<T = any>(url: string, config?: any): Promise<ApiResponse<T>>
+    get<T = unknown>(url: string, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
+    post<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
+    put<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
+    patch<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
+    delete<T = unknown>(url: string, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
   }
 }

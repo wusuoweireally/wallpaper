@@ -76,7 +76,7 @@
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, watch } from "vue"
 import { reportService, type CreateReportDto } from "@/services/report"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 
 // Props
 interface Props {
@@ -87,6 +87,8 @@ interface Props {
 const props = defineProps<Props>()
 
 // Emits
+import type { ReportReason } from "@/services/report"
+
 const emit = defineEmits<{
   success: []
 }>()
@@ -97,7 +99,7 @@ const userStore = useUserStore()
 
 // 响应式数据
 const submitting = ref(false)
-const reportReasons = ref<any[]>([])
+const reportReasons = ref<ReportReason[]>([])
 
 // 表单数据
 const formData = reactive<CreateReportDto>({
@@ -160,7 +162,7 @@ const handleSubmit = async () => {
     alert("举报提交成功，我们会尽快处理")
     emit("success")
     closeModal()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("提交举报失败:", error)
     alert(error.message || "举报提交失败，请稍后重试")
   } finally {

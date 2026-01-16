@@ -117,6 +117,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from "vue"
 import WallpaperCard from "@/components/WallpaperCard.vue"
+import type { Wallpaper } from "@/services/wallpaper"
 
 interface WallpaperItem {
   id: number
@@ -200,7 +201,7 @@ const visiblePages = computed(() => {
 })
 
 // 转换后端数据为前端组件期望的格式
-const transformWallpaperData = (data: any): WallpaperItem => {
+const transformWallpaperData = (data: Wallpaper): WallpaperItem => {
   return {
     id: data.id,
     title: data.title || `壁纸-${data.id}`,

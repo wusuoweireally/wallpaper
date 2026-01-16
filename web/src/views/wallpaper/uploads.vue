@@ -770,7 +770,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue"
 import axios from "axios"
 import { wallpaperService } from "@/services/wallpaper"
 import tagService, { type Tag } from "@/services/tag"
-import { useUserStore } from "@/stores/index"
+import { useUserStore } from "@/stores/user"
 import { cancelRequest } from "@/config/api"
 
 const userStore = useUserStore()
@@ -851,7 +851,7 @@ const categories = [
 // 选中的标签
 const selectedTags = ref<string[]>([])
 
-const normalizeTag = (tag: string) => tag.replace(/\s+/g, " ").trim().slice(0, 30)
+const normalizeTag = (tag: string) => tag.replace(/\s+/g, " ").trim().slice(0, MAX_TAG_LENGTH)
 
 const addTag = (tag: string) => {
   const normalized = normalizeTag(tag)
@@ -1081,20 +1081,21 @@ const handleSubmit = async () => {
 
     currentRequestId.value = requestId
 
-    if ((response as any).success) {
+    if ((response as { success?: boolean }).success) {
       uploadStatus.value = { type: "success", message: "壁纸上传成功！" }
       clearInputForm()
     } else {
-      throw new Error((response as any).message || "上传失败")
+      throw new Error((response as { message?: string }).message || "上传失败")
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (axios.isCancel(error)) {
       uploadStatus.value = { type: "info", message: "上传已取消" }
     } else {
-      console.error("上传失败:", error)
+      const err = error as Error & { message?: string }
+      console.error("上传失败:", err)
       uploadStatus.value = {
         type: "error",
-        message: error.message || "上传失败，请重试",
+        message: err.message || "上传失败，请重试",
       }
     }
   } finally {

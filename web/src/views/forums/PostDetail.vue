@@ -409,7 +409,7 @@
 import { ref, computed, onMounted, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { forumService } from "@/services/forum"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import type { Post, Comment } from "@/stores/forum"
 import CommentItem from "@/components/CommentItem.vue"
 import ReportModal from "@/components/ReportModal.vue"
@@ -544,9 +544,10 @@ const loadPost = async () => {
     if (userStore.isLoggedIn) {
       await checkLikeStatus()
     }
-  } catch (err: any) {
-    console.error("加载帖子失败:", err)
-    error.value = err.message || "帖子加载失败"
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("加载帖子失败:", errObj)
+    error.value = errObj.message || "帖子加载失败"
   } finally {
     loading.value = false
   }
@@ -562,7 +563,7 @@ const loadComments = async (reset: boolean = true) => {
       comments.value = [] // 重置评论列表
     }
 
-    const sortOptions: Record<string, any> = {
+    const sortOptions: Record<string, { sortBy: string; sortOrder: "ASC" | "DESC" }> = {
       newest: { sortBy: "createdAt", sortOrder: "DESC" as const },
       oldest: { sortBy: "createdAt", sortOrder: "ASC" as const },
       popular: { sortBy: "likeCount", sortOrder: "DESC" as const },
@@ -588,14 +589,11 @@ const loadComments = async (reset: boolean = true) => {
         comments.value = []
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("加载评论失败:", err)
-    // 显示错误提示
     if (reset) {
       comments.value = []
     }
-    // 可以在这里添加用户友好的错误提示
-    // alert(err.message || "加载评论失败，请稍后重试");
   }
 }
 
@@ -635,9 +633,10 @@ const toggleLike = async () => {
       isLiked.value = true
       post.value.likeCount = (post.value.likeCount || 0) + 1
     }
-  } catch (err: any) {
-    console.error("点赞操作失败:", err)
-    alert(err.message || "操作失败")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("点赞操作失败:", errObj)
+    alert(errObj.message || "操作失败")
   } finally {
     likeLoading.value = false
   }
@@ -661,9 +660,10 @@ const submitComment = async () => {
     if (post.value) {
       post.value.commentCount = (post.value.commentCount || 0) + 1
     }
-  } catch (err: any) {
-    console.error("发表评论失败:", err)
-    alert(err.message || "发表评论失败")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("发表评论失败:", errObj)
+    alert(errObj.message || "发表评论失败")
   } finally {
     commentSubmitting.value = false
   }
@@ -676,9 +676,10 @@ const handleCommentLike = async (comment: Comment) => {
       target.likeCount = result.likeCount
       target.isLiked = result.isLiked
     })
-  } catch (err: any) {
-    console.error("评论点赞失败:", err)
-    alert(err.message || "操作失败")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("评论点赞失败:", errObj)
+    alert(errObj.message || "操作失败")
   }
 }
 
@@ -720,9 +721,10 @@ const deletePost = async () => {
     await forumService.deletePost(post.value.id)
     alert("帖子已删除")
     router.push("/forums")
-  } catch (err: any) {
-    console.error("删除帖子失败:", err)
-    alert(err.message || "删除失败")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("删除帖子失败:", errObj)
+    alert(errObj.message || "删除失败")
   }
 }
 

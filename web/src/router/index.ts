@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router"
 import type { RouteRecordRaw } from "vue-router"
 import "./types" // 导入路由类型扩展
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { storeToRefs } from "pinia"
 
 // 路由配置
@@ -345,7 +345,7 @@ router.beforeEach(async (to, _from, next) => {
     // 清理所有固定定位的可能残留元素
     const fixedElements = document.querySelectorAll(".fixed.z-\\[9999\\]")
     fixedElements.forEach((el) => {
-      const elAny = el as any
+      const elAny = el as HTMLElement & { _v_isTeleport?: boolean; __vteleport?: boolean }
       if (elAny._v_isTeleport || elAny.__vteleport) {
         el.remove()
       }

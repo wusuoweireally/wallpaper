@@ -166,7 +166,7 @@ const fetchShowcaseWallpapers = async () => {
     const response = await wallpaperService.getPopularWallpapers(8) // 获取8张热门壁纸
 
     if (response.data) {
-      showcaseWallpapers.value = response.data.map((wallpaper: any) => ({
+      showcaseWallpapers.value = response.data.map((wallpaper: Wallpaper) => ({
         ...wallpaper,
         loaded: false,
         uploader: wallpaper.uploader || {

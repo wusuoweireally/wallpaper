@@ -88,6 +88,10 @@ export class User {
   })
   githubBio: string;
 
-  @DeleteDateColumn({ name: "deleted_at", nullable: true, comment: "删除时间（软删除）" })
+  @DeleteDateColumn({
+    name: "deleted_at",
+    nullable: true,
+    comment: "删除时间（软删除）",
+  })
   deletedAt: Date;
 }

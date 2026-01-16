@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { UserLike } from "../entities/user-like.entity";
@@ -18,6 +18,8 @@ export class WallpaperService {
     private readonly userLikeRepository: Repository<UserLike>,
     @InjectRepository(UserFavorite)
     private readonly userFavoriteRepository: Repository<UserFavorite>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private tagService: TagService,
   ) {}
 
@@ -235,31 +237,22 @@ export class WallpaperService {
   }
 
   /**
-   * 删除壁纸（包含标签/点赞/收藏等关联清理）
+   * 删除壁纸（包含标签/点赞/收藏等关联清理）- 使用事务保护
    */
   async delete(id: number): Promise<void> {
-    // 1. 查询壁纸的所有关联标签（使用TagService）
     const tags = await this.tagService.getTagsByWallpaperId(id);
 
-    // 2. 删除所有用户的点赞/收藏记录，避免残留关系数据
-    await Promise.all([
-      this.userLikeRepository.delete({ wallpaperId: id }),
-      this.userFavoriteRepository.delete({ wallpaperId: id }),
-      this.wallpaperRepository
-        .createQueryBuilder()
-        .delete()
-        .from(WallpaperTag)
-        .where("wallpaperId = :wallpaperId", { wallpaperId: id })
-        .execute(),
-    ]);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(UserLike, { wallpaperId: id });
+      await manager.delete(UserFavorite, { wallpaperId: id });
+      await manager.delete(WallpaperTag, { wallpaperId: id });
 
-    // 3. 删除壁纸记录
-    const result = await this.wallpaperRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-    }
+      const result = await manager.delete(Wallpaper, id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`壁纸 ID ${id} 不存在`);
+      }
+    });
 
-    // 4. 更新标签使用次数（减少）
     for (const tag of tags) {
       if (tag.usageCount > 0) {
         await this.tagService.decrementUsageCount(tag.id);

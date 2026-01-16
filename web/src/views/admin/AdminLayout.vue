@@ -336,7 +336,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from "vue"
 import { useRouter, useRoute } from "vue-router"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import adminService from "@/services/admin"
 
 const router = useRouter()

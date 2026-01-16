@@ -421,7 +421,7 @@ const route = useRoute()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
-const originalPost = ref<any>(null)
+const originalPost = ref<Post | null>(null)
 const isSubmitting = ref(false)
 const newTag = ref("")
 const tagList = ref<string[]>([])
@@ -544,8 +544,9 @@ const loadPost = async () => {
     formData.summary = post.summary || ""
     formData.tags = post.tags || ""
     tagList.value = (post.tags || "").split(",").filter((tag: string) => tag.trim())
-  } catch (err: any) {
-    error.value = err.message || "加载帖子失败"
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    error.value = errObj.message || "加载帖子失败"
   } finally {
     loading.value = false
   }
@@ -596,9 +597,10 @@ const submitUpdate = async () => {
     const updatedPost = await forumService.updatePost(id, updateData)
     alert("帖子更新成功")
     router.push(`/forums/post/${updatedPost.id}`)
-  } catch (err: any) {
-    console.error("更新帖子失败:", err)
-    alert(err.message || "更新失败，请稍后重试")
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("更新帖子失败:", errObj)
+    alert(errObj.message || "更新失败，请稍后重试")
   } finally {
     isSubmitting.value = false
   }

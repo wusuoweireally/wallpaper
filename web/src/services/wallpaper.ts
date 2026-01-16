@@ -1,4 +1,5 @@
 import api from "@/config/api"
+import type { ApiResponse } from "@/config/api"
 import type { AxiosProgressEvent } from "axios"
 
 /**
@@ -157,7 +158,7 @@ class WallpaperService {
   async getWallpapers(params: WallpaperQueryParams = {}) {
     try {
       // 构建查询参数对象，确保数字类型参数正确传递
-      const queryParams: Record<string, any> = {
+      const queryParams: Record<string, string | number | string[]> = {
         page: Math.max(1, params.page ?? 1),
         limit: Math.max(1, Math.min(100, params.limit ?? 20)),
       }
@@ -183,16 +184,16 @@ class WallpaperService {
         queryParams.tagKeyword = params.tagKeyword
       }
 
-      const response = await api.get("/wallpapers", {
+      const response = await api.get<Wallpaper[]>("/wallpapers", {
         params: queryParams,
         timeout: 10000, // 10秒超时
       })
       return response
-    } catch (error: any) {
-      console.error("获取壁纸列表失败:", error)
+    } catch (error: unknown) {
+      const err = error as Error & { name?: string; isCancelled?: boolean; code?: string; message?: string; response?: { status: number; data?: { message?: string } } }
+      console.error("获取壁纸列表失败:", err)
 
-      // 检查是否是请求被取消
-      if (error.name === "REQUEST_CANCELLED" || error.isCancelled) {
+      if (err.name === "REQUEST_CANCELLED" || err.isCancelled) {
         // 请求被取消，静默处理，返回空结果但不抛出错误
         return {
           success: false,
@@ -207,24 +208,22 @@ class WallpaperService {
         }
       }
 
-      // 详细的错误分类和友好的错误信息
-      if (error.code === "ECONNABORTED") {
+      if (err.code === "ECONNABORTED") {
         throw new Error("请求超时，请检查网络连接或稍后重试")
-      } else if (error.code === "NETWORK_ERROR" || error.message.includes("Network Error")) {
+      } else if (err.code === "NETWORK_ERROR" || err.message?.includes("Network Error")) {
         throw new Error("网络连接失败，请检查网络设置")
-      } else if (error.response?.status === 400) {
+      } else if (err.response?.status === 400) {
         throw new Error("请求参数错误，请检查筛选条件")
-      } else if (error.response?.status === 404) {
+      } else if (err.response?.status === 404) {
         throw new Error("未找到相关壁纸，请尝试其他筛选条件")
-      } else if (error.response?.status === 401) {
+      } else if (err.response?.status === 401) {
         throw new Error("身份验证失败，请重新登录")
-      } else if (error.response?.status === 403) {
+      } else if (err.response?.status === 403) {
         throw new Error("权限不足，无法访问该内容")
-      } else if (error.response?.status >= 500) {
+      } else if (err.response?.status && err.response.status >= 500) {
         throw new Error("服务器暂时不可用，请稍后重试")
-      } else if (error.response?.data?.message) {
-        // 使用后端返回的具体错误信息
-        throw new Error(error.response.data.message)
+      } else if (err.response?.data?.message) {
+        throw new Error(err.response.data.message)
       } else {
         throw new Error("获取壁纸失败，请稍后重试")
       }
@@ -234,10 +233,10 @@ class WallpaperService {
   /**
    * 获取壁纸详情
    */
-  async getWallpaperDetail(id: number) {
+  async getWallpaperDetail(id: number): Promise<ApiResponse<Wallpaper>> {
     try {
-      const response = await api.get(`/wallpapers/${id}`)
-      return response
+      const response = await api.get<Wallpaper>(`/wallpapers/${id}`)
+      return response as ApiResponse<Wallpaper>
     } catch (error) {
       console.error("获取壁纸详情失败:", error)
       throw error
@@ -247,10 +246,13 @@ class WallpaperService {
   /**
    * 更新壁纸信息
    */
-  async updateWallpaper(id: number, updateData: Partial<Wallpaper>) {
+  async updateWallpaper(
+    id: number,
+    updateData: Partial<Wallpaper>,
+  ): Promise<ApiResponse<Wallpaper>> {
     try {
-      const response = await api.put(`/wallpapers/${id}`, updateData)
-      return response
+      const response = await api.put<Wallpaper>(`/wallpapers/${id}`, updateData)
+      return response as ApiResponse<Wallpaper>
     } catch (error) {
       console.error("更新壁纸失败:", error)
       throw error
@@ -325,12 +327,12 @@ class WallpaperService {
   /**
    * 获取热门壁纸
    */
-  async getPopularWallpapers(limit: number = 10) {
+  async getPopularWallpapers(limit: number = 10): Promise<ApiResponse<Wallpaper[]>> {
     try {
-      const response = await api.get(`/wallpapers/popular`, {
+      const response = await api.get<Wallpaper[]>(`/wallpapers/popular`, {
         params: { limit },
       })
-      return response
+      return response as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取热门壁纸失败:", error)
       throw error
@@ -340,12 +342,16 @@ class WallpaperService {
   /**
    * 根据上传者获取壁纸
    */
-  async getWallpapersByUploader(uploaderId: number, page: number = 1, limit: number = 20) {
+  async getWallpapersByUploader(
+    uploaderId: number,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<ApiResponse<Wallpaper[]>> {
     try {
-      const response = await api.get(`/wallpapers/uploader/${uploaderId}`, {
+      const response = await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, {
         params: { page, limit },
       })
-      return response
+      return response as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取上传者壁纸失败:", error)
       throw error
@@ -355,10 +361,10 @@ class WallpaperService {
   /**
    * 获取壁纸关联标签
    */
-  async getWallpaperTags(id: number) {
+  async getWallpaperTags(id: number): Promise<ApiResponse<import("./tag").Tag[]>> {
     try {
-      const response = await api.get(`/wallpapers/${id}/tags`)
-      return response
+      const response = await api.get<import("./tag").Tag[]>(`/wallpapers/${id}/tags`)
+      return response as ApiResponse<import("./tag").Tag[]>
     } catch (error) {
       console.error("获取壁纸标签失败:", error)
       throw error

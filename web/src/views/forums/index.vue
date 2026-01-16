@@ -510,7 +510,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useForumStore } from "@/stores/forum"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import PostCard from "@/components/PostCard.vue"
 import type { Post, PostCategory } from "@/stores/forum"

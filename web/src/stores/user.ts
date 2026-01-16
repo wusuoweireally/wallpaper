@@ -8,6 +8,9 @@ import userService, {
   type LoginResponse,
 } from "@/services/user"
 import type { Wallpaper } from "@/services/wallpaper"
+import type { ApiResponse } from "@/config/api"
+
+type ServiceError = Error & { response?: { data?: { message?: string } }; message?: string }
 
 // ==================== localStorage 工具函数 ====================
 // 注意：认证 token 通过 HttpOnly Cookie 自动处理，前端只需保存用户信息
@@ -67,7 +70,7 @@ export const useUserStore = defineStore("user", () => {
   })
 
   // 缓存数据
-  const cache = ref<Record<string, any>>({})
+  const cache = ref<Record<string, ApiResponse<unknown>>>({})
 
   // ==================== 计算属性 ====================
   const isLoggedIn = computed(() => !!user.value)
@@ -120,7 +123,7 @@ export const useUserStore = defineStore("user", () => {
   /**
    * 统一错误处理
    */
-  const handleError = (err: any, defaultMessage: string) => {
+  const handleError = (err: ServiceError, defaultMessage: string) => {
     const errorMessage = err.response?.data?.message || err.message || defaultMessage
     setError(errorMessage)
     throw new Error(errorMessage)
@@ -147,8 +150,8 @@ export const useUserStore = defineStore("user", () => {
       } else {
         throw new Error(response.message || "登录失败")
       }
-    } catch (err: any) {
-      return handleError(err, "登录失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "登录失败")
     } finally {
       loading.value = false
     }
@@ -169,8 +172,8 @@ export const useUserStore = defineStore("user", () => {
       } else {
         throw new Error(response.message || "注册失败")
       }
-    } catch (err: any) {
-      return handleError(err, "注册失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "注册失败")
     } finally {
       loading.value = false
     }
@@ -210,7 +213,7 @@ export const useUserStore = defineStore("user", () => {
     // 验证用户状态是否仍然有效（Cookie 会自动发送）
     try {
       await fetchCurrentUser()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.warn("用户认证验证失败，清除本地登录态:", error)
       clearUser()
     }
@@ -235,10 +238,10 @@ export const useUserStore = defineStore("user", () => {
         console.warn("服务器返回成功但没有用户数据")
         return null
       }
-    } catch (err: any) {
-      // 认证失败时清除本地用户信息
+    } catch (err: unknown) {
       clearUser()
-      const errorMessage = err.response?.data?.message || err.message || "获取用户信息失败"
+      const serviceErr = err as ServiceError
+      const errorMessage = serviceErr.response?.data?.message || serviceErr.message || "获取用户信息失败"
       setError(errorMessage)
       return null
     } finally {
@@ -267,8 +270,8 @@ export const useUserStore = defineStore("user", () => {
       } else {
         throw new Error(response.message || "更新失败")
       }
-    } catch (err: any) {
-      return handleError(err, "更新用户信息失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "更新用户信息失败")
     } finally {
       loading.value = false
     }
@@ -301,8 +304,8 @@ export const useUserStore = defineStore("user", () => {
       } else {
         throw new Error(response.message || "上传头像失败")
       }
-    } catch (err: any) {
-      return handleError(err, "上传头像失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "上传头像失败")
     } finally {
       loading.value = false
     }
@@ -345,8 +348,8 @@ export const useUserStore = defineStore("user", () => {
       }
 
       return userStats.value
-    } catch (err: any) {
-      return handleError(err, "获取用户统计数据失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "获取用户统计数据失败")
     } finally {
       loading.value = false
     }
@@ -392,8 +395,8 @@ export const useUserStore = defineStore("user", () => {
       cache.value[cacheKey] = response
 
       return response
-    } catch (err: any) {
-      return handleError(err, `获取用户${getTypeName(type)}列表失败`)
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, `获取用户${getTypeName(type)}列表失败`)
     } finally {
       loading.value = false
     }
@@ -440,8 +443,8 @@ export const useUserStore = defineStore("user", () => {
       loading.value = true
       clearError()
       return await userService.getUserViewHistory(page, limit)
-    } catch (err: any) {
-      return handleError(err, "获取用户浏览记录失败")
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "获取用户浏览记录失败")
     } finally {
       loading.value = false
     }

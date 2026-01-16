@@ -15,7 +15,7 @@
 
 <script lang="ts" setup>
 import UserWallpaperList from "./UserWallpaperList.vue"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 
 const userStore = useUserStore()
 

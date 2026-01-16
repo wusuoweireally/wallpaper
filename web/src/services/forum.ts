@@ -4,7 +4,7 @@ import type { Post, Comment, PaginationData } from "@/stores/forum"
 /**
  * API 响应类型定义
  */
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean
   message?: string
   data?: T

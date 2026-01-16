@@ -210,7 +210,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue"
-import { useUserStore } from "@/stores"
+import { useUserStore } from "@/stores/user"
 
 const userStore = useUserStore()
 
@@ -378,9 +378,10 @@ const updatePassword = async () => {
         }
       }, 3000)
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
     if (isMounted.value) {
-      error.value = err.message || "密码修改失败"
+      error.value = errObj.message || "密码修改失败"
     }
   } finally {
     if (isMounted.value) {
