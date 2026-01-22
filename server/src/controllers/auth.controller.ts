@@ -13,7 +13,7 @@ import { ConfigService } from "@nestjs/config";
 import { GitHubAuthService } from "../services/github-auth.service";
 import { AuthService } from "../services/auth.service";
 import { GitHubProfile } from "../dto/github.dto";
-import { getCookieSecure, getCookieDomain } from "../utils/cookie";
+import { getAuthCookieOptions } from "../utils/cookie";
 
 /**
  * GitHub OAuth 认证控制器
@@ -72,26 +72,9 @@ export class AuthController {
       const loginResult = this.authService.login(user);
 
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
-      const cookieDomain = getCookieDomain();
-      const cookieOptions: {
-        httpOnly: boolean;
-        secure: boolean;
-        sameSite: "lax";
-        maxAge: number;
-        path: string;
-        domain?: string;
-      } = {
-        httpOnly: true,
-        secure: getCookieSecure(),
-        sameSite: "lax",
+      const cookieOptions = getAuthCookieOptions(req, {
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60天
-        path: "/",
-      };
-
-      // 只有在 domain 有值时才设置（避免 IP 地址和 localhost 的问题）
-      if (cookieDomain) {
-        cookieOptions.domain = cookieDomain;
-      }
+      });
 
       response.cookie(
         "Authentication",

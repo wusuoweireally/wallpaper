@@ -36,7 +36,7 @@ import { User } from "../entities/user.entity";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
 import { UserRole } from "../entities/user.entity";
-import { getCookieSecure } from "../utils/cookie";
+import { getAuthCookieOptions } from "../utils/cookie";
 
 @Controller("users")
 export class UserController {
@@ -67,6 +67,7 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body(ValidationPipe) loginDto: LoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     const user = await this.authService.validateUser(
@@ -81,13 +82,13 @@ export class UserController {
     const result = this.authService.login(user);
 
     // 设置Cookie，有效期60天（与JWT token过期时间一致）
-    response.cookie("Authentication", result.access_token, {
-      httpOnly: true,
-      secure: getCookieSecure(),
-      sameSite: "lax",
-      maxAge: 60 * 24 * 60 * 60 * 1000, // 60天（毫秒）
-      path: "/", // 确保所有接口均可携带
-    });
+    response.cookie(
+      "Authentication",
+      result.access_token,
+      getAuthCookieOptions(request, {
+        maxAge: 60 * 24 * 60 * 60 * 1000, // 60天（毫秒）
+      }),
+    );
 
     return {
       success: true,
@@ -102,8 +103,11 @@ export class UserController {
   // 用户退出登录
   @Post("logout")
   @UseGuards(OptionalJwtAuthGuard)
-  logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie("Authentication", { path: "/" });
+  logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.clearCookie("Authentication", getAuthCookieOptions(request));
     return {
       success: true,
       message: "退出登录成功",
