@@ -174,24 +174,32 @@ export class WallpaperService {
       "fileSize",
     ];
 
-    console.log(
-      `📋 [壁纸列表] 排序参数: sortBy=${sortBy}, sortOrder=${sortOrder}`,
-    );
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `📋 [壁纸列表] 排序参数: sortBy=${sortBy}, sortOrder=${sortOrder}`,
+      );
+    }
 
     // 处理特殊排序逻辑
     if (sortBy === "random") {
       // 随机排序
       queryBuilder.orderBy("RAND()");
-      console.log(`📋 [壁纸列表] 使用随机排序`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`📋 [壁纸列表] 使用随机排序`);
+      }
     } else if (sortBy === "popular") {
       // 热门排序（按浏览量降序）
       queryBuilder.orderBy("wallpaper.viewCount", "DESC");
-      console.log(`📋 [壁纸列表] 使用热门排序(浏览量降序)`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`📋 [壁纸列表] 使用热门排序(浏览量降序)`);
+      }
     } else {
       // 常规字段排序
       const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
       queryBuilder.orderBy(`wallpaper.${sortField}`, sortOrder);
-      console.log(`📋 [壁纸列表] 使用字段排序: ${sortField} ${sortOrder}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`📋 [壁纸列表] 使用字段排序: ${sortField} ${sortOrder}`);
+      }
     }
 
     // 执行完整的分页查询 - 修复：单次查询获取所有数据，保持排序
@@ -201,28 +209,30 @@ export class WallpaperService {
       .getManyAndCount();
 
     // 添加排序验证日志
-    console.log(
-      `📋 [壁纸列表] 查询结果: 总数=${total}, 当前页数据=${wallpapersWithRelations.length}`,
-    );
-    if (wallpapersWithRelations.length > 0) {
-      console.log(`📋 [壁纸列表] 排序验证(前5条):`);
-      wallpapersWithRelations.slice(0, 5).forEach((wallpaper, index) => {
-        let sortFieldValue: string | number;
-        if (sortBy === "popular") {
-          sortFieldValue = wallpaper.viewCount;
-        } else if (sortBy === "createdAt") {
-          sortFieldValue = wallpaper.createdAt.toISOString();
-        } else {
-          const fieldValue = wallpaper[sortBy as keyof Wallpaper];
-          sortFieldValue =
-            typeof fieldValue === "string" || typeof fieldValue === "number"
-              ? fieldValue
-              : "N/A";
-        }
-        console.log(
-          `  ${index + 1}. ID:${wallpaper.id} ${sortBy}:${String(sortFieldValue)} 浏览量:${wallpaper.viewCount} 创建时间:${wallpaper.createdAt.toISOString()}`,
-        );
-      });
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `📋 [壁纸列表] 查询结果: 总数=${total}, 当前页数据=${wallpapersWithRelations.length}`,
+      );
+      if (wallpapersWithRelations.length > 0) {
+        console.log(`📋 [壁纸列表] 排序验证(前5条):`);
+        wallpapersWithRelations.slice(0, 5).forEach((wallpaper, index) => {
+          let sortFieldValue: string | number;
+          if (sortBy === "popular") {
+            sortFieldValue = wallpaper.viewCount;
+          } else if (sortBy === "createdAt") {
+            sortFieldValue = wallpaper.createdAt.toISOString();
+          } else {
+            const fieldValue = wallpaper[sortBy as keyof Wallpaper];
+            sortFieldValue =
+              typeof fieldValue === "string" || typeof fieldValue === "number"
+                ? fieldValue
+                : "N/A";
+          }
+          console.log(
+            `  ${index + 1}. ID:${wallpaper.id} ${sortBy}:${String(sortFieldValue)} 浏览量:${wallpaper.viewCount} 创建时间:${wallpaper.createdAt.toISOString()}`,
+          );
+        });
+      }
     }
 
     return { data: wallpapersWithRelations, total };
@@ -523,7 +533,9 @@ export class WallpaperService {
    * 按照浏览量降序排序
    */
   async getPopularWallpapers(limit: number = 10): Promise<Wallpaper[]> {
-    console.log(`🔥 [热门壁纸] 查询参数: limit=${limit}, 按浏览量降序排序`);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`🔥 [热门壁纸] 查询参数: limit=${limit}, 按浏览量降序排序`);
+    }
 
     const wallpapers = await this.wallpaperRepository.find({
       where: { status: 1 },
@@ -532,14 +544,16 @@ export class WallpaperService {
       take: limit,
     });
 
-    console.log(`🔥 [热门壁纸] 查询结果数量: ${wallpapers.length}`);
-    if (wallpapers.length > 0) {
-      console.log(`🔥 [热门壁纸] 浏览量排序验证:`);
-      wallpapers.forEach((wallpaper, index) => {
-        console.log(
-          `  ${index + 1}. ID:${wallpaper.id} 浏览量:${wallpaper.viewCount} 标题:${wallpaper.title || "无标题"} 创建时间:${wallpaper.createdAt.toISOString()}`,
-        );
-      });
+    if (process.env.NODE_ENV === "development") {
+      console.log(`🔥 [热门壁纸] 查询结果数量: ${wallpapers.length}`);
+      if (wallpapers.length > 0) {
+        console.log(`🔥 [热门壁纸] 浏览量排序验证:`);
+        wallpapers.forEach((wallpaper, index) => {
+          console.log(
+            `  ${index + 1}. ID:${wallpaper.id} 浏览量:${wallpaper.viewCount} 标题:${wallpaper.title || "无标题"} 创建时间:${wallpaper.createdAt.toISOString()}`,
+          );
+        });
+      }
     }
 
     return wallpapers;

@@ -32,7 +32,8 @@ import { AdminModule } from "./modules/admin.module";
           port: configService.get<number>("DB_PORT") || 3306,
           username: configService.get<string>("DB_USERNAME") || "root",
           password: configService.get<string>("DB_PASSWORD") || "12345678",
-          database: configService.get<string>("DB_DATABASE") || "wallpaper_site",
+          database:
+            configService.get<string>("DB_DATABASE") || "wallpaper_site",
           entities: [join(__dirname, "**", "*.entity{.ts,.js}")],
           synchronize: true,
           logging: true,

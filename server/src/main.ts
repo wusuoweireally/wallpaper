@@ -10,9 +10,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 启用CORS - 生产环境限制域名，开发环境允许所有
-  const allowedOrigins = process.env.NODE_ENV === "production"
-    ? [process.env.FRONTEND_URL || "https://yourdomain.com"]
-    : true;
+  const allowedOrigins =
+    process.env.NODE_ENV === "production"
+      ? [process.env.FRONTEND_URL || "https://yourdomain.com"]
+      : true;
 
   app.enableCors({
     origin: allowedOrigins,

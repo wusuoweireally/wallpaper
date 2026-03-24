@@ -25,13 +25,14 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const expiresIn: StringValue = (configService.get<string>(
-          "JWT_EXPIRES_IN",
-        ) || "180d") as StringValue;
         return {
-          secret: configService.get<string>("JWT_SECRET") || "your-secret-key",
+          secret: configService.get<string>("JWT_SECRET", "your-secret-key"),
           signOptions: {
-            expiresIn,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            expiresIn: configService.get<string>(
+              "JWT_EXPIRES_IN",
+              "180d",
+            ) as StringValue,
           },
         };
       },

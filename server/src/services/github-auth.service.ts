@@ -85,10 +85,10 @@ export class GitHubAuthService {
 
     // 保存到数据库
     try {
-      const savedUsers = await this.userRepository.save(newUser);
-      const savedUser: User = Array.isArray(savedUsers)
-        ? savedUsers[0]
-        : savedUsers;
+      const savedUsers = (await this.userRepository.save(newUser)) as
+        | User
+        | User[];
+      const savedUser = Array.isArray(savedUsers) ? savedUsers[0] : savedUsers;
       return savedUser;
     } catch (error: unknown) {
       // 处理用户名或ID冲突
@@ -155,13 +155,12 @@ export class GitHubAuthService {
    * @returns 用户ID
    */
   private async generateUniqueUserId(): Promise<number> {
-    // 查询当前最大ID
     const maxIdResult = await this.userRepository
       .createQueryBuilder("user")
       .select("MAX(user.id)", "maxId")
-      .getRawOne();
+      .getRawOne<{ maxId: number | null }>();
 
-    const maxId = maxIdResult.maxId ? Number(maxIdResult.maxId) : 0;
+    const maxId = maxIdResult?.maxId ? Number(maxIdResult.maxId) : 0;
     return maxId + 1;
   }
 

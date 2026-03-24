@@ -322,9 +322,6 @@ export class UserController {
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "20",
   ) {
-    console.log(user);
-    console.log(page);
-    console.log(limit);
     const result = await this.wallpaperService.getUserLikedWallpapers(
       user.userId,
       Number(page),
@@ -423,7 +420,6 @@ export class UserController {
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "20",
   ) {
-    console.log(user);
     const result = await this.wallpaperService.findByUploaderId(
       user.userId,
       Number(page),
@@ -450,9 +446,7 @@ export class UserController {
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   async findOne(@Param("id") id: string) {
-    // 转换并验证ID
     const userId = Number(id);
-    console.log(id);
     if (isNaN(userId) || userId <= 0) {
       throw new BadRequestException("用户ID无效 fava");
     }
