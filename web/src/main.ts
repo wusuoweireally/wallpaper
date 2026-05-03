@@ -5,9 +5,6 @@ import { useUserStore } from "./stores/user"
 import { createPinia } from "pinia"
 import { applyTheme, resolveInitialTheme } from "./utils/theme"
 
-// Import icon collections
-import "@iconify/tailwind"
-
 import "./style.css"
 
 async function bootstrap() {
