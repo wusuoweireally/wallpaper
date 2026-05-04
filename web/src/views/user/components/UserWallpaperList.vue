@@ -121,7 +121,6 @@ import type { Wallpaper } from "@/services/wallpaper"
 
 interface WallpaperItem {
   id: number
-  title?: string
   fileUrl: string
   thumbnailUrl?: string
   uploader?: {
@@ -204,7 +203,6 @@ const visiblePages = computed(() => {
 const transformWallpaperData = (data: Wallpaper): WallpaperItem => {
   return {
     id: data.id,
-    title: data.title || `壁纸-${data.id}`,
     fileUrl: data.fileUrl,
     thumbnailUrl: data.thumbnailUrl,
     uploader: data.uploader ? { username: data.uploader.username } : undefined,

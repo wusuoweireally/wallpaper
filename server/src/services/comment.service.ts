@@ -62,7 +62,7 @@ export class CommentService {
       }
 
       // 确保父评论属于同一帖子
-      if (parentComment.postId !== commentData.postId) {
+      if (parentComment.postId != commentData.postId) {
         throw new ForbiddenException("父评论不属于指定帖子");
       }
     }
@@ -197,7 +197,7 @@ export class CommentService {
       throw new NotFoundException(`评论 ID ${id} 不存在`);
     }
 
-    if (comment.authorId !== userId) {
+    if (comment.authorId != userId) {
       throw new ForbiddenException("只能删除自己的评论");
     }
 
@@ -267,7 +267,7 @@ export class CommentService {
       throw new NotFoundException(`评论 ID ${id} 不存在`);
     }
 
-    if (comment.authorId !== userId) {
+    if (comment.authorId != userId) {
       throw new ForbiddenException("只能编辑自己的评论");
     }
 

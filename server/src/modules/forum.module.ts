@@ -3,6 +3,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Post } from "../entities/post.entity";
 import { Comment } from "../entities/comment.entity";
 import { PostLike } from "../entities/post-like.entity";
+import { PostBookmark } from "../entities/post-bookmark.entity";
 import { CommentLike } from "../entities/comment-like.entity";
 import { Report } from "../entities/report.entity";
 import { User } from "../entities/user.entity";
@@ -27,6 +28,7 @@ import { ReportService } from "../services/report.service";
       Post, // 帖子实体
       Comment, // 评论实体
       PostLike, // 帖子点赞实体
+      PostBookmark, // 帖子收藏实体
       CommentLike, // 评论点赞实体
       Report, // 举报实体
       User, // 用户实体（用于关联查询）

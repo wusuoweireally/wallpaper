@@ -27,6 +27,11 @@ build/
 .env.test.local
 .env.production.local
 
+# 生产环境配置（包含真实密码）
+server/.env.production
+server/.env.development
+.env.prod
+
 # ---------------
 # 日志文件
 # ---------------

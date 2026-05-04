@@ -31,8 +31,6 @@ export interface UploadWallpaperParams {
   file: File
   category: string
   tags: string[]
-  title?: string
-  description?: string
 }
 
 /**
@@ -66,8 +64,6 @@ export interface Uploader {
 export interface Wallpaper {
   id: number
   fileUrl: string
-  title?: string
-  description?: string
   category: "general" | "anime" | "people"
   thumbnailUrl?: string
   fileSize: number
@@ -117,14 +113,6 @@ class WallpaperService {
     formData.append("file", params.file)
 
     formData.append("category", params.category)
-
-    if (params.title) {
-      formData.append("title", params.title)
-    }
-
-    if (params.description) {
-      formData.append("description", params.description)
-    }
 
     if (params.tags && params.tags.length > 0) {
       // 后端期望tags是数组，但FormData不能直接传递数组
@@ -325,6 +313,21 @@ class WallpaperService {
   }
 
   /**
+   * 获取相关推荐壁纸
+   */
+  async getRelatedWallpapers(id: number, limit: number = 8): Promise<ApiResponse<Wallpaper[]>> {
+    try {
+      const response = await api.get<Wallpaper[]>(`/wallpapers/${id}/related`, {
+        params: { limit },
+      })
+      return response as ApiResponse<Wallpaper[]>
+    } catch (error) {
+      console.error("获取相关壁纸失败:", error)
+      throw error
+    }
+  }
+
+  /**
    * 获取热门壁纸
    */
   async getPopularWallpapers(limit: number = 10): Promise<ApiResponse<Wallpaper[]>> {
@@ -354,6 +357,19 @@ class WallpaperService {
       return response as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取上传者壁纸失败:", error)
+      throw error
+    }
+  }
+
+  /**
+   * 记录下载次数
+   */
+  async recordDownload(id: number) {
+    try {
+      const response = await api.post(`/wallpapers/${id}/download`)
+      return response
+    } catch (error) {
+      console.error("记录下载失败:", error)
       throw error
     }
   }

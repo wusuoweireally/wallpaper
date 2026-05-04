@@ -23,23 +23,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
     "people",
   ];
 
-  private readonly titles = [
-    "晨光山谷",
-    "霓虹街景",
-    "人物肖像",
-    "森林秘境",
-    "城市天际线",
-    "午后海岸",
-    "插画氛围",
-    "静谧夜空",
-  ];
-
-  private readonly descriptions = [
-    "本地交付版自动注入的演示壁纸，可用于首页与列表页展示。",
-    "用于答辩或验收时快速演示系统的筛选、详情和下载流程。",
-    "演示数据来自仓库内已有图片文件，便于离线环境直接启动查看。",
-  ];
-
   private readonly tagTemplates: DemoTagTemplate[] = [
     { name: "演示", slug: "demo" },
     { name: "精选", slug: "featured" },
@@ -126,8 +109,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
         fileUrl: `/uploads/wallpapers/${newFileName}`,
         thumbnailUrl: `/uploads/thumbnails/${thumbnailName}`,
         category: this.categories[index % this.categories.length],
-        title: this.titles[index] || `演示壁纸 ${index + 1}`,
-        description: this.descriptions[index % this.descriptions.length],
         fileSize: Number(stats.size),
         format: metadata.format || "jpeg",
         width: metadata.width,

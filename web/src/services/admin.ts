@@ -63,8 +63,6 @@ export interface AdminWallpaperTag {
 
 export interface AdminWallpaper {
   id: number
-  title: string
-  description?: string | null
   fileUrl: string
   thumbnailUrl?: string | null
   category: "general" | "anime" | "people"
@@ -95,8 +93,6 @@ export interface AdminWallpaperQuery {
 }
 
 export interface UpdateAdminWallpaper {
-  title?: string
-  description?: string
   category?: "general" | "anime" | "people"
 }
 

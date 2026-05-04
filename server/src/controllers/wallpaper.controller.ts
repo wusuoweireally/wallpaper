@@ -202,6 +202,27 @@ export class WallpaperController {
   }
 
   /**
+   * 获取相关推荐壁纸（同分类随机）
+   */
+  @Get(":id/related")
+  async getRelatedWallpapers(
+    @Param("id") id: string,
+    @Query("limit") limit: string = "8",
+  ) {
+    // 先查当前壁纸获取分类
+    const wallpaper = await this.wallpaperService.findById(Number(id));
+    if (!wallpaper) {
+      return { success: true, data: [] };
+    }
+    const related = await this.wallpaperService.getRelatedWallpapers(
+      Number(id),
+      wallpaper.category,
+      Number(limit),
+    );
+    return { success: true, data: related };
+  }
+
+  /**
    * 获取指定上传者的壁纸列表
    */
   @Get("uploader/:uploaderId")
@@ -371,6 +392,19 @@ export class WallpaperController {
       success: true,
       message: "壁纸删除成功",
     };
+  }
+
+  /**
+   * 记录下载
+   */
+  @Post(":id/download")
+  async recordDownload(@Param("id") id: string) {
+    const wallpaperId = Number(id);
+    if (isNaN(wallpaperId)) {
+      throw new BadRequestException("无效的壁纸ID");
+    }
+    await this.wallpaperService.incrementDownloadCount(wallpaperId);
+    return { success: true, message: "下载记录成功" };
   }
 
   /**

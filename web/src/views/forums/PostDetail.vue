@@ -60,6 +60,19 @@
                 <li><a @click="copyLink">复制链接</a></li>
               </ul>
             </div>
+            <button
+              class="btn btn-ghost btn-sm"
+              :class="isBookmarked ? 'text-amber-500' : ''"
+              :disabled="!userStore.isLoggedIn || bookmarkLoading"
+              @click="toggleBookmark"
+              :title="isBookmarked ? '取消收藏' : '收藏帖子'"
+            >
+              <i
+                :class="isBookmarked ? 'i-mdi-bookmark' : 'i-mdi-bookmark-outline'"
+                class="text-lg"
+              ></i>
+              {{ isBookmarked ? "已收藏" : "收藏" }}
+            </button>
           </div>
         </div>
 
@@ -430,6 +443,8 @@ const newComment = ref("")
 const commentSubmitting = ref(false)
 const likeLoading = ref(false)
 const isLiked = ref(false)
+const isBookmarked = ref(false)
+const bookmarkLoading = ref(false)
 const commentSort = ref("newest")
 const commentSortOptions = [
   { value: "newest", label: "最新", emoji: "🕒" },
@@ -489,6 +504,17 @@ const removeCommentFromTree = (list: Comment[], targetId: number): boolean => {
   return false
 }
 
+// 统计评论及其所有子评论的总数（后端会级联删除）
+const countCommentTree = (comment: Comment): number => {
+  let count = 1
+  if (comment.replies) {
+    for (const reply of comment.replies) {
+      count += countCommentTree(reply)
+    }
+  }
+  return count
+}
+
 // 方法
 const getCategoryName = (category: string): string => {
   const categoryMap: Record<string, string> = {
@@ -535,15 +561,24 @@ const loadPost = async () => {
     loading.value = true
     error.value = ""
 
-    post.value = await forumService.getPost(postId.value)
+    const postData = await forumService.getPost(postId.value)
+    post.value = postData
+
+    // 后端已返回 isLiked 状态，直接使用
+    isLiked.value = !!(postData as unknown as Record<string, unknown>).isLiked
+
+    // 加载收藏状态
+    if (userStore.isLoggedIn) {
+      try {
+        const bookmarkStatus = await forumService.checkBookmarkStatus(postId.value)
+        isBookmarked.value = bookmarkStatus.hasBookmarked
+      } catch {
+        // 静默失败
+      }
+    }
 
     // 更新页面标题
     document.title = `${post.value.title} - 壁纸论坛`
-
-    // 检查点赞状态
-    if (userStore.isLoggedIn) {
-      await checkLikeStatus()
-    }
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("加载帖子失败:", errObj)
@@ -642,6 +677,28 @@ const toggleLike = async () => {
   }
 }
 
+const toggleBookmark = async () => {
+  if (!userStore.isLoggedIn || !post.value) return
+
+  try {
+    bookmarkLoading.value = true
+
+    if (isBookmarked.value) {
+      await forumService.unbookmarkPost(postId.value)
+      isBookmarked.value = false
+    } else {
+      await forumService.bookmarkPost(postId.value)
+      isBookmarked.value = true
+    }
+  } catch (err: unknown) {
+    const errObj = err as Error & { message?: string }
+    console.error("收藏操作失败:", errObj)
+    alert(errObj.message || "操作失败")
+  } finally {
+    bookmarkLoading.value = false
+  }
+}
+
 const submitComment = async () => {
   if (!userStore.isLoggedIn || !post.value || !newComment.value.trim()) return
 
@@ -690,8 +747,9 @@ const handleCommentEdit = (updatedComment: Comment) => {
 }
 
 const handleCommentDelete = (comment: Comment) => {
+  const deletedCount = countCommentTree(comment)
   if (removeCommentFromTree(comments.value, comment.id) && post.value) {
-    post.value.commentCount = Math.max(0, (post.value.commentCount || 0) - 1)
+    post.value.commentCount = Math.max(0, (post.value.commentCount || 0) - deletedCount)
   }
 }
 
@@ -728,7 +786,18 @@ const deletePost = async () => {
   }
 }
 
+const recordShare = async () => {
+  if (!post.value) return
+  try {
+    await forumService.sharePost(post.value.id)
+    post.value.shareCount = (post.value.shareCount || 0) + 1
+  } catch {
+    // 静默失败
+  }
+}
+
 const shareToWeChat = () => {
+  recordShare()
   alert("请使用微信扫一扫功能分享")
 }
 
@@ -736,6 +805,7 @@ const shareToWeibo = () => {
   if (post.value) {
     const url = window.location.href
     const title = post.value.title
+    recordShare()
     window.open(
       `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
     )
@@ -745,6 +815,7 @@ const shareToWeibo = () => {
 const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(window.location.href)
+    recordShare()
     alert("链接已复制到剪贴板")
   } catch {
     alert("复制失败，请手动复制链接")

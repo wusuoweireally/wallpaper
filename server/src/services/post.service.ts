@@ -13,6 +13,7 @@ import {
 } from "../dto/post.dto";
 import { Post, PostStatus } from "../entities/post.entity";
 import { PostLike } from "../entities/post-like.entity";
+import { PostBookmark } from "../entities/post-bookmark.entity";
 
 /**
  * 帖子服务
@@ -30,6 +31,8 @@ export class PostService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(PostLike)
     private readonly postLikeRepository: Repository<PostLike>,
+    @InjectRepository(PostBookmark)
+    private readonly postBookmarkRepository: Repository<PostBookmark>,
   ) {}
 
   private buildPublishedPostQuery(): SelectQueryBuilder<Post> {
@@ -245,6 +248,15 @@ export class PostService {
   }
 
   /**
+   * 增加分享次数
+   *
+   * @param id 帖子ID
+   */
+  async incrementShareCount(id: number): Promise<void> {
+    await this.postRepository.increment({ id }, "shareCount", 1);
+  }
+
+  /**
    * 检查用户是否已点赞
    *
    * @param postId 帖子ID
@@ -293,6 +305,26 @@ export class PostService {
 
     if (result.affected && result.affected > 0) {
       await this.postRepository.decrement({ id: postId }, "likeCount", 1);
+    }
+  }
+
+  /**
+   * 切换点赞状态
+   */
+  async toggleLike(postId: number, userId: number): Promise<boolean> {
+    const existingLike = await this.postLikeRepository.findOne({
+      where: { postId, userId },
+    });
+
+    if (existingLike) {
+      await this.postLikeRepository.delete({ postId, userId });
+      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
+      return false;
+    } else {
+      const postLike = this.postLikeRepository.create({ postId, userId });
+      await this.postLikeRepository.save(postLike);
+      await this.postRepository.increment({ id: postId }, "likeCount", 1);
+      return true;
     }
   }
 
@@ -346,6 +378,73 @@ export class PostService {
       take: limit,
     });
 
+    return { data: posts, total, page, limit };
+  }
+
+  /**
+   * 收藏帖子
+   *
+   * @param postId 帖子ID
+   * @param userId 用户ID
+   */
+  async bookmarkPost(postId: number, userId: number): Promise<void> {
+    const existing = await this.postBookmarkRepository.findOne({
+      where: { postId, userId },
+    });
+    if (!existing) {
+      const bookmark = this.postBookmarkRepository.create({ postId, userId });
+      await this.postBookmarkRepository.save(bookmark);
+    }
+  }
+
+  /**
+   * 取消收藏帖子
+   *
+   * @param postId 帖子ID
+   * @param userId 用户ID
+   */
+  async unbookmarkPost(postId: number, userId: number): Promise<void> {
+    await this.postBookmarkRepository.delete({ postId, userId });
+  }
+
+  /**
+   * 检查用户是否已收藏
+   *
+   * @param postId 帖子ID
+   * @param userId 用户ID
+   * @returns 是否已收藏
+   */
+  async hasBookmarked(postId: number, userId: number): Promise<boolean> {
+    const bookmark = await this.postBookmarkRepository.findOne({
+      where: { postId, userId },
+    });
+    return !!bookmark;
+  }
+
+  /**
+   * 获取用户收藏的帖子列表
+   *
+   * @param userId 用户ID
+   * @param page 页码
+   * @param limit 每页数量
+   * @returns 分页结果
+   */
+  async getUserBookmarks(
+    userId: number,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<PaginatedResult<Post>> {
+    const skip = (page - 1) * limit;
+
+    const [bookmarks, total] = await this.postBookmarkRepository.findAndCount({
+      where: { userId },
+      relations: ["post", "post.author"],
+      order: { createdAt: "DESC" },
+      skip,
+      take: limit,
+    });
+
+    const posts = bookmarks.map((b) => b.post);
     return { data: posts, total, page, limit };
   }
 }

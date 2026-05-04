@@ -23,6 +23,27 @@
         </div>
       </div>
 
+      <!-- 草稿恢复提示 -->
+      <div
+        v-if="hasRestoredDraft"
+        class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-700/50 dark:bg-amber-900/20"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="i-mdi-file-restore text-amber-600 dark:text-amber-400"></i>
+            <span class="text-sm font-medium text-amber-800 dark:text-amber-200">
+              已恢复上次未发布的草稿
+            </span>
+          </div>
+          <button
+            class="btn btn-ghost btn-xs text-amber-600 hover:text-amber-800 dark:text-amber-400"
+            @click="clearDraft"
+          >
+            清除草稿
+          </button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Main Content -->
         <div class="space-y-6 lg:col-span-2">
@@ -172,7 +193,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, reactive } from "vue"
+import { ref, computed, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { forumService, type CreatePostDto } from "@/services/forum"
 import { useUserStore } from "@/stores/user"
@@ -183,6 +204,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const isSubmitting = ref(false)
+const hasRestoredDraft = ref(false)
 const previewModal = ref<HTMLDialogElement>()
 
 const formData = reactive<
@@ -308,6 +330,36 @@ const publishPost = async () => {
     isSubmitting.value = false
   }
 }
+
+// 页面加载时恢复草稿
+const restoreDraft = () => {
+  try {
+    const saved = localStorage.getItem("forum_post_draft")
+    if (saved) {
+      const draft = JSON.parse(saved)
+      if (draft.title || draft.content) {
+        formData.title = draft.title || ""
+        formData.content = draft.content || ""
+        formData.category = draft.category || ""
+        hasRestoredDraft.value = true
+      }
+    }
+  } catch {
+    // 忽略解析错误
+  }
+}
+
+const clearDraft = () => {
+  localStorage.removeItem("forum_post_draft")
+  formData.title = ""
+  formData.content = ""
+  formData.category = ""
+  hasRestoredDraft.value = false
+}
+
+onMounted(() => {
+  restoreDraft()
+})
 
 // Save draft before page unload (only if has content)
 window.addEventListener("beforeunload", () => {

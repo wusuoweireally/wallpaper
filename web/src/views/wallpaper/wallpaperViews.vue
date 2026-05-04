@@ -51,10 +51,11 @@ interface ApiWallpaperResponse {
 }
 
 interface Filters {
-  sortBy: "latest" | "popular" | "random"
+  sortBy: "latest" | "popular" | "random" | "likes" | "downloads"
   category: string
   resolution: string
   ratio: string
+  format: string
   search: string
 }
 
@@ -78,6 +79,7 @@ const filters = ref<Filters>({
   category: "",
   resolution: "",
   ratio: "",
+  format: "",
   search: "",
 })
 
@@ -85,6 +87,8 @@ const filters = ref<Filters>({
 const sortMapping = {
   latest: { sortBy: "createdAt", sortOrder: "DESC" },
   popular: { sortBy: "popular", sortOrder: "DESC" },
+  likes: { sortBy: "likeCount", sortOrder: "DESC" },
+  downloads: { sortBy: "downloadCount", sortOrder: "DESC" },
   random: { sortBy: "random", sortOrder: "DESC" },
 } as const
 
@@ -109,8 +113,8 @@ watch(
 // 从路由查询参数初始化筛选条件
 const initFiltersFromRoute = () => {
   const sortParam = route.query.sort as string
-  if (sortParam && ["latest", "popular", "random"].includes(sortParam)) {
-    filters.value.sortBy = sortParam as "latest" | "popular" | "random"
+  if (sortParam && ["latest", "popular", "random", "likes", "downloads"].includes(sortParam)) {
+    filters.value.sortBy = sortParam as "latest" | "popular" | "random" | "likes" | "downloads"
   }
 }
 
@@ -164,6 +168,7 @@ const fetchWallpapers = async (isRetry: boolean = false) => {
       category: filters.value.category
         ? (filters.value.category as "general" | "anime" | "people")
         : undefined,
+      format: filters.value.format || undefined,
       aspectRatio,
       minWidth,
       maxWidth,
@@ -230,6 +235,7 @@ const resetFilters = () => {
     category: "",
     resolution: "",
     ratio: "",
+    format: "",
     search: "",
   }
   currentPage.value = 1

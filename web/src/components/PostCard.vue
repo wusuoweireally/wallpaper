@@ -244,10 +244,18 @@ const handleDelete = async () => {
   }
 }
 
-const handleShare = () => {
+const handleShare = async () => {
   emit("share", props.post)
 
   const shareUrl = `${window.location.origin}/forums/post/${props.post.id}`
+
+  // 记录分享计数
+  try {
+    await forumService.sharePost(props.post.id)
+    props.post.shareCount = (props.post.shareCount || 0) + 1
+  } catch {
+    // 静默失败
+  }
 
   if (navigator.share) {
     navigator.share({

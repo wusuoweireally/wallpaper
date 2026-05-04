@@ -181,14 +181,14 @@
                 >
                   <div class="flex gap-3">
                     <img
-                      :src="wallpaper.thumbnailUrl || wallpaper.fileUrl"
-                      :alt="wallpaper.title || `壁纸-${wallpaper.id}`"
+                      :src="`${wallpaper.thumbnailUrl || wallpaper.fileUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
+                      :alt="`壁纸 #${wallpaper.id}`"
                       class="h-20 w-20 cursor-pointer rounded object-cover"
                       @click="goToWallpaperDetail(wallpaper.id)"
                     />
                     <div class="flex-1">
                       <h3 class="text-sm font-bold">
-                        {{ wallpaper.title || `壁纸-${wallpaper.id}` }}
+                        壁纸 #{{ wallpaper.id }}
                       </h3>
                       <p class="mt-1 text-xs text-gray-500">
                         作者: {{ wallpaper.uploader?.username || "未知用户" }}

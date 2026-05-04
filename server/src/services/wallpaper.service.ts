@@ -97,13 +97,10 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.tags", "tags")
       .distinct(true);
 
-    // 添加搜索条件
+    // 添加搜索条件（按标签名匹配）
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
-      queryBuilder.andWhere(
-        "(wallpaper.title LIKE :search OR wallpaper.description LIKE :search)",
-        { search: searchTerm },
-      );
+      queryBuilder.andWhere("tags.name LIKE :search", { search: searchTerm });
     }
 
     // 添加分类筛选
@@ -168,6 +165,7 @@ export class WallpaperService {
       "viewCount",
       "likeCount",
       "favoriteCount",
+      "downloadCount",
       "width",
       "height",
       "aspectRatio",
@@ -188,10 +186,15 @@ export class WallpaperService {
         console.log(`📋 [壁纸列表] 使用随机排序`);
       }
     } else if (sortBy === "popular") {
-      // 热门排序（按浏览量降序）
-      queryBuilder.orderBy("wallpaper.viewCount", "DESC");
+      // 热门排序：加权综合评分
+      // 浏览x1 + 点赞x5 + 收藏x8 + 下载x3
+      queryBuilder.addSelect(
+        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        "popularity_score",
+      );
+      queryBuilder.orderBy("popularity_score", "DESC");
       if (process.env.NODE_ENV === "development") {
-        console.log(`📋 [壁纸列表] 使用热门排序(浏览量降序)`);
+        console.log(`📋 [壁纸列表] 使用热门排序(综合评分)`);
       }
     } else {
       // 常规字段排序
@@ -306,6 +309,13 @@ export class WallpaperService {
    */
   async incrementViewCount(id: number): Promise<void> {
     await this.wallpaperRepository.increment({ id }, "viewCount", 1);
+  }
+
+  /**
+   * 增加下载次数
+   */
+  async incrementDownloadCount(id: number): Promise<void> {
+    await this.wallpaperRepository.increment({ id }, "downloadCount", 1);
   }
 
   /**
@@ -490,10 +500,9 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.tags", "tags");
 
     if (filters.search) {
-      qb.andWhere(
-        "(wallpaper.title LIKE :search OR wallpaper.description LIKE :search)",
-        { search: `%${filters.search}%` },
-      );
+      const searchTerm = `%${filters.search}%`;
+      qb.leftJoinAndSelect("wallpaper.tags", "searchTags");
+      qb.andWhere("searchTags.name LIKE :search", { search: searchTerm });
     }
 
     if (filters.status !== undefined) {
@@ -529,20 +538,51 @@ export class WallpaperService {
   }
 
   /**
+   * 获取相关推荐壁纸（同分类，排除当前壁纸）
+   */
+  async getRelatedWallpapers(
+    wallpaperId: number,
+    category: string,
+    limit: number = 8,
+  ): Promise<Wallpaper[]> {
+    const qb = this.wallpaperRepository
+      .createQueryBuilder("wallpaper")
+      .leftJoinAndSelect("wallpaper.uploader", "uploader")
+      .leftJoinAndSelect("wallpaper.tags", "tags")
+      .where("wallpaper.status = :status", { status: 1 })
+      .andWhere("wallpaper.id != :id", { id: wallpaperId });
+
+    if (category) {
+      qb.andWhere("wallpaper.category = :category", { category });
+    }
+
+    qb.orderBy("RAND()").take(limit);
+
+    return qb.getMany();
+  }
+
+  /**
    * 获取热门壁纸
    * 按照浏览量降序排序
    */
   async getPopularWallpapers(limit: number = 10): Promise<Wallpaper[]> {
     if (process.env.NODE_ENV === "development") {
-      console.log(`🔥 [热门壁纸] 查询参数: limit=${limit}, 按浏览量降序排序`);
+      console.log(`🔥 [热门壁纸] 查询参数: limit=${limit}, 按综合评分降序排序`);
     }
 
-    const wallpapers = await this.wallpaperRepository.find({
-      where: { status: 1 },
-      relations: ["uploader", "tags"],
-      order: { viewCount: "DESC" }, // 直接按浏览量降序排列
-      take: limit,
-    });
+    // 加权综合评分：浏览x1 + 点赞x5 + 收藏x8 + 下载x3
+    const wallpapers = await this.wallpaperRepository
+      .createQueryBuilder("wallpaper")
+      .leftJoinAndSelect("wallpaper.uploader", "uploader")
+      .leftJoinAndSelect("wallpaper.tags", "tags")
+      .addSelect(
+        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        "popularity_score",
+      )
+      .where("wallpaper.status = :status", { status: 1 })
+      .orderBy("popularity_score", "DESC")
+      .take(limit)
+      .getMany();
 
     if (process.env.NODE_ENV === "development") {
       console.log(`🔥 [热门壁纸] 查询结果数量: ${wallpapers.length}`);
@@ -550,7 +590,7 @@ export class WallpaperService {
         console.log(`🔥 [热门壁纸] 浏览量排序验证:`);
         wallpapers.forEach((wallpaper, index) => {
           console.log(
-            `  ${index + 1}. ID:${wallpaper.id} 浏览量:${wallpaper.viewCount} 标题:${wallpaper.title || "无标题"} 创建时间:${wallpaper.createdAt.toISOString()}`,
+            `  ${index + 1}. ID:${wallpaper.id} 浏览量:${wallpaper.viewCount} 创建时间:${wallpaper.createdAt.toISOString()}`,
           );
         });
       }

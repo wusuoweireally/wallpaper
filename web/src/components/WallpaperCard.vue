@@ -5,7 +5,7 @@
   >
     <figure class="relative h-56 w-full overflow-hidden">
       <img
-        :src="wallpaper.thumbnailUrl || wallpaper.fileUrl"
+        :src="`${wallpaper.thumbnailUrl || wallpaper.fileUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
         class="h-full w-full object-cover"
         loading="lazy"
         :alt="`壁纸 ${wallpaper.id}`"
@@ -80,44 +80,48 @@
     </figure>
 
     <div
-      class="flex items-center justify-start gap-2 border border-slate-200/60 bg-white px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+      class="flex items-center justify-between gap-2 border border-slate-200/60 bg-white px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
     >
-      <span class="inline-flex items-center gap-1.5">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
-        </svg>
-        {{ wallpaper.viewCount || 0 }}
-      </span>
-      <span class="inline-flex items-center gap-1.5">
-        <svg
-          class="h-3.5 w-3.5"
-          :class="isLiked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-current'"
-          viewBox="0 0 24 24"
+      <div class="flex items-center gap-1.5">
+        <span
+          class="rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+          :class="{
+            'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300': wallpaper.category === 'general',
+            'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300': wallpaper.category === 'anime',
+            'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300': wallpaper.category === 'people',
+          }"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-          />
-        </svg>
-        {{ likeCount }}
-      </span>
-      <span class="inline-flex items-center gap-1.5">
-        <svg
-          class="h-3.5 w-3.5"
-          :class="isFavorited ? 'fill-amber-400 stroke-amber-400' : 'fill-none stroke-current'"
+          {{ { general: '通用', anime: '动漫', people: '人物' }[wallpaper.category] || '其他' }}
+        </span>
+        <span class="text-slate-400 dark:text-slate-500">{{ wallpaper.width }}×{{ wallpaper.height }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          {{ wallpaper.viewCount || 0 }}
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <svg
+            class="h-3 w-3"
+            :class="isLiked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-current'"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          {{ likeCount }}
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <svg
+            class="h-3 w-3"
+            :class="isFavorited ? 'fill-amber-400 stroke-amber-400' : 'fill-none stroke-current'"
           viewBox="0 0 24 24"
         >
           <path
@@ -128,7 +132,8 @@
           />
         </svg>
         {{ favoriteCount }}
-      </span>
+        </span>
+      </div>
     </div>
   </div>
 </template>

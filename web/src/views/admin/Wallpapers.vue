@@ -174,7 +174,7 @@
               <div class="relative overflow-hidden rounded-2xl">
                 <img
                   :src="getWallpaperImage(wallpaper.thumbnailUrl || wallpaper.fileUrl)"
-                  :alt="wallpaper.title"
+                  :alt="`壁纸 #${wallpaper.id}`"
                   class="h-64 w-full object-cover"
                   @error="handleImageError"
                 />
@@ -194,13 +194,9 @@
                     </p>
                     <h3
                       class="mt-1 line-clamp-1 text-lg font-semibold text-white"
-                      :title="wallpaper.title"
                     >
-                      {{ wallpaper.title || "未命名壁纸" }}
+                      壁纸 #{{ wallpaper.id }}
                     </h3>
-                    <p class="line-clamp-2 text-sm text-white/60" v-if="wallpaper.description">
-                      {{ wallpaper.description }}
-                    </p>
                   </div>
                   <div
                     class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white"
@@ -490,28 +486,6 @@
 
               <div class="space-y-5 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div class="form-control">
-                  <label class="label text-sm text-white/60">标题（可选）</label>
-                  <input
-                    v-model="uploadForm.title"
-                    type="text"
-                    maxlength="80"
-                    placeholder="为壁纸添加一个易于识别的标题"
-                    class="input border-white/10 bg-slate-900/60 text-white placeholder:text-white/30 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="uploadLoading"
-                  />
-                </div>
-                <div class="form-control">
-                  <label class="label text-sm text-white/60">描述（可选）</label>
-                  <textarea
-                    v-model="uploadForm.description"
-                    rows="4"
-                    maxlength="400"
-                    placeholder="补充壁纸灵感、拍摄环境或作者信息"
-                    class="textarea border-white/10 bg-slate-900/60 text-white placeholder:text-white/30 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="uploadLoading"
-                  ></textarea>
-                </div>
-                <div class="form-control">
                   <label class="label text-sm text-white/60">分类</label>
                   <select
                     v-model="uploadForm.category"
@@ -590,7 +564,7 @@
               <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
                 <img
                   :src="getWallpaperImage(previewWallpaper.fileUrl)"
-                  :alt="previewWallpaper.title"
+                  :alt="`壁纸 #${previewWallpaper.id}`"
                   class="h-full w-full object-cover"
                   @error="handleImageError"
                 />
@@ -598,18 +572,12 @@
               <div class="space-y-4">
                 <div>
                   <p class="text-xs uppercase tracking-[0.3em] text-white/40">Wallpaper Detail</p>
-                  <h3 class="mt-2 text-2xl font-semibold">{{ previewWallpaper.title }}</h3>
+                  <h3 class="mt-2 text-2xl font-semibold">壁纸 #{{ previewWallpaper.id }}</h3>
                   <p class="mt-1 text-sm text-white/70">
                     {{ formatStatus(previewWallpaper.status) }} ·
                     {{ formatDateTime(previewWallpaper.createdAt) }}
                   </p>
                 </div>
-                <p
-                  v-if="previewWallpaper.description"
-                  class="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm leading-relaxed text-white/80"
-                >
-                  {{ previewWallpaper.description }}
-                </p>
                 <div class="flex flex-wrap gap-2">
                   <span class="badge border-none bg-white/15 text-white">{{
                     getCategoryLabel(previewWallpaper.category)
@@ -740,8 +708,6 @@ const filters = reactive({
 const uploadForm = reactive({
   file: null as File | null,
   previewUrl: "",
-  title: "",
-  description: "",
   category: "general" as AdminWallpaper["category"],
   tagsInput: "",
 })
@@ -781,8 +747,8 @@ const showNotification = (text: string, type: "success" | "error" = "success") =
 const getWallpaperImage = (url?: string | null) => {
   if (!url) return DEFAULT_WALLPAPER_PLACEHOLDER
   if (/^(https?:)?\/\//.test(url) || url.startsWith("data:")) return url
-  if (url.startsWith("/")) return url
-  return `/api/uploads/wallpapers/${url}`
+  if (url.startsWith("/")) return `${url}?t=${Date.now()}`
+  return `/api/uploads/wallpapers/${url}?t=${Date.now()}`
 }
 
 const getUploaderAvatar = (url?: string | null) => {
@@ -936,7 +902,7 @@ const copyWallpaperId = (wallpaper: AdminWallpaper) => {
 }
 
 const confirmDelete = async (wallpaper: AdminWallpaper) => {
-  const confirmed = window.confirm(`确认删除《${wallpaper.title}》? 删除后不可恢复。`)
+  const confirmed = window.confirm(`确认删除壁纸 #${wallpaper.id} ? 删除后不可恢复。`)
   if (!confirmed) return
 
   try {
@@ -1003,8 +969,6 @@ const resetUploadForm = () => {
   }
   uploadForm.file = null
   uploadForm.previewUrl = ""
-  uploadForm.title = ""
-  uploadForm.description = ""
   uploadForm.category = "general"
   uploadForm.tagsInput = ""
   uploadTags.value = []
@@ -1127,10 +1091,8 @@ const submitWallpaperUpload = async () => {
     const uploadResponse = response as ApiResponse<AdminWallpaper>
     if (uploadResponse.success && uploadResponse.data) {
       const uploadedWallpaper = uploadResponse.data
-      if (uploadForm.title.trim() || uploadForm.description.trim()) {
+      if (uploadForm.category) {
         await adminService.adminUpdateWallpaper(uploadedWallpaper.id, {
-          title: uploadForm.title.trim() || undefined,
-          description: uploadForm.description.trim() || undefined,
           category: uploadForm.category,
         })
       }

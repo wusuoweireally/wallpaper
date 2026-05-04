@@ -232,6 +232,81 @@ export const forumService = {
   },
 
   /**
+   * 记录分享
+   *
+   * @param id 帖子ID
+   */
+  async sharePost(id: number): Promise<void> {
+    const response: ApiResponse = await api.post(`/posts/${id}/share`)
+
+    if (!response.success) {
+      throw new Error(response.message || "分享失败")
+    }
+  },
+
+  /**
+   * 收藏帖子
+   *
+   * @param id 帖子ID
+   */
+  async bookmarkPost(id: number): Promise<void> {
+    const response: ApiResponse = await api.post(`/posts/${id}/bookmark`)
+    if (!response.success) {
+      throw new Error(response.message || "收藏失败")
+    }
+  },
+
+  /**
+   * 取消收藏帖子
+   *
+   * @param id 帖子ID
+   */
+  async unbookmarkPost(id: number): Promise<void> {
+    const response: ApiResponse = await api.delete(`/posts/${id}/bookmark`)
+    if (!response.success) {
+      throw new Error(response.message || "取消收藏失败")
+    }
+  },
+
+  /**
+   * 检查是否已收藏
+   *
+   * @param id 帖子ID
+   * @returns 收藏状态
+   */
+  async checkBookmarkStatus(id: number): Promise<{ hasBookmarked: boolean }> {
+    const response: ApiResponse<{ hasBookmarked: boolean }> = await api.get(`/posts/${id}/bookmark`)
+    if (response.success && response.data) {
+      return response.data
+    }
+    throw new Error(response.message || "获取收藏状态失败")
+  },
+
+  /**
+   * 获取当前用户收藏的帖子
+   */
+  async getMyBookmarks(params: { page?: number; limit?: number } = {}): Promise<{
+    data: Post[]
+    pagination: PaginationData
+  }> {
+    const response: ApiResponse<Post[]> = await api.get("/posts/user/bookmarks", {
+      params: { page: params.page || 1, limit: params.limit || 20 },
+    })
+    if (response.success && response.data && response.pagination) {
+      return {
+        data: response.data,
+        pagination: {
+          currentPage: response.pagination.page,
+          totalPages: response.pagination.pages,
+          totalCount: response.pagination.total,
+          pageSize: response.pagination.limit,
+        },
+      }
+    }
+    throw new Error(response.message || "获取收藏列表失败")
+  },
+
+  /**
    * 获取热门帖子
    *
    * @param limit 限制数量

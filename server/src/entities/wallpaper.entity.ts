@@ -31,11 +31,7 @@ export class Wallpaper {
   @Index("idx_category")
   category: "general" | "anime" | "people";
 
-  @Column({ length: 255, nullable: true, comment: "壁纸标题" })
-  title: string;
 
-  @Column({ type: "text", nullable: true, comment: "壁纸描述" })
-  description: string;
 
   @Column({
     name: "thumbnail_url",
@@ -91,6 +87,14 @@ export class Wallpaper {
     comment: "收藏数",
   })
   favoriteCount: number;
+
+  @Column({
+    name: "download_count",
+    type: "int",
+    default: 0,
+    comment: "下载次数",
+  })
+  downloadCount: number;
 
   @Column({ type: "tinyint", default: 1, comment: "状态 0:未审核 1:已审核" })
   @Index("idx_status")

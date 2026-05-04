@@ -7,11 +7,9 @@ import { AuthGuard } from "@nestjs/passport";
  */
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard("jwt") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-  handleRequest(err: any, user: any, info: any, context: any): any {
-    if (err || info) {
-      return null;
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handleRequest(_err: any, user: any): any {
+    // Silently return null if no user (missing/invalid token)
     return user || null;
   }
 }

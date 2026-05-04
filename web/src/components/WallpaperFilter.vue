@@ -168,6 +168,50 @@
           </ul>
         </div>
 
+        <!-- 格式筛选 -->
+        <div class="dropdown dropdown-hover">
+          <div
+            tabindex="0"
+            role="button"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 text-info"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+              />
+            </svg>
+            <span class="ml-1 text-sm font-medium">格式:</span>
+            <span class="text-base-content/80 text-sm">{{ getFormatLabel }}</span>
+          </div>
+          <ul
+            tabindex="0"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
+          >
+            <li>
+              <a
+                @click="updateFormat('')"
+                :class="{ active: !props.modelValue.format }"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
+                >全部</a
+              >
+            </li>
+            <li v-for="fmt in formats" :key="fmt.value">
+              <a
+                @click="updateFormat(fmt.value)"
+                :class="{ active: props.modelValue.format === fmt.value }"
+                class="hover:bg-primary/10 rounded-lg transition-all"
+              >
+                {{ fmt.label }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
         <!-- 搜索框 -->
         <div class="w-full flex-1 sm:max-w-md">
           <div class="relative">
@@ -175,7 +219,7 @@
               :value="props.modelValue.search"
               @input="handleSearchInputEvent"
               type="text"
-              placeholder="输入标签关键字搜索壁纸..."
+              placeholder="搜索壁纸标题或标签..."
               class="border-base-content/20 bg-base-100/80 focus:border-primary/50 focus:ring-primary/10 hover:border-base-content/30 input input-sm h-10 w-full rounded-xl border-2 pl-10 pr-10 shadow-sm transition-all focus:ring-2 dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:placeholder:text-slate-400"
               @keyup.enter.prevent="handleSearch"
             />
@@ -284,10 +328,11 @@ import { useRoute, useRouter } from "vue-router"
 import tagService, { type Tag } from "@/services/tag"
 
 interface Filters {
-  sortBy: "latest" | "popular" | "random"
+  sortBy: "latest" | "popular" | "random" | "likes" | "downloads"
   category: string
   resolution: string
   ratio: string
+  format: string
   search: string
 }
 
@@ -308,11 +353,13 @@ const router = useRouter()
 
 // 筛选选项
 const sortOptions: Array<{
-  value: "latest" | "popular" | "random"
+  value: "latest" | "popular" | "random" | "likes" | "downloads"
   label: string
 }> = [
   { value: "latest", label: "最新上传" },
-  { value: "popular", label: "最受欢迎" },
+  { value: "popular", label: "综合热门" },
+  { value: "likes", label: "最多点赞" },
+  { value: "downloads", label: "最多下载" },
   { value: "random", label: "随机推荐" },
 ]
 
@@ -320,6 +367,12 @@ const categories = [
   { value: "general", label: "综合" },
   { value: "anime", label: "动漫" },
   { value: "people", label: "人物" },
+]
+
+const formats = [
+  { value: "jpeg", label: "JPG" },
+  { value: "png", label: "PNG" },
+  { value: "webp", label: "WebP" },
 ]
 
 const resolutions = [
@@ -351,11 +404,16 @@ const getRatioLabel = computed(() => {
   return props.modelValue.ratio || "全部"
 })
 
+const getFormatLabel = computed(() => {
+  return formats.find((f) => f.value === props.modelValue.format)?.label || "全部"
+})
+
 const hasActiveFilters = computed(() => {
   return (
     props.modelValue.category ||
     props.modelValue.resolution ||
     props.modelValue.ratio ||
+    props.modelValue.format ||
     props.modelValue.search
   )
 })
@@ -402,6 +460,10 @@ const updateResolution = (resolution: string) => {
 
 const updateRatio = (ratio: string) => {
   updateFilters({ ratio })
+}
+
+const updateFormat = (format: string) => {
+  updateFilters({ format })
 }
 
 const handleSearch = () => {
@@ -456,6 +518,7 @@ const resetFilters = () => {
     category: "",
     resolution: "",
     ratio: "",
+    format: "",
     search: "",
   })
   tagSuggestions.value = []

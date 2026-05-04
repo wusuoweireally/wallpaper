@@ -33,6 +33,21 @@
       <aside
         class="flex h-full flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
       >
+        <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+            @click="$router.back()"
+            title="返回 (Esc)"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
+            壁纸 #{{ wallpaper.id }}
+          </h2>
+        </div>
+
         <div
           class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
         >
@@ -86,6 +101,10 @@
             <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
               <span class="text-xs text-slate-500 dark:text-slate-400">收藏</span>
               <span class="font-semibold">{{ wallpaper.favorites }}</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span class="text-xs text-slate-500 dark:text-slate-400">下载</span>
+              <span class="font-semibold">{{ wallpaper.downloads }}</span>
             </div>
           </div>
         </div>
@@ -183,9 +202,10 @@
           class="relative w-full flex-1 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900"
         >
           <img
-            :src="wallpaper.imageUrl"
-            class="h-full w-full object-contain"
+            :src="`${wallpaper.imageUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
+            class="h-full w-full cursor-zoom-in object-contain"
             @load="imageLoaded = true"
+            @click="openLightbox"
           />
           <div
             v-if="!imageLoaded"
@@ -193,23 +213,117 @@
           >
             <span class="loading loading-spinner loading-lg"></span>
           </div>
+          <!-- 全屏按钮 -->
+          <button
+            class="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/50 text-white backdrop-blur transition hover:bg-black/70"
+            @click="openLightbox"
+            title="全屏预览 (F)"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          </button>
         </div>
+
+        <!-- Lightbox 全屏预览 -->
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition-opacity duration-200"
+            leave-active-class="transition-opacity duration-200"
+            enter-from-class="opacity-0"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="lightboxVisible"
+              class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+              @click.self="closeLightbox"
+            >
+              <button
+                class="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                @click="closeLightbox"
+                title="关闭 (Esc)"
+              >
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <img
+                :src="`${wallpaper.imageUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
+                class="max-h-[95vh] max-w-[95vw] object-contain"
+                @click.stop
+              />
+              <!-- 图片信息 -->
+              <div class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-2 text-sm text-white/80 backdrop-blur">
+                {{ wallpaper.width }} × {{ wallpaper.height }} · {{ wallpaper.fileSize }} · {{ wallpaper.format || '未知' }}
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
       </main>
+    </div>
+
+    <!-- 返回顶部 -->
+    <Transition
+      enter-active-class="transition-all duration-300"
+      leave-active-class="transition-all duration-300"
+      enter-from-class="opacity-0 translate-y-4"
+      leave-to-class="opacity-0 translate-y-4"
+    >
+      <button
+        v-if="showBackToTop"
+        class="fixed bottom-6 right-6 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-110 dark:bg-slate-100 dark:text-slate-900"
+        @click="scrollToTop"
+        title="回到顶部"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+        </svg>
+      </button>
+    </Transition>
+
+    <!-- 相关推荐 -->
+    <div v-if="relatedWallpapers.length > 0" class="mx-auto mt-8 max-w-[1400px] px-4">
+      <h2 class="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200">
+        相关推荐
+      </h2>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div
+          v-for="item in relatedWallpapers"
+          :key="item.id"
+          class="group cursor-pointer overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800"
+          @click="$router.push(`/wallpaper/${item.id}`)"
+        >
+          <div class="relative h-36 overflow-hidden">
+            <img
+              :src="`${item.thumbnailUrl || item.fileUrl}?t=${item.updatedAt || item.id}`"
+              class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          </div>
+          <div class="flex items-center justify-between px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+            <span>{{ item.width }}×{{ item.height }}</span>
+            <span class="inline-flex items-center gap-1">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C4.099 3.75 2 5.765 2 8.25c0 7.22 8 12 8 12s8-4.78 8-12Z" />
+              </svg>
+              {{ item.likeCount }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from "vue"
-import { useRoute } from "vue-router"
+import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { useRoute, useRouter } from "vue-router"
 import { wallpaperService } from "@/services/wallpaper"
 import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
 
 interface WallpaperDetail {
   id: number
-  title: string
-  description: string
   category: "general" | "anime" | "people"
   format?: string
   imageUrl: string
@@ -225,11 +339,13 @@ interface WallpaperDetail {
   uploadDate: string
   likes: number
   favorites: number
+  downloads: number
   resolutions: string[]
 }
 
 const route = useRoute()
-const wallpaperId = route.params.id
+const router = useRouter()
+const wallpaperId = computed(() => Number(route.params.id))
 const userStore = useUserStore()
 const toast = useGlobalToast()
 const imageLoaded = ref(false)
@@ -239,11 +355,23 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const detailTimeoutId = ref<NodeJS.Timeout | null>(null)
 const shareNotice = ref("")
+const liking = ref(false)
+const favoriting = ref(false)
+const downloading = ref(false)
+const lightboxVisible = ref(false)
+const showBackToTop = ref(false)
+const relatedWallpapers = ref<Array<{
+  id: number
+  fileUrl: string
+  thumbnailUrl?: string
+  width: number
+  height: number
+  likeCount: number
+  category: string
+}>>([])
 
 const wallpaper = ref<WallpaperDetail>({
   id: 0,
-  title: "",
-  description: "",
   category: "general",
   format: "",
   imageUrl: "",
@@ -259,6 +387,7 @@ const wallpaper = ref<WallpaperDetail>({
   uploadDate: "",
   likes: 0,
   favorites: 0,
+  downloads: 0,
   resolutions: [],
 })
 
@@ -272,14 +401,32 @@ const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] 
 
 onMounted(() => {
   fetchWallpaperDetail()
+  window.addEventListener("keydown", handleKeydown)
+  window.addEventListener("scroll", handleScroll, { passive: true })
 })
+
+// 监听路由变化，点击推荐壁纸时重新加载
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      imageLoaded.value = false
+      lightboxVisible.value = false
+      showBackToTop.value = false
+      relatedWallpapers.value = []
+      shareNotice.value = ""
+      fetchWallpaperDetail()
+      window.scrollTo({ top: 0 })
+    }
+  },
+)
 
 const fetchWallpaperDetail = async () => {
   loading.value = true
   error.value = null
 
   try {
-    const id = Number(wallpaperId)
+    const id = wallpaperId.value
     if (isNaN(id)) {
       throw new Error("无效的壁纸ID")
     }
@@ -295,8 +442,6 @@ const fetchWallpaperDetail = async () => {
 
     wallpaper.value = {
       id: wallpaperResponse.data.id,
-      title: wallpaperResponse.data.title || "",
-      description: wallpaperResponse.data.description || "",
       category: wallpaperResponse.data.category || "general",
       format:
         wallpaperResponse.data.format ||
@@ -315,11 +460,20 @@ const fetchWallpaperDetail = async () => {
       uploadDate: new Date(wallpaperResponse.data.createdAt).toLocaleDateString(),
       likes: wallpaperResponse.data.likeCount,
       favorites: wallpaperResponse.data.favoriteCount,
+      downloads: wallpaperResponse.data.downloadCount || 0,
       resolutions: [`${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`],
     }
 
     isLiked.value = wallpaperResponse.data.isLiked || false
     isFavorited.value = wallpaperResponse.data.isFavorited || false
+
+    // 异步加载相关推荐（不阻塞主流程）
+    wallpaperService.getRelatedWallpapers(id, 8).then((res) => {
+      if (res.success && res.data) {
+        relatedWallpapers.value = res.data
+      }
+    }).catch(() => {})
+
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string; name?: string; isCancelled?: boolean }
     console.error("获取壁纸详情失败:", errObj)
@@ -341,18 +495,17 @@ const handleLike = async () => {
     toast.warning("请先登录后再点赞")
     return
   }
+  if (liking.value) return
 
-  const id = Number(wallpaperId)
-  if (isNaN(id)) {
-    console.error("无效的壁纸ID")
-    return
-  }
+  const id = wallpaperId.value
+  if (isNaN(id)) return
 
   const previousLiked = isLiked.value
   const previousLikes = wallpaper.value.likes
   const shouldLike = !previousLiked
   isLiked.value = shouldLike
   wallpaper.value.likes += shouldLike ? 1 : -1
+  liking.value = true
 
   try {
     if (shouldLike) {
@@ -361,20 +514,16 @@ const handleLike = async () => {
       await wallpaperService.unlikeWallpaper(id)
     }
   } catch (err: unknown) {
-    const errObj = err as Error & {
-      response?: { status?: number; data?: { message?: string } }
-      message?: string
-    }
     isLiked.value = previousLiked
     wallpaper.value.likes = previousLikes
+    const errObj = err as Error & { response?: { status?: number } }
     if (errObj.response?.status === 401) {
       toast.error("登录已过期，请重新登录")
     } else {
-      const errorMessage =
-        errObj.response?.data?.message || errObj.message || "操作失败，请稍后重试"
-      console.error("点赞操作失败:", errorMessage)
-      toast.error(errorMessage)
+      toast.error("点赞失败，请稍后重试")
     }
+  } finally {
+    liking.value = false
   }
 }
 
@@ -383,18 +532,17 @@ const handleFavorite = async () => {
     toast.warning("请先登录后再收藏")
     return
   }
+  if (favoriting.value) return
 
-  const id = Number(wallpaperId)
-  if (isNaN(id)) {
-    console.error("无效的壁纸ID")
-    return
-  }
+  const id = wallpaperId.value
+  if (isNaN(id)) return
 
   const previousFavorited = isFavorited.value
   const previousFavorites = wallpaper.value.favorites
   const shouldFavorite = !previousFavorited
   isFavorited.value = shouldFavorite
   wallpaper.value.favorites += shouldFavorite ? 1 : -1
+  favoriting.value = true
 
   try {
     if (shouldFavorite) {
@@ -403,20 +551,16 @@ const handleFavorite = async () => {
       await wallpaperService.unfavoriteWallpaper(id)
     }
   } catch (err: unknown) {
-    const errObj = err as Error & {
-      response?: { status?: number; data?: { message?: string } }
-      message?: string
-    }
     isFavorited.value = previousFavorited
     wallpaper.value.favorites = previousFavorites
+    const errObj = err as Error & { response?: { status?: number } }
     if (errObj.response?.status === 401) {
       toast.error("登录已过期，请重新登录")
     } else {
-      const errorMessage =
-        errObj.response?.data?.message || errObj.message || "操作失败，请稍后重试"
-      console.error("收藏操作失败:", errorMessage)
-      toast.error(errorMessage)
+      toast.error("收藏失败，请稍后重试")
     }
+  } finally {
+    favoriting.value = false
   }
 }
 
@@ -426,6 +570,44 @@ const handleAvatarError = (event: Event) => {
   img.onerror = null
 }
 
+const openLightbox = () => {
+  lightboxVisible.value = true
+  document.body.style.overflow = "hidden"
+}
+
+const closeLightbox = () => {
+  lightboxVisible.value = false
+  document.body.style.overflow = ""
+}
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape") {
+    if (lightboxVisible.value) {
+      closeLightbox()
+    } else {
+      window.history.back()
+    }
+    return
+  }
+  if (e.key === "f" || e.key === "F") {
+    if (!lightboxVisible.value && !e.ctrlKey && !e.metaKey) {
+      const target = e.target as HTMLElement
+      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+        e.preventDefault()
+        openLightbox()
+      }
+    }
+  }
+}
+
+const handleScroll = () => {
+  showBackToTop.value = window.scrollY > 400
+}
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" })
+}
+
 const pushShareNotice = (message: string) => {
   shareNotice.value = message
   window.setTimeout(() => {
@@ -433,12 +615,20 @@ const pushShareNotice = (message: string) => {
   }, 2500)
 }
 
-const downloadWallpaper = () => {
-  if (!wallpaper.value.imageUrl) {
-    pushShareNotice("图片链接无效，无法下载")
-    return
+const downloadWallpaper = async () => {
+  if (!wallpaper.value.imageUrl || downloading.value) return
+
+  downloading.value = true
+  try {
+    const id = wallpaperId.value
+    if (!isNaN(id)) {
+      await wallpaperService.recordDownload(id)
+    }
+  } catch {
+    // 下载计数失败不影响下载本身
   }
-  const fileName = `${wallpaper.value.title || "wallpaper"}-${wallpaper.value.id}`
+
+  const fileName = `wallpaper-${wallpaper.value.id}`
   const link = document.createElement("a")
   link.href = wallpaper.value.imageUrl
   link.download = fileName
@@ -447,6 +637,7 @@ const downloadWallpaper = () => {
   link.click()
   link.remove()
   pushShareNotice("开始下载壁纸")
+  downloading.value = false
 }
 
 onUnmounted(() => {
@@ -455,5 +646,8 @@ onUnmounted(() => {
     detailTimeoutId.value = null
   }
   loading.value = false
+  window.removeEventListener("keydown", handleKeydown)
+  window.removeEventListener("scroll", handleScroll)
+  document.body.style.overflow = ""
 })
 </script>

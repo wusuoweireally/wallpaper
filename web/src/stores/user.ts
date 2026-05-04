@@ -204,18 +204,19 @@ export const useUserStore = defineStore("user", () => {
     // 从 localStorage 恢复用户信息
     const savedUser = getUserFromStorage()
 
-    if (!savedUser) {
-      return
+    if (savedUser) {
+      user.value = savedUser
     }
 
-    user.value = savedUser
-
-    // 验证用户状态是否仍然有效（Cookie 会自动发送）
+    // 始终尝试用 Cookie 验证登录态（即使 localStorage 为空）
     try {
       await fetchCurrentUser()
     } catch (error: unknown) {
-      console.warn("用户认证验证失败，清除本地登录态:", error)
-      clearUser()
+      // 只有在 localStorage 有数据时才需要清除（说明 cookie 过期了）
+      if (savedUser) {
+        console.warn("用户认证验证失败，清除本地登录态:", error)
+        clearUser()
+      }
     }
   }
 
@@ -239,10 +240,16 @@ export const useUserStore = defineStore("user", () => {
         return null
       }
     } catch (err: unknown) {
-      clearUser()
       const serviceErr = err as ServiceError
+      const status = serviceErr.response?.status
+      // 只有 401（未授权）才清除用户状态，其他错误（如网络问题）保留登录态
+      if (status === 401) {
+        clearUser()
+      }
       const errorMessage = serviceErr.response?.data?.message || serviceErr.message || "获取用户信息失败"
-      setError(errorMessage)
+      if (status !== 401) {
+        setError(errorMessage)
+      }
       return null
     } finally {
       loading.value = false
