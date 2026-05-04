@@ -22,7 +22,7 @@
     "test:e2e": "pnpm -C server test:e2e",
     "start": "pnpm -C server start:prod",
     "preview": "pnpm -C web preview",
-    "docker:prod": "docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
     "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
     "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f"
   },
