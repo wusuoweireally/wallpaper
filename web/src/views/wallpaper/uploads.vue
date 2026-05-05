@@ -154,12 +154,13 @@
               type="file"
               ref="fileInput"
               accept="image/*"
+              multiple
               class="hidden"
               @change="handleFileSelect"
             />
 
             <!-- 空状态 -->
-            <div v-if="!previewImage" class="flex flex-col items-center gap-6">
+            <div v-if="!pendingFiles.length" class="flex flex-col items-center gap-6">
               <div class="relative">
                 <div
                   class="from-primary/10 to-secondary/10 flex h-24 w-24 items-center justify-center rounded-3xl border-2 border-slate-200 bg-slate-50 bg-gradient-to-br text-primary shadow-lg transition-transform group-hover:scale-110 group-hover:shadow-2xl dark:border-slate-600 dark:bg-slate-800/50"
@@ -223,73 +224,58 @@
               </div>
             </div>
 
-            <!-- 预览状态 -->
-            <div v-else class="relative">
-              <div
-                class="overflow-hidden rounded-3xl shadow-lg ring-4 ring-white dark:ring-slate-700"
-              >
-                <img
-                  :src="previewImage"
-                  alt="预览图"
-                  class="h-96 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-
-              <!-- 操作按钮 -->
-              <div class="absolute right-6 top-6 flex gap-2">
+            <!-- 多文件预览列表 -->
+            <div v-else class="space-y-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                  已选择 {{ pendingFiles.length }} 个文件
+                </p>
                 <button
-                  class="btn btn-error btn-sm btn-circle shadow-xl transition-all hover:rotate-90 hover:scale-110"
-                  @click.stop="removeImage"
-                  title="删除图片"
+                  class="btn btn-ghost btn-xs gap-1 text-slate-500 hover:text-error"
+                  @click.stop="clearAllFiles"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                   </svg>
-                </button>
-                <button
-                  class="btn btn-primary btn-sm btn-circle shadow-xl transition-all hover:scale-110"
-                  @click.stop="fileInput?.click()"
-                  title="重新选择"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-                    />
-                  </svg>
+                  清空全部
                 </button>
               </div>
-
-              <!-- 图片信息叠加 -->
-              <div
-                class="absolute bottom-6 left-6 right-6 overflow-hidden rounded-2xl bg-black/70 p-4 text-white ring-1 ring-white/10 backdrop-blur-md dark:bg-black/80 dark:ring-white/20"
-              >
-                <div class="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <p class="text-xs text-white/70">尺寸</p>
-                    <p class="font-medium" v-if="imageInfo">
-                      {{ imageInfo.width }} × {{ imageInfo.height }}
-                    </p>
+              <div class="grid max-h-80 gap-2 overflow-y-auto pr-1">
+                <div
+                  v-for="(item, index) in pendingFiles"
+                  :key="item.id"
+                  class="group/item flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2 transition hover:border-slate-300 dark:border-slate-600 dark:bg-slate-700/50 dark:hover:border-slate-500"
+                >
+                  <img
+                    :src="item.previewUrl"
+                    class="h-14 w-14 flex-shrink-0 rounded-lg object-cover"
+                    :alt="item.file.name"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{{ item.file.name }}</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">{{ formatFileSize(item.file.size) }}</p>
+                    <!-- 上传进度 -->
+                    <div v-if="item.status === 'uploading'" class="mt-1">
+                      <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600">
+                        <div
+                          class="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
+                          :style="{ width: item.progress + '%' }"
+                        ></div>
+                      </div>
+                    </div>
+                    <p v-if="item.status === 'done'" class="mt-0.5 text-xs text-success">✓ 上传成功</p>
+                    <p v-if="item.status === 'error'" class="mt-0.5 text-xs text-error">✗ {{ item.errorMsg || '上传失败' }}</p>
                   </div>
-                  <div>
-                    <p class="text-xs text-white/70">大小</p>
-                    <p class="font-medium" v-if="imageInfo">{{ imageInfo.size }}</p>
-                  </div>
-                  <div>
-                    <p class="text-xs text-white/70">格式</p>
-                    <p class="font-medium" v-if="imageInfo">{{ imageInfo.type }}</p>
-                  </div>
+                  <button
+                    v-if="item.status === 'pending'"
+                    class="btn btn-ghost btn-xs btn-circle opacity-0 transition-opacity group-hover/item:opacity-100"
+                    @click.stop="removePendingFile(index)"
+                    title="移除"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 hover:text-error" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -717,37 +703,55 @@
               <div
                 class="shadow-primary/50 h-2.5 w-2.5 animate-pulse rounded-full bg-primary shadow-lg"
               ></div>
-              <span class="font-semibold text-primary">正在上传...</span>
+              <span class="font-semibold text-primary">正在上传... ({{ uploadedCount }}/{{ pendingFiles.length }})</span>
             </div>
-            <span class="text-base font-bold text-primary">{{ uploadProgress }}%</span>
+            <span class="text-base font-bold text-primary">{{ overallProgress }}%</span>
           </div>
           <div
             class="relative h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
           >
             <div
               class="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-secondary to-accent transition-all duration-500"
-              :style="{ width: uploadProgress + '%' }"
+              :style="{ width: overallProgress + '%' }"
             >
               <div class="absolute inset-0 animate-pulse bg-white/20"></div>
             </div>
           </div>
-          <div class="flex justify-end">
-            <button
-              class="hover:bg-error/10 btn btn-ghost btn-sm gap-1.5 rounded-full text-error transition-all"
-              @click="cancelUpload"
-              :disabled="!currentRequestId"
+        </div>
+
+        <!-- 上传结果统计 -->
+        <div
+          v-if="uploadResult"
+          class="rounded-2xl border p-4"
+          :class="uploadResult.failed === 0
+            ? 'border-success/30 bg-success/5'
+            : 'border-warning/30 bg-warning/5'"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-full"
+              :class="uploadResult.failed === 0 ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                />
+              <svg v-if="uploadResult.failed === 0" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
-              取消上传
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="font-medium">
+                上传完成：成功 <span class="text-success font-bold">{{ uploadResult.success }}</span> 张
+                <template v-if="uploadResult.failed > 0">
+                  ，失败 <span class="text-error font-bold">{{ uploadResult.failed }}</span> 张
+                </template>
+              </p>
+            </div>
+            <button
+              class="hover:bg-primary/10 btn btn-ghost btn-sm rounded-full text-primary"
+              @click="resetForm"
+            >
+              继续上传
             </button>
           </div>
         </div>
@@ -758,9 +762,9 @@
             class="btn btn-primary h-14 flex-1 rounded-2xl text-base font-semibold shadow-xl transition-all hover:scale-[1.02] hover:shadow-2xl"
             :class="{
               loading: loading,
-              'btn-disabled cursor-not-allowed opacity-60': loading || !formData.imageFile,
+              'btn-disabled cursor-not-allowed opacity-60': loading || !pendingFiles.length,
             }"
-            :disabled="loading || !formData.imageFile"
+            :disabled="loading || !pendingFiles.length"
             @click="handleSubmit"
           >
             <svg
@@ -775,7 +779,7 @@
               />
             </svg>
             <span class="text-base">
-              {{ loading ? "上传中..." : "立即上传" }}
+              {{ loading ? `上传中 (${uploadedCount}/${pendingFiles.length})...` : `上传 ${pendingFiles.length || ''} 张壁纸` }}
             </span>
           </button>
           <button
@@ -800,42 +804,61 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, watch } from "vue"
-import axios from "axios"
 import { wallpaperService } from "@/services/wallpaper"
 import tagService, { type Tag } from "@/services/tag"
 import { useUserStore } from "@/stores/user"
-import { cancelRequest } from "@/config/api"
 
 const userStore = useUserStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
 const isDragging = ref(false)
-const previewImage = ref<string>("")
-const uploadProgress = ref<number>(0)
+// 上传进度
 const isUploading = ref<boolean>(false)
 const currentRequestId = ref<string>("")
 const uploadStatus = ref<{ type: string; message: string } | null>(null)
+const overallProgress = computed(() => {
+  if (!pendingFiles.value.length) return 0
+  const total = pendingFiles.value.reduce((sum, f) => sum + f.progress, 0)
+  return Math.round(total / pendingFiles.value.length)
+})
 
 // 当前用户ID
 const currentUserId = computed(() => userStore.user?.id || 0)
 
-// 表单数据
+// 批量上传相关
+interface PendingFile {
+  id: string
+  file: File
+  previewUrl: string
+  status: 'pending' | 'uploading' | 'done' | 'error'
+  progress: number
+  errorMsg?: string
+}
+
+const pendingFiles = ref<PendingFile[]>([])
+const uploadedCount = ref(0)
+const uploadResult = ref<{ success: number; failed: number } | null>(null)
+
+// 表单数据（标题、描述等通用信息，所有文件共享）
 const formData = reactive({
-  imageFile: null as File | null,
   category: "general",
   tags: [] as string[],
   title: "",
   description: "",
 })
 
-// 图片信息
-const imageInfo = ref<{
-  name: string
-  size: string
-  width: number
-  height: number
-  type: string
-} | null>(null)
+// 图片信息（显示第一个文件的信息）
+const imageInfo = computed(() => {
+  if (!pendingFiles.value.length) return null
+  const first = pendingFiles.value[0]
+  return {
+    name: pendingFiles.value.length === 1 ? first.file.name : `${pendingFiles.value.length} 个文件`,
+    size: formatFileSize(pendingFiles.value.reduce((sum, f) => sum + f.file.size, 0)),
+    width: 0,
+    height: 0,
+    type: first.file.type.split('/')[1]?.toUpperCase() || 'IMAGE',
+  }
+})
 
 // 错误信息
 const errors = reactive({
@@ -990,75 +1013,68 @@ onMounted(() => {
   loadRecommendedTags()
 })
 
-// 处理文件选择
+// 处理文件选择（支持多文件）
 const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    processImageFile(input.files[0])
+  if (input.files) {
+    addFiles(Array.from(input.files))
   }
 }
 
-// 处理拖拽放置
+// 处理拖拽放置（支持多文件）
 const handleDrop = (event: DragEvent) => {
   event.preventDefault()
   isDragging.value = false
 
-  if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
-    processImageFile(event.dataTransfer.files[0])
+  if (event.dataTransfer?.files) {
+    addFiles(Array.from(event.dataTransfer.files))
   }
 }
 
-// 处理图片文件
-const processImageFile = (file: File) => {
-  if (!file.type.startsWith("image/")) {
-    errors.image = "请选择图片文件"
-    return
-  }
+// 添加文件到待上传列表
+const addFiles = (files: File[]) => {
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) continue
+    if (file.size > 50 * 1024 * 1024) continue
 
-  if (file.size > 50 * 1024 * 1024) {
-    errors.image = "图片大小不能超过 50MB"
-    return
+    const previewUrl = URL.createObjectURL(file)
+    pendingFiles.value.push({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      file,
+      previewUrl,
+      status: 'pending',
+      progress: 0,
+    })
   }
-
-  formData.imageFile = file
   errors.image = ""
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    previewImage.value = e.target?.result as string
-
-    const img = new Image()
-    img.onload = () => {
-      imageInfo.value = {
-        name: file.name,
-        size: formatFileSize(file.size),
-        width: img.width,
-        height: img.height,
-        type: file.type.split("/")[1].toUpperCase(),
-      }
-    }
-    img.src = previewImage.value
+  if (pendingFiles.value.length) {
+    uploadResult.value = null
+    uploadStatus.value = null
   }
-  reader.readAsDataURL(file)
 }
 
-// 格式化文件大小
+const removePendingFile = (index: number) => {
+  const item = pendingFiles.value[index]
+  if (item) {
+    URL.revokeObjectURL(item.previewUrl)
+  }
+  pendingFiles.value.splice(index, 1)
+}
+
+const clearAllFiles = () => {
+  pendingFiles.value.forEach(item => URL.revokeObjectURL(item.previewUrl))
+  pendingFiles.value = []
+  if (fileInput.value) {
+    fileInput.value.value = ""
+  }
+}
+
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes"
   const k = 1024
   const sizes = ["Bytes", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-}
-
-// 移除图片
-const removeImage = () => {
-  formData.imageFile = null
-  previewImage.value = ""
-  imageInfo.value = null
-  if (fileInput.value) {
-    fileInput.value.value = ""
-  }
 }
 
 // 验证表单
@@ -1069,7 +1085,7 @@ const validateForm = (): boolean => {
     errors[key as keyof typeof errors] = ""
   })
 
-  if (!formData.imageFile) {
+  if (!pendingFiles.value.length) {
     errors.image = "请选择要上传的图片"
     isValid = false
   }
@@ -1082,27 +1098,17 @@ const validateForm = (): boolean => {
   return isValid
 }
 
-// 提交表单
-const handleSubmit = async () => {
-  if (!validateForm()) return
+// 带并发控制的批量上传
+const CONCURRENCY = 3
 
-  loading.value = true
-  isUploading.value = true
-  uploadProgress.value = 0
-  uploadStatus.value = null
+const uploadSingleFile = async (item: PendingFile): Promise<boolean> => {
+  item.status = 'uploading'
+  item.progress = 0
 
   try {
-    if (!formData.imageFile) {
-      throw new Error("请选择要上传的图片")
-    }
-
-    if (!currentUserId.value) {
-      throw new Error("请先登录")
-    }
-
-    const { response, requestId } = await wallpaperService.uploadWallpaper(
+    const { response } = await wallpaperService.uploadWallpaper(
       {
-        file: formData.imageFile,
+        file: item.file,
         category: formData.category,
         tags: formData.tags,
         title: formData.title || undefined,
@@ -1110,72 +1116,116 @@ const handleSubmit = async () => {
       },
       (progressEvent) => {
         if (progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          uploadProgress.value = progress
+          item.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
         }
       },
     )
 
-    currentRequestId.value = requestId
-
     if ((response as { success?: boolean }).success) {
-      uploadStatus.value = { type: "success", message: "壁纸上传成功！" }
-      clearInputForm()
+      item.status = 'done'
+      item.progress = 100
+      return true
     } else {
-      throw new Error((response as { message?: string }).message || "上传失败")
+      throw new Error((response as { message?: string }).message || '上传失败')
     }
   } catch (error: unknown) {
-    if (axios.isCancel(error)) {
-      uploadStatus.value = { type: "info", message: "上传已取消" }
+    const err = error as Error & { message?: string }
+    item.status = 'error'
+    item.errorMsg = err.message || '上传失败'
+    item.progress = 0
+    return false
+  }
+}
+
+const batchUpload = async () => {
+  const queue = [...pendingFiles.value.filter(f => f.status === 'pending')]
+  uploadedCount.value = 0
+  let successCount = 0
+  let failedCount = 0
+
+  const workers: Promise<void>[] = []
+
+  const runNext = async () => {
+    while (queue.length > 0) {
+      const item = queue.shift()!
+      const ok = await uploadSingleFile(item)
+      uploadedCount.value++
+      if (ok) successCount++
+      else failedCount++
+    }
+  }
+
+  for (let i = 0; i < Math.min(CONCURRENCY, queue.length); i++) {
+    workers.push(runNext())
+  }
+
+  await Promise.all(workers)
+  return { success: successCount, failed: failedCount }
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  loading.value = true
+  isUploading.value = true
+  uploadStatus.value = null
+  uploadResult.value = null
+
+  // 重置所有pending文件状态
+  pendingFiles.value.forEach(f => {
+    if (f.status !== 'done') {
+      f.status = 'pending'
+      f.progress = 0
+      f.errorMsg = undefined
+    }
+  })
+
+  try {
+    if (!currentUserId.value) {
+      throw new Error("请先登录")
+    }
+
+    const result = await batchUpload()
+    uploadResult.value = result
+
+    if (result.failed === 0) {
+      uploadStatus.value = { type: "success", message: `全部 ${result.success} 张壁纸上传成功！` }
+    } else if (result.success > 0) {
+      uploadStatus.value = { type: "info", message: `成功 ${result.success} 张，失败 ${result.failed} 张` }
     } else {
-      const err = error as Error & { message?: string }
-      console.error("上传失败:", err)
-      uploadStatus.value = {
-        type: "error",
-        message: err.message || "上传失败，请重试",
-      }
+      uploadStatus.value = { type: "error", message: `全部 ${result.failed} 张上传失败` }
+    }
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string }
+    console.error("上传失败:", err)
+    uploadStatus.value = {
+      type: "error",
+      message: err.message || "上传失败，请重试",
     }
   } finally {
     loading.value = false
     isUploading.value = false
-    currentRequestId.value = ""
   }
 }
 
-// 取消上传
-const cancelUpload = () => {
-  if (currentRequestId.value) {
-    cancelRequest(currentRequestId.value)
-  }
-}
-
-// 清空输入表单（保留上传成功的信息）
-const clearInputForm = () => {
-  formData.imageFile = null
+// 重置表单
+const resetForm = () => {
+  clearAllFiles()
   formData.category = "general"
   formData.tags = []
   formData.title = ""
   formData.description = ""
-
-  if (fileInput.value) {
-    fileInput.value.value = ""
-  }
-
   errors.image = ""
   errors.tags = ""
   errors.category = ""
-
   selectedTags.value = []
   tagSearch.value = ""
   tagSuggestions.value = []
-  previewImage.value = ""
-  imageInfo.value = null
-}
-
-// 重置表单（完全重置所有状态）
-const resetForm = () => {
-  clearInputForm()
   uploadStatus.value = null
+  uploadResult.value = null
+  isUploading.value = false
+  uploadedCount.value = 0
 }
 </script>
 
