@@ -44,8 +44,17 @@
             </svg>
           </button>
           <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
-            壁纸 #{{ wallpaper.id }}
+            {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
           </h2>
+        </div>
+
+        <!-- 描述 -->
+        <div
+          v-if="wallpaper.description"
+          class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+        >
+          <h3 class="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-300">描述</h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ wallpaper.description }}</p>
         </div>
 
         <div
@@ -174,6 +183,26 @@
             </svg>
             下载
           </button>
+          <button
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-400 to-indigo-400 px-3 py-2 font-semibold text-white shadow-lg shadow-blue-200/50"
+            @click="shareWallpaper"
+          >
+            <svg
+              class="h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+              />
+            </svg>
+            分享链接
+          </button>
           <p v-if="shareNotice" class="text-sm font-semibold text-emerald-500">
             {{ shareNotice }}
           </p>
@@ -223,6 +252,36 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
             </svg>
           </button>
+          <!-- 左右导航按钮 -->
+          <button
+            v-if="relatedWallpapers.length > 0"
+            class="absolute left-3 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/60"
+            @click="navigateRelated(-1)"
+            title="上一张 (←)"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            v-if="relatedWallpapers.length > 0"
+            class="absolute right-14 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/60"
+            @click="navigateRelated(1)"
+            title="下一张 (→)"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+          <!-- 键盘提示 -->
+          <div
+            v-if="relatedWallpapers.length > 0"
+            class="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/60"
+          >
+            <kbd class="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-mono">←</kbd>
+            <kbd class="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-mono">→</kbd>
+            <span>切换壁纸</span>
+          </div>
         </div>
 
         <!-- Lightbox 全屏预览 -->
@@ -331,6 +390,8 @@ interface WallpaperDetail {
   height: number
   fileSize: string
   tags: string[]
+  title?: string
+  description?: string
   uploader: {
     id: number
     name: string
@@ -379,6 +440,8 @@ const wallpaper = ref<WallpaperDetail>({
   height: 0,
   fileSize: "",
   tags: [],
+  title: "",
+  description: "",
   uploader: {
     id: 0,
     name: "",
@@ -452,6 +515,8 @@ const fetchWallpaperDetail = async () => {
       height: wallpaperResponse.data.height,
       fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
       tags: tagsResponse.success ? tagsResponse.data.map((tag: { name: string }) => tag.name) : [],
+      title: wallpaperResponse.data.title || "",
+      description: wallpaperResponse.data.description || "",
       uploader: {
         id: wallpaperResponse.data.uploaderId,
         name: wallpaperResponse.data.uploader?.username || "未知用户",
@@ -580,7 +645,26 @@ const closeLightbox = () => {
   document.body.style.overflow = ""
 }
 
+const navigateRelated = (direction: number) => {
+  if (relatedWallpapers.value.length === 0) return
+  const currentIdx = relatedWallpapers.value.findIndex((w) => w.id === wallpaperId.value)
+  let nextIdx: number
+  if (currentIdx === -1) {
+    nextIdx = 0
+  } else {
+    nextIdx = (currentIdx + direction + relatedWallpapers.value.length) % relatedWallpapers.value.length
+  }
+  const nextId = relatedWallpapers.value[nextIdx]?.id
+  if (nextId) {
+    router.push(`/wallpaper/${nextId}`)
+  }
+}
+
 const handleKeydown = (e: KeyboardEvent) => {
+  // 忽略输入框中的按键
+  const target = e.target as HTMLElement
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+
   if (e.key === "Escape") {
     if (lightboxVisible.value) {
       closeLightbox()
@@ -591,12 +675,14 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
   if (e.key === "f" || e.key === "F") {
     if (!lightboxVisible.value && !e.ctrlKey && !e.metaKey) {
-      const target = e.target as HTMLElement
-      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
-        e.preventDefault()
-        openLightbox()
-      }
+      e.preventDefault()
+      openLightbox()
     }
+  }
+  // 左右箭头导航到相关推荐壁纸
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (lightboxVisible.value || relatedWallpapers.value.length === 0) return
+    navigateRelated(e.key === "ArrowLeft" ? -1 : 1)
   }
 }
 
@@ -628,7 +714,10 @@ const downloadWallpaper = async () => {
     // 下载计数失败不影响下载本身
   }
 
-  const fileName = `wallpaper-${wallpaper.value.id}`
+  // 使用正确的文件扩展名
+  const ext = wallpaper.value.format?.toLowerCase() || wallpaper.value.imageUrl.split(".")?.pop() || "jpg"
+  const titlePart = wallpaper.value.title ? `-${wallpaper.value.title.replace(/[^\w\u4e00-\u9fa5]/g, "_").slice(0, 50)}` : ""
+  const fileName = `wallpaper-${wallpaper.value.id}${titlePart}.${ext}`
   const link = document.createElement("a")
   link.href = wallpaper.value.imageUrl
   link.download = fileName
@@ -638,6 +727,23 @@ const downloadWallpaper = async () => {
   link.remove()
   pushShareNotice("开始下载壁纸")
   downloading.value = false
+}
+
+const shareWallpaper = async () => {
+  const url = window.location.href
+  try {
+    await navigator.clipboard.writeText(url)
+    pushShareNotice("链接已复制到剪贴板 ✓")
+  } catch {
+    // 降级方案
+    const input = document.createElement("input")
+    input.value = url
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand("copy")
+    input.remove()
+    pushShareNotice("链接已复制到剪贴板 ✓")
+  }
 }
 
 onUnmounted(() => {

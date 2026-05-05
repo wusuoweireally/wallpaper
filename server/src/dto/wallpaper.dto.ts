@@ -12,6 +12,15 @@ export class CreateWallpaperDto {
   @IsOptional()
   category?: "general" | "anime" | "people";
 
+  @IsString()
+  @IsOptional()
+  @Length(0, 200)
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @IsArray()
   @IsOptional()
   tags?: string[];
@@ -21,6 +30,15 @@ export class UpdateWallpaperDto {
   @IsEnum(["general", "anime", "people"])
   @IsOptional()
   category?: "general" | "anime" | "people";
+
+  @IsString()
+  @IsOptional()
+  @Length(0, 200)
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 export class WallpaperQueryDto {

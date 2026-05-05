@@ -31,6 +31,8 @@ export interface UploadWallpaperParams {
   file: File
   category: string
   tags: string[]
+  title?: string
+  description?: string
 }
 
 /**
@@ -78,6 +80,8 @@ export interface Wallpaper {
   favoriteCount: number
   status: number
   isFeatured: boolean
+  title?: string
+  description?: string
   createdAt: string
   updatedAt: string
   tags?: Tag[]
@@ -113,6 +117,14 @@ class WallpaperService {
     formData.append("file", params.file)
 
     formData.append("category", params.category)
+
+    if (params.title) {
+      formData.append("title", params.title)
+    }
+
+    if (params.description) {
+      formData.append("description", params.description)
+    }
 
     if (params.tags && params.tags.length > 0) {
       // 后端期望tags是数组，但FormData不能直接传递数组
@@ -323,6 +335,24 @@ class WallpaperService {
       return response as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取相关壁纸失败:", error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取近期热门壁纸
+   */
+  async getTrendingWallpapers(
+    days: number = 7,
+    limit: number = 10,
+  ): Promise<ApiResponse<Wallpaper[]>> {
+    try {
+      const response = await api.get<Wallpaper[]>(`/wallpapers/trending`, {
+        params: { days, limit },
+      })
+      return response as ApiResponse<Wallpaper[]>
+    } catch (error) {
+      console.error("获取近期热门壁纸失败:", error)
       throw error
     }
   }

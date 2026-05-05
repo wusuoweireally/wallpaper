@@ -349,6 +349,39 @@
           </div>
         </div>
 
+        <!-- 标题和描述 -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <div
+              class="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-emerald-600 ring-1 ring-slate-200 dark:bg-slate-700 dark:ring-slate-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 4v3h5.5v12h3V7H19V4z"/>
+              </svg>
+            </div>
+            <label class="text-base font-semibold">标题与描述</label>
+            <span class="text-xs text-slate-400">（可选）</span>
+          </div>
+          <div class="space-y-3">
+            <input
+              v-model="formData.title"
+              type="text"
+              placeholder="为你的壁纸起个名字..."
+              maxlength="200"
+              class="input h-12 w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
+            />
+            <div class="text-right text-xs text-slate-400">{{ formData.title.length }}/200</div>
+            <textarea
+              v-model="formData.description"
+              placeholder="描述一下这张壁纸的灵感来源、拍摄地点或创作故事..."
+              rows="3"
+              maxlength="2000"
+              class="textarea w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 pt-3 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
+            ></textarea>
+            <div class="text-right text-xs text-slate-400">{{ (formData.description || '').length }}/2000</div>
+          </div>
+        </div>
+
         <!-- 标签区域 -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -791,6 +824,8 @@ const formData = reactive({
   imageFile: null as File | null,
   category: "general",
   tags: [] as string[],
+  title: "",
+  description: "",
 })
 
 // 图片信息
@@ -1070,6 +1105,8 @@ const handleSubmit = async () => {
         file: formData.imageFile,
         category: formData.category,
         tags: formData.tags,
+        title: formData.title || undefined,
+        description: formData.description || undefined,
       },
       (progressEvent) => {
         if (progressEvent.total) {
@@ -1117,6 +1154,8 @@ const clearInputForm = () => {
   formData.imageFile = null
   formData.category = "general"
   formData.tags = []
+  formData.title = ""
+  formData.description = ""
 
   if (fileInput.value) {
     fileInput.value.value = ""

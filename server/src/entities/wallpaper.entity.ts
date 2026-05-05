@@ -22,6 +22,12 @@ export class Wallpaper {
   @Column({ name: "file_url", length: 500, comment: "壁纸文件URL" })
   fileUrl: string;
 
+  @Column({ length: 200, nullable: true, comment: "壁纸标题" })
+  title: string;
+
+  @Column({ type: "text", nullable: true, comment: "壁纸描述" })
+  description: string;
+
   @Column({
     type: "enum",
     enum: ["general", "anime", "people"],

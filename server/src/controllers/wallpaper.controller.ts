@@ -202,6 +202,21 @@ export class WallpaperController {
   }
 
   /**
+   * 获取近期热门壁纸（最近7天内）
+   */
+  @Get("trending")
+  async getTrendingWallpapers(
+    @Query("days") days: string = "7",
+    @Query("limit") limit: string = "10",
+  ) {
+    const wallpapers = await this.wallpaperService.getTrendingWallpapers(
+      Number(days),
+      Number(limit),
+    );
+    return { success: true, data: wallpapers };
+  }
+
+  /**
    * 获取相关推荐壁纸（同分类随机）
    */
   @Get(":id/related")

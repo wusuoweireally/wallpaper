@@ -600,6 +600,31 @@ export class WallpaperService {
   }
 
   /**
+   * 获取近期热门壁纸（最近N天内按综合评分排序）
+   */
+  async getTrendingWallpapers(
+    days: number = 7,
+    limit: number = 10,
+  ): Promise<Wallpaper[]> {
+    const qb = this.wallpaperRepository
+      .createQueryBuilder("wallpaper")
+      .leftJoinAndSelect("wallpaper.uploader", "uploader")
+      .leftJoinAndSelect("wallpaper.tags", "tags")
+      .addSelect(
+        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        "popularity_score",
+      )
+      .where("wallpaper.status = :status", { status: 1 })
+      .andWhere("wallpaper.createdAt >= :since", {
+        since: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
+      })
+      .orderBy("popularity_score", "DESC")
+      .take(limit);
+
+    return qb.getMany();
+  }
+
+  /**
    * 获取用户点赞的壁纸列表（分页）
    */
   async getUserLikedWallpapers(
