@@ -126,4 +126,31 @@ export class AdminWallpaperController {
       },
     };
   }
+
+  /**
+   * 批量设置/取消推荐
+   */
+  @Post("batch-featured")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async batchFeatured(@Body() body: { ids: number[]; isFeatured: boolean }) {
+    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供壁纸ID列表",
+      };
+    }
+
+    const result = await this.wallpaperService.batchSetFeatured(
+      body.ids,
+      body.isFeatured,
+    );
+    return {
+      success: true,
+      message: body.isFeatured
+        ? `已将 ${result.updatedCount} 个壁纸设为推荐`
+        : `已取消 ${result.updatedCount} 个壁纸的推荐`,
+      data: result,
+    };
+  }
 }

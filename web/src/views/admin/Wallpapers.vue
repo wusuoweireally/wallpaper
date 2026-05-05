@@ -30,6 +30,36 @@
             上传壁纸
           </button>
         </div>
+        <!-- 批量操作 -->
+        <div
+          v-if="hasSelection"
+          class="mt-4 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"
+        >
+          <span class="text-sm text-white/70">已选 {{ selectedIds.size }} 项</span>
+          <div class="h-4 w-px bg-white/20"></div>
+          <button
+            class="btn btn-sm gap-1 rounded-xl border-none bg-gradient-to-r from-amber-400 to-orange-400 text-slate-900 hover:from-amber-500 hover:to-orange-500"
+            :disabled="batchLoading"
+            @click="batchSetFeatured(true)"
+          >
+            <iconify-icon icon="mdi:star"></iconify-icon>
+            批量推荐
+          </button>
+          <button
+            class="btn btn-sm gap-1 rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            :disabled="batchLoading"
+            @click="batchSetFeatured(false)"
+          >
+            <iconify-icon icon="mdi:star-off"></iconify-icon>
+            取消推荐
+          </button>
+          <button
+            class="btn btn-sm btn-ghost rounded-xl text-white/60 hover:text-white"
+            @click="selectedIds.clear()"
+          >
+            取消选择
+          </button>
+        </div>
       </div>
     </div>
 
@@ -165,12 +195,36 @@
         </div>
 
         <div v-else class="p-6">
+          <!-- 全选 -->
+          <div class="mb-4 flex items-center gap-3">
+            <button
+              class="flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
+              :class="isAllSelected
+                ? 'border-purple-400 bg-purple-500 text-white'
+                : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'"
+              @click="toggleSelectAll"
+            >
+              <iconify-icon v-if="isAllSelected" icon="mdi:check" class="text-sm"></iconify-icon>
+            </button>
+            <span class="text-sm text-white/60">全选当前页</span>
+          </div>
           <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             <div
               v-for="wallpaper in wallpapers"
               :key="wallpaper.id"
               class="relative flex h-full flex-col rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/80 to-slate-950/90 p-4 shadow-xl"
+              :class="{ 'ring-2 ring-purple-400/60': isSelected(wallpaper.id) }"
             >
+              <!-- 选择复选框 -->
+              <button
+                class="absolute left-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
+                :class="isSelected(wallpaper.id)
+                  ? 'border-purple-400 bg-purple-500 text-white'
+                  : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'"
+                @click.stop="toggleSelect(wallpaper.id)"
+              >
+                <iconify-icon v-if="isSelected(wallpaper.id)" icon="mdi:check" class="text-sm"></iconify-icon>
+              </button>
               <div class="relative overflow-hidden rounded-2xl">
                 <img
                   :src="getWallpaperImage(wallpaper.thumbnailUrl || wallpaper.fileUrl)"
@@ -195,22 +249,34 @@
                     <h3
                       class="mt-1 line-clamp-1 text-lg font-semibold text-white"
                     >
-                      壁纸 #{{ wallpaper.id }}
+                      {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
                     </h3>
+                    <p v-if="wallpaper.description" class="mt-0.5 line-clamp-1 text-xs text-white/50">
+                      {{ wallpaper.description }}
+                    </p>
                   </div>
-                  <div
-                    class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white"
-                    :class="
-                      wallpaper.status === 1
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                        : 'bg-gradient-to-r from-orange-500 to-red-500'
-                    "
-                  >
-                    <iconify-icon
-                      :icon="wallpaper.status === 1 ? 'mdi:check-circle' : 'mdi:alert-circle'"
-                      class="text-sm"
-                    ></iconify-icon>
-                    {{ formatStatus(wallpaper.status) }}
+                  <div class="flex flex-col items-end gap-1">
+                    <div
+                      class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      :class="
+                        wallpaper.status === 1
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                          : 'bg-gradient-to-r from-orange-500 to-red-500'
+                      "
+                    >
+                      <iconify-icon
+                        :icon="wallpaper.status === 1 ? 'mdi:check-circle' : 'mdi:alert-circle'"
+                        class="text-sm"
+                      ></iconify-icon>
+                      {{ formatStatus(wallpaper.status) }}
+                    </div>
+                    <span
+                      v-if="wallpaper.isFeatured"
+                      class="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-2 py-0.5 text-[10px] font-bold text-slate-900"
+                    >
+                      <iconify-icon icon="mdi:star" class="text-xs"></iconify-icon>
+                      推荐
+                    </span>
                   </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs text-white/60">
@@ -298,6 +364,15 @@
                         </button>
                       </li>
                       <div class="divider my-1 border-white/10"></div>
+                      <li>
+                        <button
+                          class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
+                          @click="openEditModal(wallpaper)"
+                        >
+                          <iconify-icon icon="mdi:pencil"></iconify-icon>
+                          编辑信息
+                        </button>
+                      </li>
                       <li>
                         <button
                           class="rounded-xl text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-200"
@@ -545,6 +620,94 @@
       </transition>
     </Teleport>
 
+    <!-- 编辑壁纸弹窗 -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="editWallpaper"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          @click.self="closeEditModal"
+        >
+          <div
+            class="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-800/90 text-white shadow-2xl"
+          >
+            <button
+              class="btn btn-sm btn-circle absolute right-4 top-4 border-white/15 bg-white/10 text-white hover:bg-white/20"
+              @click="closeEditModal"
+              :disabled="editLoading"
+            >
+              ✕
+            </button>
+            <div class="space-y-6 p-6">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/70">Edit Wallpaper</p>
+                <h3 class="mt-2 text-xl font-semibold">编辑壁纸 #{{ editWallpaper.id }}</h3>
+              </div>
+
+              <!-- 预览 -->
+              <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                <img
+                  :src="getWallpaperImage(editWallpaper.thumbnailUrl || editWallpaper.fileUrl)"
+                  :alt="`壁纸 #${editWallpaper.id}`"
+                  class="h-48 w-full object-cover"
+                />
+              </div>
+
+              <div class="space-y-4">
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-semibold text-white/80">标题</span>
+                    <span class="label-text-alt text-white/40">{{ editForm.title.length }}/200</span>
+                  </label>
+                  <input
+                    v-model="editForm.title"
+                    type="text"
+                    maxlength="200"
+                    placeholder="为壁纸起个名字..."
+                    class="input w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
+                    :disabled="editLoading"
+                  />
+                </div>
+
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-semibold text-white/80">描述</span>
+                    <span class="label-text-alt text-white/40">{{ editForm.description.length }}/2000</span>
+                  </label>
+                  <textarea
+                    v-model="editForm.description"
+                    maxlength="2000"
+                    rows="4"
+                    placeholder="描述一下这张壁纸..."
+                    class="textarea w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
+                    :disabled="editLoading"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="flex justify-end gap-3">
+                <button
+                  class="btn btn-ghost rounded-xl border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
+                  @click="closeEditModal"
+                  :disabled="editLoading"
+                >
+                  取消
+                </button>
+                <button
+                  class="btn rounded-xl border-none bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 text-slate-900 hover:from-emerald-300 hover:via-teal-300 hover:to-cyan-300"
+                  :class="{ loading: editLoading }"
+                  :disabled="editLoading"
+                  @click="submitEdit"
+                >
+                  保存修改
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
     <Teleport to="body">
       <transition name="fade">
         <div
@@ -686,7 +849,12 @@ interface PaginationMeta {
 const loading = ref(true)
 const wallpapers = ref<AdminWallpaper[]>([])
 const previewWallpaper = ref<AdminWallpaper | null>(null)
+const editWallpaper = ref<AdminWallpaper | null>(null)
+const editForm = reactive({ title: '', description: '' })
+const editLoading = ref(false)
 const actionLoadingId = ref<number | null>(null)
+const selectedIds = ref<Set<number>>(new Set())
+const batchLoading = ref(false)
 const notification = ref<{ type: "success" | "error"; text: string } | null>(null)
 const showUploadModal = ref(false)
 const uploadLoading = ref(false)
@@ -1123,6 +1291,82 @@ const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
   if (img.src !== DEFAULT_AVATAR_PLACEHOLDER) {
     img.src = DEFAULT_AVATAR_PLACEHOLDER
+  }
+}
+
+// 批量选择
+const toggleSelect = (id: number) => {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  } else {
+    selectedIds.value.add(id)
+  }
+}
+
+const toggleSelectAll = () => {
+  if (selectedIds.value.size === wallpapers.value.length) {
+    selectedIds.value.clear()
+  } else {
+    wallpapers.value.forEach(w => selectedIds.value.add(w.id))
+  }
+}
+
+const isSelected = (id: number) => selectedIds.value.has(id)
+
+const hasSelection = computed(() => selectedIds.value.size > 0)
+const isAllSelected = computed(() => wallpapers.value.length > 0 && selectedIds.value.size === wallpapers.value.length)
+
+// 批量设置推荐
+const batchSetFeatured = async (isFeatured: boolean) => {
+  if (!selectedIds.value.size) return
+  const action = isFeatured ? '设为推荐' : '取消推荐'
+  const confirmed = window.confirm(`确认将 ${selectedIds.value.size} 个壁纸${action}？`)
+  if (!confirmed) return
+
+  try {
+    batchLoading.value = true
+    const ids = Array.from(selectedIds.value)
+    await adminService.adminBatchSetFeatured(ids, isFeatured)
+    showNotification(`已${action} ${ids.length} 个壁纸`)
+    selectedIds.value.clear()
+    await loadWallpapers()
+  } catch (error) {
+    console.error(`批量${action}失败:`, error)
+    showNotification(`批量${action}失败`, 'error')
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+// 编辑壁纸标题/描述
+const openEditModal = (wallpaper: AdminWallpaper) => {
+  editWallpaper.value = wallpaper
+  editForm.title = wallpaper.title || ''
+  editForm.description = wallpaper.description || ''
+}
+
+const closeEditModal = () => {
+  editWallpaper.value = null
+  editForm.title = ''
+  editForm.description = ''
+}
+
+const submitEdit = async () => {
+  if (!editWallpaper.value) return
+  try {
+    editLoading.value = true
+    await adminService.adminUpdateWallpaper(editWallpaper.value.id, {
+      title: editForm.title,
+      description: editForm.description,
+    })
+    showNotification('壁纸信息已更新')
+    closeEditModal()
+    await loadWallpapers()
+  } catch (error) {
+    console.error('更新壁纸信息失败:', error)
+    showNotification('更新失败，请稍后重试', 'error')
+  } finally {
+    editLoading.value = false
   }
 }
 

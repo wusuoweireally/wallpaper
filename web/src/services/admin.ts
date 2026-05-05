@@ -73,6 +73,9 @@ export interface AdminWallpaper {
   viewCount: number
   likeCount: number
   favoriteCount: number
+  isFeatured?: boolean
+  title?: string
+  description?: string
   createdAt: string
   updatedAt?: string
   tags?: (string | AdminWallpaperTag)[]
@@ -94,6 +97,8 @@ export interface AdminWallpaperQuery {
 
 export interface UpdateAdminWallpaper {
   category?: "general" | "anime" | "people"
+  title?: string
+  description?: string
 }
 
 export interface UpdateWallpaperTags {
@@ -216,6 +221,14 @@ class AdminService {
 
   async adminDeleteWallpaper(id: number) {
     return api.delete(`/admin/wallpapers/${id}`)
+  }
+
+  async adminBatchDeleteWallpapers(ids: number[]) {
+    return api.post("/admin/wallpapers/batch-delete", { ids })
+  }
+
+  async adminBatchSetFeatured(ids: number[], isFeatured: boolean) {
+    return api.post("/admin/wallpapers/batch-featured", { ids, isFeatured })
   }
 
   // 举报管理

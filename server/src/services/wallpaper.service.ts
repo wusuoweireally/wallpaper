@@ -501,8 +501,11 @@ export class WallpaperService {
 
     if (filters.search) {
       const searchTerm = `%${filters.search}%`;
+      qb.andWhere(
+        '(wallpaper.title LIKE :search OR wallpaper.description LIKE :search OR searchTags.name LIKE :search)',
+        { search: searchTerm },
+      );
       qb.leftJoinAndSelect("wallpaper.tags", "searchTags");
-      qb.andWhere("searchTags.name LIKE :search", { search: searchTerm });
     }
 
     if (filters.status !== undefined) {
@@ -528,6 +531,26 @@ export class WallpaperService {
       .getManyAndCount();
 
     return { data, total };
+  }
+
+  async batchSetFeatured(
+    ids: number[],
+    isFeatured: boolean,
+  ): Promise<{ updatedCount: number; failedIds: number[] }> {
+    let updatedCount = 0;
+    const failedIds: number[] = [];
+
+    for (const id of ids) {
+      try {
+        await this.wallpaperRepository.update(id, { isFeatured });
+        updatedCount++;
+      } catch (error) {
+        console.error(`设置壁纸 ID ${id} 推荐状态失败:`, error);
+        failedIds.push(id);
+      }
+    }
+
+    return { updatedCount, failedIds };
   }
 
   async updateWallpaperTags(
