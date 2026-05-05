@@ -48,6 +48,11 @@ lerna-debug.log*
 docker/nginx/ssl/
 
 # ---------------
+# Docker Compose .env 副本（敏感）
+# ---------------
+.env.prod
+
+# ---------------
 # 编辑器和 IDE 配置
 # ---------------
 # macOS
