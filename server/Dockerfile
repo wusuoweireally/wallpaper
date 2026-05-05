@@ -20,6 +20,9 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Install curl for healthcheck
+RUN apt-get update -qq && apt-get install -y -qq curl ca-certificates --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
 # Copy runtime artifacts
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
