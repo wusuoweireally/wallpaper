@@ -400,9 +400,9 @@ const resolutions = [
   { value: "2k", label: "2K" },
   { value: "1080p", label: "1080p" },
   { value: "720p", label: "720p" },
-  { value: "4k-v", label: "4K 竖屏" },
-  { value: "2k-v", label: "2K 竖屏" },
-  { value: "1080p-v", label: "1080p 竖屏" },
+  { value: "4k-portrait", label: "4K 竖屏" },
+  { value: "2k-portrait", label: "2K 竖屏" },
+  { value: "1080p-portrait", label: "1080p 竖屏" },
 ]
 
 const ratios = ["16:9", "16:10", "4:3", "21:9", "1:1", "9:16"]

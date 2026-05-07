@@ -358,21 +358,24 @@ const handleDownload = async () => {
   if (downloading.value) return
   downloading.value = true
   try {
-    await wallpaperService.recordDownload(props.wallpaper.id)
-  } catch {
-    // 下载计数失败不影响下载
+    try {
+      await wallpaperService.recordDownload(props.wallpaper.id)
+    } catch (e) {
+      console.warn('下载计数失败:', e)
+    }
+    const ext = props.wallpaper.format?.toLowerCase() || props.wallpaper.fileUrl.split('.').pop() || 'jpg'
+    const titlePart = props.wallpaper.title ? `-${props.wallpaper.title.replace(/[^\w一-龥]/g, '_').slice(0, 50)}` : ''
+    const fileName = `wallpaper-${props.wallpaper.id}${titlePart}.${ext}`
+    const link = document.createElement('a')
+    link.href = props.wallpaper.fileUrl
+    link.download = fileName
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  } finally {
+    downloading.value = false
   }
-  const ext = props.wallpaper.format?.toLowerCase() || props.wallpaper.fileUrl.split('.').pop() || 'jpg'
-  const titlePart = props.wallpaper.title ? `-${props.wallpaper.title.replace(/[^\w\u4e00-\u9fa5]/g, '_').slice(0, 50)}` : ''
-  const fileName = `wallpaper-${props.wallpaper.id}${titlePart}.${ext}`
-  const link = document.createElement('a')
-  link.href = props.wallpaper.fileUrl
-  link.download = fileName
-  link.rel = 'noopener'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  downloading.value = false
 }
 
 const handleImageError = () => {
