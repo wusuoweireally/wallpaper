@@ -88,6 +88,10 @@ export class WallpaperQueryDto {
 
   @IsString()
   @IsOptional()
+  orientation?: string;
+
+  @IsString()
+  @IsOptional()
   category?: "general" | "anime" | "people";
 
   @IsString()
