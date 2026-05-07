@@ -37,6 +37,15 @@ export class Wallpaper {
   @Index("idx_category")
   category: "general" | "anime" | "people";
 
+  @Column({
+    name: "sub_category",
+    length: 50,
+    nullable: true,
+    comment: "子分类: nature-自然, city-城市, abstract-抽象, cyberpunk-赛博朋克, minimal-极简, dark-暗黑, cute-可爱, game-游戏, movie-影视, other-其他",
+  })
+  @Index("idx_sub_category")
+  subCategory: string;
+
 
 
   @Column({

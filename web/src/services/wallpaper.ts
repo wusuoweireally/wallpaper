@@ -20,6 +20,7 @@ export interface WallpaperQueryParams {
   aspectRatio?: number
   orientation?: string
   category?: "general" | "anime" | "people"
+  subCategory?: string
   format?: string
   minFileSize?: number
   maxFileSize?: number
@@ -68,6 +69,7 @@ export interface Wallpaper {
   id: number
   fileUrl: string
   category: "general" | "anime" | "people"
+  subCategory?: string
   thumbnailUrl?: string
   fileSize: number
   format?: string
@@ -169,6 +171,7 @@ class WallpaperService {
       if (params.sortBy) queryParams.sortBy = params.sortBy
       if (params.sortOrder) queryParams.sortOrder = params.sortOrder
       if (params.category) queryParams.category = params.category
+      if (params.subCategory) queryParams.subCategory = params.subCategory
       if (params.aspectRatio) queryParams.aspectRatio = params.aspectRatio
       if (params.orientation) queryParams.orientation = params.orientation
       if (params.minWidth) queryParams.minWidth = params.minWidth

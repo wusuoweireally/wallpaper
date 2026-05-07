@@ -80,6 +80,48 @@
           </ul>
         </div>
 
+        <!-- 子分类筛选（仅在选择了大类时显示） -->
+        <div v-if="availableSubCategories.length > 0" class="dropdown dropdown-hover">
+          <div
+            tabindex="0"
+            role="button"
+            class="bg-base-100/80 border-base-content/20 hover:border-primary/50 btn btn-outline btn-sm h-10 border-2 transition-all dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:hover:border-primary/60"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 text-info"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M10 4H4c-1.1 0-2 .9-2 2s.9 2 2 2h6c1.1 0 2-.9 2-2s-.9-2-2-2zM4 8c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1H4zm6 6H4c-1.1 0-2 .9-2 2s.9 2 2 2h6c1.1 0 2-.9 2-2s-.9-2-2-2zm-6 4c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1H4zm10-12h6c1.1 0 2 .9 2 2s-.9 2-2 2h-6c-1.1 0-2-.9-2-2s.9-2 2-2zm6 4c.55 0 1-.45 1-1s-.45-1-1-1h-6c-.55 0-1 .45-1 1s.45 1 1 1h6zm0 2h-6c-1.1 0-2 .9-2 2s.9 2 2 2h6c1.1 0 2-.9 2-2s-.9-2-2-2zm-6 4c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1h-6z" />
+            </svg>
+            <span class="ml-1 text-sm font-medium">子类:</span>
+            <span class="text-base-content/80 text-sm">{{ getSubCategoryLabel }}</span>
+          </div>
+          <ul
+            tabindex="0"
+            class="ring-base-content/10 dropdown-content menu z-10 w-56 rounded-xl bg-base-100 p-2 shadow-xl ring-1 dark:bg-slate-900 dark:ring-white/10"
+          >
+            <li>
+              <a
+                @click="updateSubCategory('')"
+                :class="{ active: !props.modelValue.subCategory }"
+                class="hover:bg-primary/10 rounded-lg transition-all dark:hover:bg-slate-800"
+                >全部</a
+              >
+            </li>
+            <li v-for="sub in availableSubCategories" :key="sub.value">
+              <a
+                @click="updateSubCategory(sub.value)"
+                :class="{ active: props.modelValue.subCategory === sub.value }"
+                class="hover:bg-primary/10 rounded-lg transition-all"
+              >
+                {{ sub.label }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
         <!-- 尺寸筛选 -->
         <div class="dropdown dropdown-hover">
           <div
@@ -348,6 +390,7 @@ import tagService, { type Tag } from "@/services/tag"
 interface Filters {
   sortBy: "latest" | "popular" | "random" | "likes" | "downloads"
   category: string
+  subCategory: string
   resolution: string
   ratio: string
   orientation: string
@@ -388,6 +431,36 @@ const categories = [
   { value: "people", label: "人物" },
 ]
 
+// 子分类按大类分组
+const subCategoryMap: Record<string, { value: string; label: string }[]> = {
+  general: [
+    { value: "nature", label: "🌿 自然风光" },
+    { value: "city", label: "🏙️ 城市建筑" },
+    { value: "abstract", label: "🎨 抽象艺术" },
+    { value: "minimal", label: "🤍 极简主义" },
+    { value: "dark", label: "🌑 暗黑风格" },
+    { value: "other", label: "📦 其他" },
+  ],
+  anime: [
+    { value: "landscape", label: "⛰️ 场景" },
+    { value: "character", label: "👤 角色" },
+    { value: "cute", label: "💕 可爱" },
+    { value: "cyberpunk", label: "🤖 赛博朋克" },
+    { value: "game", label: "🎮 游戏" },
+    { value: "other", label: "📦 其他" },
+  ],
+  people: [
+    { value: "portrait", label: "📷 人像" },
+    { value: "fashion", label: "👗 时尚" },
+    { value: "movie", label: "🎬 影视" },
+    { value: "other", label: "📦 其他" },
+  ],
+}
+
+const availableSubCategories = computed(() => {
+  return props.modelValue.category ? subCategoryMap[props.modelValue.category] || [] : []
+})
+
 const formats = [
   { value: "jpeg", label: "JPG" },
   { value: "png", label: "PNG" },
@@ -422,6 +495,13 @@ const getCategoryLabel = computed(() => {
   return categories.find((c) => c.value === props.modelValue.category)?.label || "全部"
 })
 
+const getSubCategoryLabel = computed(() => {
+  if (!props.modelValue.category || !props.modelValue.subCategory) return "全部"
+  const subs = subCategoryMap[props.modelValue.category] || []
+  const found = subs.find((s) => s.value === props.modelValue.subCategory)
+  return found?.label || "全部"
+})
+
 const getResolutionLabel = computed(() => {
   return props.modelValue.resolution || "全部"
 })
@@ -437,6 +517,7 @@ const getFormatLabel = computed(() => {
 const hasActiveFilters = computed(() => {
   return (
     props.modelValue.category ||
+    props.modelValue.subCategory ||
     props.modelValue.resolution ||
     props.modelValue.ratio ||
     props.modelValue.format ||
@@ -477,7 +558,12 @@ const updateSort = (sortBy: "latest" | "popular" | "random") => {
 }
 
 const updateCategory = (category: string) => {
-  updateFilters({ category })
+  // 切换大类时清除子分类
+  updateFilters({ category, subCategory: "" })
+}
+
+const updateSubCategory = (subCategory: string) => {
+  updateFilters({ subCategory })
 }
 
 const updateResolution = (resolution: string) => {
@@ -546,6 +632,7 @@ const fetchTagSuggestions = async (keyword: string) => {
 const resetFilters = () => {
   updateFilters({
     category: "",
+    subCategory: "",
     resolution: "",
     ratio: "",
     orientation: "",

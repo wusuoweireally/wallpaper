@@ -172,4 +172,10 @@ const visiblePages = computed(() => {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 0.5rem;
 }
+
+/* 虚拟滚动优化：content-visibility 自动跳过不可见区域的渲染 */
+.auto-grid > :deep(*) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 380px;
+}
 </style>

@@ -83,6 +83,7 @@ export class WallpaperService {
     aspectRatio?: number,
     orientation?: string,
     category?: "general" | "anime" | "people",
+    subCategory?: string,
     search?: string,
     format?: string,
     minFileSize?: number,
@@ -110,6 +111,11 @@ export class WallpaperService {
     // 添加分类筛选
     if (category) {
       queryBuilder.andWhere("wallpaper.category = :category", { category });
+    }
+
+    // 添加子分类筛选
+    if (subCategory) {
+      queryBuilder.andWhere("wallpaper.subCategory = :subCategory", { subCategory });
     }
 
     // 添加尺寸筛选

@@ -101,6 +101,31 @@
         </div>
       </section>
 
+      <!-- Hot Categories -->
+      <section
+        class="rounded-[2.25rem] bg-white/85 p-8 shadow-2xl ring-1 ring-black/5 dark:bg-slate-900/80 dark:ring-white/10"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-6">
+          <div>
+            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">快速探索</p>
+            <h2 class="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              热门分类
+            </h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+          <router-link
+            v-for="cat in hotCategories"
+            :key="cat.label"
+            :to="cat.to"
+            :class="`bg-gradient-to-r ${cat.color}`"
+            class="flex items-center justify-center rounded-xl px-4 py-4 text-sm font-semibold text-white shadow-md transition hover:scale-105 hover:shadow-lg"
+          >
+            {{ cat.label }}
+          </router-link>
+        </div>
+      </section>
+
       <!-- Popular Wallpapers -->
       <section
         class="rounded-[2.25rem] bg-white/85 p-8 shadow-2xl ring-1 ring-black/5 dark:bg-slate-900/80 dark:ring-white/10"
@@ -241,6 +266,17 @@ const quickFilters = [
   { label: "4K 高清", to: { path: "/wallpapers", query: { resolution: "4k" } } },
   { label: "最新发布", to: { path: "/wallpapers", query: { sort: "latest" } } },
   { label: "编辑推荐", to: { path: "/wallpapers", query: { sort: "popular" } } },
+]
+
+const hotCategories = [
+  { label: "🌿 自然", to: { path: "/wallpapers", query: { category: "general", subCategory: "nature" } }, color: "from-emerald-500 to-teal-600" },
+  { label: "🏙️ 城市", to: { path: "/wallpapers", query: { category: "general", subCategory: "city" } }, color: "from-blue-500 to-indigo-600" },
+  { label: "🎨 抽象", to: { path: "/wallpapers", query: { category: "general", subCategory: "abstract" } }, color: "from-purple-500 to-pink-600" },
+  { label: "🤍 极简", to: { path: "/wallpapers", query: { category: "general", subCategory: "minimal" } }, color: "from-gray-500 to-slate-600" },
+  { label: "🌑 暗黑", to: { path: "/wallpapers", query: { category: "general", subCategory: "dark" } }, color: "from-slate-700 to-gray-900" },
+  { label: "🤖 赛博朋克", to: { path: "/wallpapers", query: { category: "anime", subCategory: "cyberpunk" } }, color: "from-cyan-500 to-violet-600" },
+  { label: "💕 可爱", to: { path: "/wallpapers", query: { category: "anime", subCategory: "cute" } }, color: "from-pink-400 to-rose-500" },
+  { label: "🎮 游戏", to: { path: "/wallpapers", query: { category: "anime", subCategory: "game" } }, color: "from-orange-500 to-red-600" },
 ]
 
 const currentYear = new Date().getFullYear()

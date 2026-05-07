@@ -83,6 +83,7 @@ interface ApiWallpaperResponse {
 interface Filters {
   sortBy: "latest" | "popular" | "random" | "likes" | "downloads"
   category: string
+  subCategory: string
   resolution: string
   ratio: string
   orientation: string
@@ -112,6 +113,7 @@ const sentinelRef = ref<HTMLElement | null>(null)
 const filters = ref<Filters>({
   sortBy: "latest",
   category: "",
+  subCategory: "",
   resolution: "",
   ratio: "",
   orientation: "",
@@ -221,6 +223,7 @@ const buildQueryParams = () => {
     category: filters.value.category
       ? (filters.value.category as "general" | "anime" | "people")
       : undefined,
+    subCategory: filters.value.subCategory || undefined,
     format: filters.value.format || undefined,
     aspectRatio,
     orientation: filters.value.orientation || undefined,
@@ -310,6 +313,7 @@ const resetFilters = () => {
   filters.value = {
     sortBy: "latest",
     category: "",
+    subCategory: "",
     resolution: "",
     ratio: "",
     orientation: "",
