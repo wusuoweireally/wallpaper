@@ -175,11 +175,11 @@
             :key="orient.value"
             class="btn btn-sm h-9 rounded-lg border-2 transition-all"
             :class="
-              props.modelValue.ratio === orient.value
+              props.modelValue.orientation === orient.value
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-base-content/20 bg-base-100/80 hover:border-primary/40 dark:bg-slate-800/80 dark:border-slate-600/60'
             "
-            @click="updateRatio(props.modelValue.ratio === orient.value ? '' : orient.value)"
+            @click="updateOrientation(props.modelValue.orientation === orient.value ? '' : orient.value)"
             :title="orient.label"
           >
             <span class="text-xs font-medium">{{ orient.icon }} {{ orient.label }}</span>
@@ -350,6 +350,7 @@ interface Filters {
   category: string
   resolution: string
   ratio: string
+  orientation: string
   format: string
   search: string
 }
@@ -407,9 +408,9 @@ const resolutions = [
 const ratios = ["16:9", "16:10", "4:3", "21:9", "1:1", "9:16"]
 
 const orientationOptions = [
-  { value: "16:9", label: "横屏", icon: "🖥️" },
-  { value: "9:16", label: "竖屏", icon: "📱" },
-  { value: "1:1", label: "方形", icon: "⬜" },
+  { value: "landscape", label: "横屏", icon: "🖥️" },
+  { value: "portrait", label: "竖屏", icon: "📱" },
+  { value: "square", label: "方形", icon: "⬜" },
 ]
 
 // 计算属性
@@ -487,6 +488,10 @@ const updateRatio = (ratio: string) => {
   updateFilters({ ratio })
 }
 
+const updateOrientation = (orientation: string) => {
+  updateFilters({ orientation })
+}
+
 const updateFormat = (format: string) => {
   updateFilters({ format })
 }
@@ -543,6 +548,7 @@ const resetFilters = () => {
     category: "",
     resolution: "",
     ratio: "",
+    orientation: "",
     format: "",
     search: "",
   })

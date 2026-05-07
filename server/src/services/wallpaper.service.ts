@@ -81,6 +81,7 @@ export class WallpaperService {
     minHeight?: number,
     maxHeight?: number,
     aspectRatio?: number,
+    orientation?: string,
     category?: "general" | "anime" | "people",
     search?: string,
     format?: string,
@@ -131,6 +132,15 @@ export class WallpaperService {
       queryBuilder
         .andWhere("wallpaper.aspectRatio >= :minRatio", { minRatio: aspectRatio - tolerance })
         .andWhere("wallpaper.aspectRatio <= :maxRatio", { maxRatio: aspectRatio + tolerance });
+    }
+
+    // 添加方向筛选
+    if (orientation === "landscape") {
+      queryBuilder.andWhere("wallpaper.width > wallpaper.height");
+    } else if (orientation === "portrait") {
+      queryBuilder.andWhere("wallpaper.height > wallpaper.width");
+    } else if (orientation === "square") {
+      queryBuilder.andWhere("wallpaper.width = wallpaper.height");
     }
 
     // 添加文件格式筛选

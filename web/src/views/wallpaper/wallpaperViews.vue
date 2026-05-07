@@ -85,6 +85,7 @@ interface Filters {
   category: string
   resolution: string
   ratio: string
+  orientation: string
   format: string
   search: string
 }
@@ -113,6 +114,7 @@ const filters = ref<Filters>({
   category: "",
   resolution: "",
   ratio: "",
+  orientation: "",
   format: "",
   search: "",
 })
@@ -221,6 +223,7 @@ const buildQueryParams = () => {
       : undefined,
     format: filters.value.format || undefined,
     aspectRatio,
+    orientation: filters.value.orientation || undefined,
     minWidth,
     maxWidth,
     minHeight,
@@ -309,6 +312,7 @@ const resetFilters = () => {
     category: "",
     resolution: "",
     ratio: "",
+    orientation: "",
     format: "",
     search: "",
   }
