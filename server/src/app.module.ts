@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { HttpModule } from "@nestjs/axios";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { APP_GUARD } from "@nestjs/core";
 import { join } from "path";
 
 //用户自定义的模块
@@ -44,13 +46,26 @@ import { AdminModule } from "./modules/admin.module";
           keepConnectionAlive: true,
           connectorPackage: "mysql2" as const,
         };
-        console.log("DB Config (sanitized):", {
-          ...dbConfig,
-          password: "***",
-        });
         return dbConfig;
       },
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: "default",
+        ttl: 60000,
+        limit: 100,
+      },
+      {
+        name: "auth",
+        ttl: 300000,
+        limit: 10,
+      },
+      {
+        name: "upload",
+        ttl: 3600000,
+        limit: 50,
+      },
+    ]),
     HttpModule,
     ScheduleModule.forRoot(),
     UserModule,
@@ -58,6 +73,12 @@ import { AdminModule } from "./modules/admin.module";
     TagModule,
     ForumModule,
     AdminModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

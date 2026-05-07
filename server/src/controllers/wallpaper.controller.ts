@@ -13,6 +13,7 @@ import {
   UseGuards,
   Req,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Request } from "express";
 import { InjectConnection } from "@nestjs/typeorm";
@@ -55,6 +56,7 @@ export class WallpaperController {
    */
   @Post("upload")
   @UseGuards(JwtAuthGuard)
+  @Throttle({ upload: { limit: 50, ttl: 3600000 } })
   @UseInterceptors(FileInterceptor("file"))
   async uploadWallpaper(
     @UploadedFile() file: Express.Multer.File,

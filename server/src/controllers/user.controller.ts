@@ -19,6 +19,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
+import { Throttle, SkipThrottle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { extname } from "path";
@@ -49,6 +50,7 @@ export class UserController {
 
   // 用户注册（仅支持JSON格式，不支持头像上传）
   @Post("register")
+  @Throttle({ auth: { limit: 5, ttl: 300000 } })
   async register(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
 
@@ -65,6 +67,7 @@ export class UserController {
   // 用户登录
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ auth: { limit: 10, ttl: 300000 } })
   async login(
     @Body(ValidationPipe) loginDto: LoginDto,
     @Req() request: Request,

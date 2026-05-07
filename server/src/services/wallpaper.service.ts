@@ -343,47 +343,44 @@ export class WallpaperService {
   }
 
   /**
+   * 切换点赞状态（使用事务防止竞态条件）
+   */
+  async toggleLike(userId: number, wallpaperId: number): Promise<{ isLiked: boolean }> {
+    return await this.dataSource.transaction(async (manager) => {
+      const userLikeRepo = manager.getRepository(UserLike);
+      const wallpaperRepo = manager.getRepository(Wallpaper);
+
+      const existingLike = await userLikeRepo.findOne({
+        where: { userId, wallpaperId },
+      });
+
+      if (existingLike) {
+        await userLikeRepo.delete({ id: existingLike.id });
+        await wallpaperRepo.decrement({ id: wallpaperId }, "likeCount", 1);
+        return { isLiked: false };
+      } else {
+        const userLike = userLikeRepo.create({ userId, wallpaperId });
+        await userLikeRepo.save(userLike);
+        await wallpaperRepo.increment({ id: wallpaperId }, "likeCount", 1);
+        return { isLiked: true };
+      }
+    });
+  }
+
+  /**
    * 增加点赞次数（同时创建用户点赞记录）
+   * @deprecated 使用 toggleLike 替代
    */
   async incrementLikeCount(userId: number, wallpaperId: number): Promise<void> {
-    // 检查是否已点赞
-    const existingLike = await this.userLikeRepository.findOne({
-      where: { userId, wallpaperId },
-    });
-
-    // 如果未点赞，创建点赞记录并增加计数
-    if (!existingLike) {
-      const userLike = this.userLikeRepository.create({
-        userId,
-        wallpaperId,
-      });
-      await this.userLikeRepository.save(userLike);
-      await this.wallpaperRepository.increment(
-        { id: wallpaperId },
-        "likeCount",
-        1,
-      );
-    }
+    await this.toggleLike(userId, wallpaperId);
   }
 
   /**
    * 减少点赞次数（同时删除用户点赞记录）
+   * @deprecated 使用 toggleLike 替代
    */
   async decrementLikeCount(userId: number, wallpaperId: number): Promise<void> {
-    // 查找并删除点赞记录
-    const result = await this.userLikeRepository.delete({
-      userId,
-      wallpaperId,
-    });
-
-    // 如果删除成功，减少计数
-    if (result.affected && result.affected > 0) {
-      await this.wallpaperRepository.decrement(
-        { id: wallpaperId },
-        "likeCount",
-        1,
-      );
-    }
+    await this.toggleLike(userId, wallpaperId);
   }
 
   /**
@@ -423,53 +420,50 @@ export class WallpaperService {
   }
 
   /**
+   * 切换收藏状态（使用事务防止竞态条件）
+   */
+  async toggleFavorite(userId: number, wallpaperId: number): Promise<{ isFavorited: boolean }> {
+    return await this.dataSource.transaction(async (manager) => {
+      const userFavoriteRepo = manager.getRepository(UserFavorite);
+      const wallpaperRepo = manager.getRepository(Wallpaper);
+
+      const existingFavorite = await userFavoriteRepo.findOne({
+        where: { userId, wallpaperId },
+      });
+
+      if (existingFavorite) {
+        await userFavoriteRepo.delete({ id: existingFavorite.id });
+        await wallpaperRepo.decrement({ id: wallpaperId }, "favoriteCount", 1);
+        return { isFavorited: false };
+      } else {
+        const userFavorite = userFavoriteRepo.create({ userId, wallpaperId });
+        await userFavoriteRepo.save(userFavorite);
+        await wallpaperRepo.increment({ id: wallpaperId }, "favoriteCount", 1);
+        return { isFavorited: true };
+      }
+    });
+  }
+
+  /**
    * 增加收藏次数（同时创建用户收藏记录）
+   * @deprecated 使用 toggleFavorite 替代
    */
   async incrementFavoriteCount(
     userId: number,
     wallpaperId: number,
   ): Promise<void> {
-    // 检查是否已收藏
-    const existingFavorite = await this.userFavoriteRepository.findOne({
-      where: { userId, wallpaperId },
-    });
-
-    // 如果未收藏，创建收藏记录并增加计数
-    if (!existingFavorite) {
-      const userFavorite = this.userFavoriteRepository.create({
-        userId,
-        wallpaperId,
-      });
-      await this.userFavoriteRepository.save(userFavorite);
-      await this.wallpaperRepository.increment(
-        { id: wallpaperId },
-        "favoriteCount",
-        1,
-      );
-    }
+    await this.toggleFavorite(userId, wallpaperId);
   }
 
   /**
    * 减少收藏次数（同时删除用户收藏记录）
+   * @deprecated 使用 toggleFavorite 替代
    */
   async decrementFavoriteCount(
     userId: number,
     wallpaperId: number,
   ): Promise<void> {
-    // 查找并删除收藏记录
-    const result = await this.userFavoriteRepository.delete({
-      userId,
-      wallpaperId,
-    });
-
-    // 如果删除成功，减少计数
-    if (result.affected && result.affected > 0) {
-      await this.wallpaperRepository.decrement(
-        { id: wallpaperId },
-        "favoriteCount",
-        1,
-      );
-    }
+    await this.toggleFavorite(userId, wallpaperId);
   }
 
   /**
