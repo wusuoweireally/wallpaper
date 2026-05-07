@@ -55,13 +55,31 @@
                   </svg>
                   {{ favoriteCount }}
                 </span>
+                <span class="inline-flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 3.75-3.75M12 15 8.25 11.25M4.5 15.75V18A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25" />
+                  </svg>
+                  {{ wallpaper.downloadCount || 0 }}
+                </span>
               </div>
-              <button
-                class="pointer-events-auto rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white shadow-md transition hover:scale-105 hover:shadow-lg"
-                @click.stop="router.push(`/wallpaper/${wallpaper.id}`)"
-              >
-                查看详情
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="pointer-events-auto inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900/70 text-white transition hover:-translate-y-0.5 hover:bg-slate-900"
+                  :disabled="downloading"
+                  @click.stop="handleDownload"
+                  title="下载原图"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 3.75-3.75M12 15 8.25 11.25M4.5 15.75V18A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25" />
+                  </svg>
+                </button>
+                <button
+                  class="pointer-events-auto rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white shadow-md transition hover:scale-105 hover:shadow-lg"
+                  @click.stop="router.push(`/wallpaper/${wallpaper.id}`)"
+                >
+                  查看详情
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -238,6 +256,7 @@ const isLiked = ref(Boolean(props.wallpaper.isLiked))
 const isFavorited = ref(Boolean(props.wallpaper.isFavorited))
 const liking = ref(false)
 const favoriting = ref(false)
+const downloading = ref(false)
 
 const handleCardClick = () => {
   router.push(`/wallpaper/${props.wallpaper.id}`)
@@ -333,6 +352,27 @@ const handleFavorite = async () => {
 const handleImageLoad = () => {
   imageLoaded.value = true
   imageError.value = false
+}
+
+const handleDownload = async () => {
+  if (downloading.value) return
+  downloading.value = true
+  try {
+    await wallpaperService.recordDownload(props.wallpaper.id)
+  } catch {
+    // 下载计数失败不影响下载
+  }
+  const ext = props.wallpaper.format?.toLowerCase() || props.wallpaper.fileUrl.split('.').pop() || 'jpg'
+  const titlePart = props.wallpaper.title ? `-${props.wallpaper.title.replace(/[^\w\u4e00-\u9fa5]/g, '_').slice(0, 50)}` : ''
+  const fileName = `wallpaper-${props.wallpaper.id}${titlePart}.${ext}`
+  const link = document.createElement('a')
+  link.href = props.wallpaper.fileUrl
+  link.download = fileName
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  downloading.value = false
 }
 
 const handleImageError = () => {

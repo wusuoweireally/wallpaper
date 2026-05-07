@@ -112,13 +112,13 @@
                 >全部</a
               >
             </li>
-            <li v-for="resolution in resolutions" :key="resolution">
+            <li v-for="resolution in resolutions" :key="resolution.value">
               <a
-                @click="updateResolution(resolution)"
-                :class="{ active: props.modelValue.resolution === resolution }"
+                @click="updateResolution(resolution.value)"
+                :class="{ active: props.modelValue.resolution === resolution.value }"
                 class="hover:bg-primary/10 rounded-lg transition-all"
               >
-                {{ resolution }}
+                {{ resolution.label }}
               </a>
             </li>
           </ul>
@@ -166,6 +166,24 @@
               </a>
             </li>
           </ul>
+        </div>
+
+        <!-- 方向快捷切换 -->
+        <div class="flex items-center gap-1">
+          <button
+            v-for="orient in orientationOptions"
+            :key="orient.value"
+            class="btn btn-sm h-9 rounded-lg border-2 transition-all"
+            :class="
+              props.modelValue.ratio === orient.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-base-content/20 bg-base-100/80 hover:border-primary/40 dark:bg-slate-800/80 dark:border-slate-600/60'
+            "
+            @click="updateRatio(props.modelValue.ratio === orient.value ? '' : orient.value)"
+            :title="orient.label"
+          >
+            <span class="text-xs font-medium">{{ orient.icon }} {{ orient.label }}</span>
+          </button>
         </div>
 
         <!-- 格式筛选 -->
@@ -219,7 +237,7 @@
               :value="props.modelValue.search"
               @input="handleSearchInputEvent"
               type="text"
-              placeholder="搜索壁纸标题或标签..."
+              placeholder="搜索壁纸标题、描述或标签..."
               class="border-base-content/20 bg-base-100/80 focus:border-primary/50 focus:ring-primary/10 hover:border-base-content/30 input input-sm h-10 w-full rounded-xl border-2 pl-10 pr-10 shadow-sm transition-all focus:ring-2 dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-600/60 dark:placeholder:text-slate-400"
               @keyup.enter.prevent="handleSearch"
             />
@@ -376,16 +394,23 @@ const formats = [
 ]
 
 const resolutions = [
-  "1920x1080",
-  "2560x1440",
-  "3840x2160",
-  "5120x2880",
-  "1080x1920",
-  "1440x2560",
-  "2160x3840",
+  { value: "5k", label: "5K+" },
+  { value: "4k", label: "4K" },
+  { value: "2k", label: "2K" },
+  { value: "1080p", label: "1080p" },
+  { value: "720p", label: "720p" },
+  { value: "4k-v", label: "4K 竖屏" },
+  { value: "2k-v", label: "2K 竖屏" },
+  { value: "1080p-v", label: "1080p 竖屏" },
 ]
 
 const ratios = ["16:9", "16:10", "4:3", "21:9", "1:1", "9:16"]
+
+const orientationOptions = [
+  { value: "16:9", label: "横屏", icon: "🖥️" },
+  { value: "9:16", label: "竖屏", icon: "📱" },
+  { value: "1:1", label: "方形", icon: "⬜" },
+]
 
 // 计算属性
 const getSortLabel = computed(() => {

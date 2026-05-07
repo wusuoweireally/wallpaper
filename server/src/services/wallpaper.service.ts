@@ -97,10 +97,13 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.tags", "tags")
       .distinct(true);
 
-    // 添加搜索条件（按标签名匹配）
+    // 全文搜索：匹配标题、描述、标签名
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
-      queryBuilder.andWhere("tags.name LIKE :search", { search: searchTerm });
+      queryBuilder.andWhere(
+        '(wallpaper.title LIKE :search OR wallpaper.description LIKE :search OR tags.name LIKE :search)',
+        { search: searchTerm },
+      );
     }
 
     // 添加分类筛选
@@ -122,11 +125,12 @@ export class WallpaperService {
       queryBuilder.andWhere("wallpaper.height <= :maxHeight", { maxHeight });
     }
 
-    // 添加宽高比筛选
+    // 添加宽高比筛选（±10% 容差）
     if (aspectRatio) {
-      queryBuilder.andWhere("wallpaper.aspectRatio = :aspectRatio", {
-        aspectRatio,
-      });
+      const tolerance = aspectRatio * 0.1;
+      queryBuilder
+        .andWhere("wallpaper.aspectRatio >= :minRatio", { minRatio: aspectRatio - tolerance })
+        .andWhere("wallpaper.aspectRatio <= :maxRatio", { maxRatio: aspectRatio + tolerance });
     }
 
     // 添加文件格式筛选

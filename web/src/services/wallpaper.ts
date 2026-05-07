@@ -78,6 +78,7 @@ export interface Wallpaper {
   viewCount: number
   likeCount: number
   favoriteCount: number
+  downloadCount: number
   status: number
   isFeatured: boolean
   title?: string

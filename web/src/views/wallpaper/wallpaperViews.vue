@@ -184,15 +184,24 @@ const buildQueryParams = () => {
   let minHeight: number | undefined
   let maxHeight: number | undefined
 
+  // 分辨率档位 → 最小宽高阈值（模糊匹配，不锁上限）
+  const resolutionTiers: Record<string, { minW: number; minH: number }> = {
+    "5k":     { minW: 4800, minH: 2700 },
+    "4k":     { minW: 3000, minH: 1600 },
+    "2k":     { minW: 2200, minH: 1200 },
+    "1080p":  { minW: 1600, minH: 900 },
+    "720p":   { minW: 1000, minH: 600 },
+    "4k-v":   { minW: 1600, minH: 3000 },
+    "2k-v":   { minW: 1200, minH: 2200 },
+    "1080p-v": { minW: 900, minH: 1600 },
+  }
+
   if (filters.value.resolution) {
-    const [width, height] = filters.value.resolution.split("x").map(Number)
-    const tolerance = 0.1
-    const widthTolerance = Math.floor(width * tolerance)
-    const heightTolerance = Math.floor(height * tolerance)
-    minWidth = Math.max(width - widthTolerance, 1)
-    maxWidth = width + widthTolerance
-    minHeight = Math.max(height - heightTolerance, 1)
-    maxHeight = height + heightTolerance
+    const tier = resolutionTiers[filters.value.resolution]
+    if (tier) {
+      minWidth = tier.minW
+      minHeight = tier.minH
+    }
   }
 
   let aspectRatio: number | undefined
