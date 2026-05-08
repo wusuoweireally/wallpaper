@@ -69,6 +69,7 @@
                   :src="authorAvatar"
                   :alt="post.author?.username || '用户头像'"
                   class="h-full w-full object-cover"
+                  @error="handleAvatarError"
                 />
               </div>
             </div>
@@ -153,6 +154,7 @@ import { forumService } from "@/services/forum"
 import type { Post } from "@/stores/forum"
 import { resolveAvatarUrl } from "@/utils/avatar"
 import { stripHtml as stripHtmlUtil } from "@/utils/htmlSanitizer"
+import { useGlobalToast } from "@/composables/useToast"
 
 interface Props {
   post: Post
@@ -176,6 +178,7 @@ const emit = defineEmits<{
 const router = useRouter()
 const forumStore = useForumStore()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 const loading = ref(false)
 
@@ -187,6 +190,11 @@ const authorAvatar = computed(() => {
   const raw = props.post.author?.avatarUrl || props.post.author?.profilePicture || undefined
   return resolveAvatarUrl(raw)
 })
+
+const handleAvatarError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
+}
 
 const handlePostClick = () => {
   router.push(`/forums/post/${props.post.id}`)
@@ -213,6 +221,7 @@ const handleLike = async () => {
     emit("like", props.post)
   } catch (error) {
     console.error("点赞操作失败:", error)
+    toast.error("点赞失败，请重试")
   } finally {
     loading.value = false
   }
@@ -236,9 +245,11 @@ const handleDelete = async () => {
   try {
     loading.value = true
     await forumService.deletePost(props.post.id)
+    toast.success("帖子已删除")
     emit("delete", props.post)
   } catch (error) {
     console.error("删除帖子失败:", error)
+    toast.error("删除失败，请重试")
   } finally {
     loading.value = false
   }
@@ -252,7 +263,6 @@ const handleShare = async () => {
   // 记录分享计数
   try {
     await forumService.sharePost(props.post.id)
-    props.post.shareCount = (props.post.shareCount || 0) + 1
   } catch {
     // 静默失败
   }
@@ -264,7 +274,8 @@ const handleShare = async () => {
       url: shareUrl,
     })
   } else {
-    navigator.clipboard.writeText(shareUrl)
+    await navigator.clipboard.writeText(shareUrl)
+    toast.success("链接已复制到剪贴板")
   }
 }
 

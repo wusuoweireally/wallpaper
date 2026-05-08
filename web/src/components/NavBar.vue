@@ -33,7 +33,21 @@
         </div>
 
         <!-- 用户操作区域 -->
-        <div class="flex items-center" style="margin-right: 20px">
+        <div class="flex items-center gap-2" style="margin-right: 20px">
+          <!-- 移动端汉堡菜单 -->
+          <button
+            class="flex h-9 w-9 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 md:hidden"
+            @click="showMobileMenu = !showMobileMenu"
+            aria-label="导航菜单"
+            type="button"
+          >
+            <svg v-if="!showMobileMenu" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
           <!-- 未登录状态 -->
           <template v-if="!isLoggedIn">
             <router-link
@@ -52,7 +66,7 @@
 
           <!-- 已登录状态 -->
           <template v-else>
-            <div class="group relative flex items-center gap-2">
+            <div ref="userMenuRef" class="group relative flex items-center gap-2">
               <button
                 class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:bg-gray-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 @click="toggleTheme"
@@ -99,6 +113,7 @@
                   :src="userAvatar"
                   :alt="user?.username || '用户'"
                   class="h-8 w-8 flex-shrink-0 rounded-full object-cover ring-2 ring-white"
+                  @error="handleAvatarError"
                 />
                 <svg
                   class="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200"
@@ -168,6 +183,39 @@
           </template>
         </div>
       </div>
+
+      <!-- 移动端导航菜单 -->
+      <div
+        v-show="showMobileMenu"
+        class="border-t border-gray-200 py-3 dark:border-slate-800 md:hidden"
+      >
+        <template v-for="item in navItems" :key="item.name">
+          <router-link
+            :to="item.to"
+            class="block rounded-md px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
+            :class="{ 'bg-blue-50 text-blue-700 dark:bg-slate-800 dark:text-white': isNavItemActive(item) }"
+            @click="showMobileMenu = false"
+          >
+            {{ item.name }}
+          </router-link>
+        </template>
+        <div v-if="!isLoggedIn" class="mt-2 flex gap-2 border-t border-gray-100 px-4 pt-2 dark:border-slate-800">
+          <router-link
+            to="/auth/login"
+            class="flex-1 rounded-md py-2 text-center text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-200"
+            @click="showMobileMenu = false"
+          >
+            登录
+          </router-link>
+          <router-link
+            to="/auth/register"
+            class="flex-1 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-center text-sm font-medium text-white"
+            @click="showMobileMenu = false"
+          >
+            注册
+          </router-link>
+        </div>
+      </div>
     </div>
   </nav>
 </template>
@@ -182,7 +230,9 @@ import { applyTheme, resolveInitialTheme, setTheme, type ThemeMode } from "@/uti
 const userStore = useUserStore()
 const route = useRoute()
 const showDropdown = ref(false)
+const showMobileMenu = ref(false)
 const theme = ref<ThemeMode>("light")
+const userMenuRef = ref<HTMLElement>()
 
 // 计算属性
 const { isLoggedIn, user, userAvatar } = storeToRefs(userStore)
@@ -214,13 +264,12 @@ const navItems = [
 ]
 
 // 判断导航项是否激活
-const isNavItemActive = (item: { sortValue?: string }) => {
+const isNavItemActive = (item: (typeof navItems)[number]) => {
   if (item.sortValue) {
-    // 对于有 sortValue 的项，检查路由路径和查询参数
     return route.path === "/wallpapers" && route.query.sort === item.sortValue
   }
-  // 对于其他项，使用默认的 router-link active 判断
-  return false
+  const targetPath = typeof item.to === "string" ? item.to : (item.to as { path: string }).path
+  return route.path === targetPath || route.path.startsWith(targetPath + "/")
 }
 
 // 切换下拉菜单
@@ -230,8 +279,7 @@ const toggleDropdown = () => {
 
 // 关闭下拉菜单（点击外部）
 const closeDropdown = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest(".relative.group")) {
+  if (!userMenuRef.value?.contains(event.target as Node)) {
     showDropdown.value = false
   }
 }
@@ -273,5 +321,10 @@ const toggleTheme = () => {
   const nextTheme = theme.value === "light" ? "dark" : "light"
   theme.value = nextTheme
   setTheme(nextTheme)
+}
+
+const handleAvatarError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
 }
 </script>

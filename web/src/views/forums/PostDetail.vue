@@ -1,14 +1,14 @@
 <template>
-  <div class="relative min-h-screen bg-[#f5f6fa]">
+  <div class="relative min-h-screen bg-[#f5f6fa] dark:bg-slate-900">
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
       <div
-        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl"
+        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl dark:bg-blue-900/30"
       ></div>
       <div
-        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl"
+        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl dark:bg-amber-900/20"
       ></div>
       <div
-        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl"
+        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl dark:bg-purple-900/20"
       ></div>
     </div>
 
@@ -98,6 +98,7 @@
                         :src="authorAvatar"
                         :alt="post.author?.username || '用户头像'"
                         class="h-full w-full object-cover"
+                        @error="handleAvatarError"
                       />
                     </div>
                     <div
@@ -428,11 +429,13 @@ import CommentItem from "@/components/CommentItem.vue"
 import ReportModal from "@/components/ReportModal.vue"
 import { resolveAvatarUrl } from "@/utils/avatar"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { useGlobalToast } from "@/composables/useToast"
 
 // 路由和状态管理
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 // 响应式数据
 const loading = ref(true)
@@ -467,6 +470,11 @@ const authorAvatar = computed(() => {
   const raw = post.value?.author?.avatarUrl || post.value?.author?.profilePicture || undefined
   return resolveAvatarUrl(raw)
 })
+
+const handleAvatarError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
+}
 
 // 清理后的帖子内容（防止XSS攻击）
 const sanitizedContent = computed(() => {
@@ -671,7 +679,7 @@ const toggleLike = async () => {
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("点赞操作失败:", errObj)
-    alert(errObj.message || "操作失败")
+    toast.error(errObj.message || "操作失败")
   } finally {
     likeLoading.value = false
   }
@@ -693,7 +701,7 @@ const toggleBookmark = async () => {
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("收藏操作失败:", errObj)
-    alert(errObj.message || "操作失败")
+    toast.error(errObj.message || "操作失败")
   } finally {
     bookmarkLoading.value = false
   }
@@ -712,6 +720,7 @@ const submitComment = async () => {
 
     comments.value.unshift(comment)
     newComment.value = ""
+    toast.success("评论发表成功")
 
     // 更新帖子评论数
     if (post.value) {
@@ -720,7 +729,7 @@ const submitComment = async () => {
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("发表评论失败:", errObj)
-    alert(errObj.message || "发表评论失败")
+    toast.error(errObj.message || "发表评论失败")
   } finally {
     commentSubmitting.value = false
   }
@@ -736,7 +745,7 @@ const handleCommentLike = async (comment: Comment) => {
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("评论点赞失败:", errObj)
-    alert(errObj.message || "操作失败")
+    toast.error(errObj.message || "操作失败")
   }
 }
 
@@ -777,12 +786,12 @@ const deletePost = async () => {
 
   try {
     await forumService.deletePost(post.value.id)
-    alert("帖子已删除")
+    toast.success("帖子已删除")
     router.push("/forums")
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("删除帖子失败:", errObj)
-    alert(errObj.message || "删除失败")
+    toast.error(errObj.message || "删除失败")
   }
 }
 
@@ -798,7 +807,7 @@ const recordShare = async () => {
 
 const shareToWeChat = () => {
   recordShare()
-  alert("请使用微信扫一扫功能分享")
+  toast.info("请使用微信扫一扫功能分享")
 }
 
 const shareToWeibo = () => {
@@ -816,9 +825,9 @@ const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(window.location.href)
     recordShare()
-    alert("链接已复制到剪贴板")
+    toast.success("链接已复制到剪贴板")
   } catch {
-    alert("复制失败，请手动复制链接")
+    toast.error("复制失败，请手动复制链接")
   }
 }
 

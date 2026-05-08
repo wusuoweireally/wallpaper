@@ -10,6 +10,7 @@
               :src="avatarSrc"
               :alt="comment.author?.username || '用户头像'"
               class="h-full w-full object-cover"
+              @error="handleAvatarError"
             />
           </div>
         </div>
@@ -129,12 +130,14 @@
 
 <script lang="ts" setup>
 import { ref, computed } from "vue"
+import { useRouter } from "vue-router"
 import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import type { Comment } from "@/stores/forum"
 import CommentReplyForm from "./CommentReplyForm.vue"
 import { resolveAvatarUrl } from "@/utils/avatar"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { useGlobalToast } from "@/composables/useToast"
 
 // 组件属性
 interface Props {
@@ -165,7 +168,9 @@ const showReplyForm = ref(false)
 const editContent = ref("")
 
 // 组合式API
+const router = useRouter()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 // 计算属性
 const isAuthor = computed(() => {
@@ -177,14 +182,19 @@ const avatarSrc = computed(() => {
   return resolveAvatarUrl(raw)
 })
 
+const handleAvatarError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
+}
+
 // 方法
 const handleReply = () => {
   if (!userStore.isLoggedIn) {
-    // 这里可以跳转到登录页面
+    router.push("/auth/login")
     return
   }
   showReplyForm.value = !showReplyForm.value
-  emit("reply", props.comment)
+  if (showReplyForm.value) emit("reply", props.comment)
 }
 
 const handleLike = async () => {
@@ -200,6 +210,7 @@ const handleLike = async () => {
     emit("like", { ...props.comment, ...result })
   } catch (error) {
     console.error("点赞评论失败:", error)
+    toast.error("点赞失败，请重试")
   } finally {
     loading.value = false
   }
@@ -222,6 +233,7 @@ const handleDelete = async () => {
     emit("delete", props.comment)
   } catch (error) {
     console.error("删除评论失败:", error)
+    toast.error("删除失败，请重试")
   } finally {
     loading.value = false
   }
@@ -239,6 +251,7 @@ const handleReplySubmit = async (content: string) => {
     emit("refresh")
   } catch (error) {
     console.error("回复评论失败:", error)
+    toast.error("回复失败，请重试")
   }
 }
 
@@ -254,9 +267,11 @@ const handleEditSubmit = async () => {
     })
 
     closeEditModal()
+    toast.success("评论已更新")
     emit("edit", { ...props.comment, content: editContent.value.trim() })
   } catch (error) {
     console.error("更新评论失败:", error)
+    toast.error("更新失败，请重试")
   } finally {
     editLoading.value = false
   }
