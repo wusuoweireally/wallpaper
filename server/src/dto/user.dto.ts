@@ -4,7 +4,6 @@ import {
   IsNotEmpty,
   IsNumber,
   Length,
-  Matches,
 } from "class-validator";
 
 export class CreateUserDto {
@@ -22,10 +21,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty({ message: "密码不能为空" })
-  @Length(8, 32, { message: "密码长度必须在8-32个字符之间" })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, {
-    message: "密码必须包含大小写字母、数字和特殊字符(@$!%*?&)",
-  })
+  @Length(6, 64, { message: "密码长度必须在6-64个字符之间" })
   password: string;
 
   @IsOptional()
@@ -45,10 +41,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @Length(8, 32, { message: "密码长度必须在8-32个字符之间" })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, {
-    message: "密码必须包含大小写字母、数字和特殊字符(@$!%*?&)",
-  })
+  @Length(6, 64, { message: "密码长度必须在6-64个字符之间" })
   password?: string;
 
   @IsOptional()
