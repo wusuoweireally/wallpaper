@@ -132,9 +132,23 @@ export class UserController {
     const user = await this.userService.findById(userId);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = user;
+
+    // 处理头像URL
+    let avatarUrl: string;
+    if (!result.avatarUrl || result.avatarUrl === "defaultAvatar.png" || result.avatarUrl === "defaultAvatar.webp") {
+      avatarUrl = "/uploads/profile-pictures/defaultAvatar.png";
+    } else if (result.avatarUrl.startsWith("http")) {
+      avatarUrl = result.avatarUrl;
+    } else {
+      avatarUrl = `/uploads/profile-pictures/${result.avatarUrl}`;
+    }
+
     return {
       success: true,
-      data: result,
+      data: {
+        ...result,
+        avatarUrl,
+      },
     };
   }
 
