@@ -170,19 +170,40 @@ export class TagService {
   }
 
   /**
+   * 根据 slug 查找已存在的标签
+   */
+  private async findTagByName(name: string): Promise<Tag | null> {
+    const slug = this.generateSlug(name.trim());
+    return this.tagRepository.findOne({ where: { slug } });
+  }
+
+  /**
+   * 处理壁纸标签关联
    * @param wallpaperId 壁纸ID
    * @param tagNames 标签名称数组
+   * @param allowCreate 是否允许创建新标签。
+   *   普通用户上传时为 false：仅能关联已存在标签，忽略新标签，
+   *   避免绕过 “创建标签需管理员” 的限制而污染标签库。
    */
   async processWallpaperTags(
     wallpaperId: number,
     tagNames: string[],
+    allowCreate = false,
   ): Promise<void> {
     if (!tagNames || tagNames.length === 0) return;
 
     // 创建或获取标签
     const tags: Tag[] = [];
     for (const tagName of tagNames) {
-      const tag = await this.createTag({ name: tagName });
+      const normalized = tagName.trim();
+      if (!normalized) continue;
+
+      let tag = await this.findTagByName(normalized);
+      if (!tag) {
+        // 标签不存在：仅在允许创建时（管理员）才新建，否则跳过
+        if (!allowCreate) continue;
+        tag = await this.createTag({ name: normalized });
+      }
       tags.push(tag);
     }
 

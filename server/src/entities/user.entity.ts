@@ -10,7 +10,19 @@ import {
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
+  SUPER_ADMIN = "super_admin",
 }
+
+/** 角色权重：用于守卫的层级判断，数值越大权限越高 */
+export const ROLE_RANK: Record<UserRole, number> = {
+  [UserRole.USER]: 0,
+  [UserRole.ADMIN]: 1,
+  [UserRole.SUPER_ADMIN]: 2,
+};
+
+/** 是否为管理员及以上（ADMIN 或 SUPER_ADMIN） */
+export const isAdminRole = (role?: UserRole): boolean =>
+  role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 
 @Entity("users")
 export class User {

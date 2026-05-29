@@ -31,6 +31,43 @@ export class AuthController {
   ) {}
 
   /**
+   * 获取经校验的前端基础地址，防止 OAuth 回调被滥用为开放重定向。
+   * - 仅允许 http/https 协议；
+   * - 若配置了 ALLOWED_FRONTEND_ORIGINS（逗号分隔），则校验来源白名单；
+   * - 任何异常情况回退到安全默认值。
+   */
+  private getSafeFrontendUrl(): string {
+    const fallback = "http://localhost:1234";
+    const configured = this.configService.get<string>("FRONTEND_URL", fallback);
+
+    let parsed: URL;
+    try {
+      parsed = new URL(configured);
+    } catch {
+      return fallback;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return fallback;
+    }
+
+    const allowlistRaw = this.configService.get<string>(
+      "ALLOWED_FRONTEND_ORIGINS",
+    );
+    if (allowlistRaw) {
+      const allowed = allowlistRaw
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+      if (!allowed.includes(parsed.origin)) {
+        return fallback;
+      }
+    }
+
+    return configured.replace(/\/$/, "");
+  }
+
+  /**
    * 发起 GitHub OAuth 登录
    * 重定向到 GitHub 授权页面
    */
@@ -82,24 +119,17 @@ export class AuthController {
         cookieOptions,
       );
 
-      // 重定向到前端成功页面
-      const frontendUrl = this.configService.get<string>(
-        "FRONTEND_URL",
-        "http://localhost:1234",
-      );
+      // 重定向到前端成功页面（经白名单校验，防开放重定向）
+      const frontendUrl = this.getSafeFrontendUrl();
       const successUrl = `${frontendUrl}/auth/github/success`;
       response.redirect(successUrl);
     } catch (error) {
       console.error("GitHub OAuth 回调处理失败:", error);
 
-      // 重定向到前端失败页面，携带错误信息
-      const frontendUrl = this.configService.get<string>(
-        "FRONTEND_URL",
-        "http://localhost:1234",
-      );
-      const errorMessage =
-        error instanceof Error ? error.message : "GitHub 登录失败";
-      const errorParam = encodeURIComponent(errorMessage);
+      // 重定向到前端失败页面（经白名单校验，防开放重定向）
+      // 仅返回通用错误提示，避免将内部错误细节泄露到 URL
+      const frontendUrl = this.getSafeFrontendUrl();
+      const errorParam = encodeURIComponent("GitHub 登录失败，请稍后重试");
       const redirectUrl = `${frontendUrl}/auth/github/failure?error=${errorParam}`;
       response.redirect(redirectUrl);
     }

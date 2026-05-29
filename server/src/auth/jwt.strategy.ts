@@ -3,7 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { Request } from "express";
-import { UserRole } from "../entities/user.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User, UserRole } from "../entities/user.entity";
 
 interface JwtPayload {
   sub: number | string; // sub 可能是数字或字符串
@@ -15,7 +17,11 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {
     const cookieExtractor = (request: Request) => {
       const cookies = request?.cookies as Record<string, string>;
       const token = cookies?.Authentication || null;
@@ -41,7 +47,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload) {
+  /**
+   * 校验 JWT 并返回当前用户信息。
+   *
+   * 关键安全设计：role 与 status 一律从数据库实时读取，**不信任 token 内嵌的值**。
+   * 这样可保证：
+   * 1. 用户被降级（如 ADMIN→USER）后，旧 token 立即失去管理权限；
+   * 2. 用户被禁用（status=0）或删除后，旧 token 立即失效；
+   * 无需等待 token 过期，也无需额外的黑名单机制。
+   */
+  async validate(payload: JwtPayload) {
     // 验证payload的有效性
     if (!payload) {
       throw new UnauthorizedException("JWT token无效 - payload为空");
@@ -58,17 +73,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       typeof payload.sub === "string" ? parseInt(payload.sub, 10) : payload.sub;
 
     // 验证用户ID的有效性
-    if (isNaN(userId)) {
-      throw new UnauthorizedException("用户ID无效 - 转换失败");
+    if (isNaN(userId) || userId <= 0) {
+      throw new UnauthorizedException("用户ID无效");
     }
-    if (userId <= 0) {
-      throw new UnauthorizedException("用户ID无效 - 必须是正数");
+
+    // 实时查库：以数据库为准获取最新的角色与状态
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ["id", "username", "role", "status"],
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("用户不存在或已被删除");
+    }
+    if (user.status !== 1) {
+      throw new UnauthorizedException("账号已被禁用");
     }
 
     const result = {
-      userId,
-      username: payload.username,
-      role: payload.role || UserRole.USER,
+      userId: user.id,
+      username: user.username,
+      role: user.role || UserRole.USER,
     };
 
     // 仅在开发环境输出日志，且不包含敏感信息

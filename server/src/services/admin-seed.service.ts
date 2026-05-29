@@ -31,7 +31,7 @@ export class AdminSeedService implements OnModuleInit {
     }
 
     const existingAdmin = await this.userRepository.findOne({
-      where: { role: UserRole.ADMIN },
+      where: [{ role: UserRole.SUPER_ADMIN }, { role: UserRole.ADMIN }],
     });
     if (existingAdmin) {
       this.logger.log("已存在管理员账号，跳过初始化。");
@@ -71,7 +71,7 @@ export class AdminSeedService implements OnModuleInit {
       }
 
       existingById.passwordHash = passwordHash;
-      existingById.role = UserRole.ADMIN;
+      existingById.role = UserRole.SUPER_ADMIN;
       existingById.status = 1;
 
       await this.userRepository.save(existingById);
@@ -106,7 +106,7 @@ export class AdminSeedService implements OnModuleInit {
       passwordHash,
       avatarUrl: "defaultAvatar.png",
       bio: "",
-      role: UserRole.ADMIN,
+      role: UserRole.SUPER_ADMIN,
       status: 1,
     });
     if (finalEmail) {

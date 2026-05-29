@@ -28,6 +28,8 @@ import {
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { CurrentUser } from "../decorators/current-user.decorator";
+import type { CurrentUserType } from "../decorators/current-user.decorator";
+import { isAdminRole } from "../entities/user.entity";
 import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
 
@@ -61,7 +63,7 @@ export class WallpaperController {
   async uploadWallpaper(
     @UploadedFile() file: Express.Multer.File,
     @Body() createWallpaperDto: CreateWallpaperDto,
-    @CurrentUser() user: { userId: number; username: string },
+    @CurrentUser() user: CurrentUserType,
   ) {
     if (!file) {
       throw new BadRequestException("请选择要上传的文件");
@@ -106,10 +108,12 @@ export class WallpaperController {
         );
 
         // 处理标签关联（在同一事务中）
+        // 仅管理员可在上传时创建新标签，普通用户只能关联已存在标签
         if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
           await this.tagService.processWallpaperTags(
             wallpaper.id,
             createWallpaperDto.tags,
+            isAdminRole(user.role),
           );
         }
 
@@ -419,6 +423,7 @@ export class WallpaperController {
    * 记录下载
    */
   @Post(":id/download")
+  @UseGuards(JwtAuthGuard)
   async recordDownload(@Param("id") id: string) {
     const wallpaperId = Number(id);
     if (isNaN(wallpaperId)) {

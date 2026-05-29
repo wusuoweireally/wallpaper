@@ -31,7 +31,7 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             expiresIn: configService.get<string>(
               "JWT_EXPIRES_IN",
-              "180d",
+              "30d",
             ) as StringValue,
           },
         };

@@ -1,0 +1,37 @@
+#!/bin/sh
+# ============================================================
+# 防泄露 pre-commit 钩子
+# 阻止把真实 .env（含密钥）误提交到（公开）仓库。
+# 启用方式（每位开发者执行一次）：
+#   git config core.hooksPath .githooks
+# ============================================================
+
+# 1) 拦截除 *.example 外的任何 .env 文件
+blocked=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)\.env($|\.)' \
+  | grep -vE '\.example$')
+
+if [ -n "$blocked" ]; then
+  echo "✖ 拒绝提交：检测到疑似环境变量文件（可能含密钥）："
+  echo "$blocked" | sed 's/^/    /'
+  echo ""
+  echo "  环境文件不应提交。请改用 *.example 模板，并执行："
+  echo "    git rm --cached <file>"
+  exit 1
+fi
+
+# 2) 简单密钥扫描：暂存内容中出现疑似真实密钥值时告警拦截
+secret_hit=$(git diff --cached -U0 \
+  | grep -E '^\+' \
+  | grep -EI '(JWT_SECRET|DB_PASSWORD|CLIENT_SECRET|SECRET_KEY|PRIVATE_KEY)[[:space:]]*=[[:space:]]*[A-Za-z0-9/+_-]{16,}' \
+  | grep -vEi 'your_|_here|changeme|example|placeholder|xxx')
+
+if [ -n "$secret_hit" ]; then
+  echo "✖ 拒绝提交：暂存内容中检测到疑似真实密钥："
+  echo "$secret_hit" | sed 's/^/    /'
+  echo ""
+  echo "  如确为占位符，请使用 your_xxx_here 形式；如为真实密钥，请移除并轮换。"
+  exit 1
+fi
+
+exit 0

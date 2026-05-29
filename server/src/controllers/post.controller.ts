@@ -113,10 +113,7 @@ export class PostController {
    */
   @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
-  async getPost(
-    @Param("id", ParseIntPipe) id: number,
-    @Req() req: Request,
-  ) {
+  async getPost(@Param("id", ParseIntPipe) id: number, @Req() req: Request) {
     try {
       const post = await this.postService.findById(id);
 
@@ -290,6 +287,7 @@ export class PostController {
    * @returns 操作结果
    */
   @Post(":id/share")
+  @UseGuards(JwtAuthGuard)
   async sharePost(@Param("id", ParseIntPipe) id: number) {
     try {
       await this.postService.incrementShareCount(id);
@@ -338,7 +336,10 @@ export class PostController {
       await this.postService.unbookmarkPost(id, user.userId);
       return { success: true, message: "取消收藏成功" };
     } catch (error) {
-      return { success: false, message: getErrorMessage(error, "取消收藏失败") };
+      return {
+        success: false,
+        message: getErrorMessage(error, "取消收藏失败"),
+      };
     }
   }
 
@@ -352,10 +353,16 @@ export class PostController {
     @CurrentUser() user: CurrentUserType,
   ) {
     try {
-      const hasBookmarked = await this.postService.hasBookmarked(id, user.userId);
+      const hasBookmarked = await this.postService.hasBookmarked(
+        id,
+        user.userId,
+      );
       return { success: true, data: { hasBookmarked } };
     } catch (error) {
-      return { success: false, message: getErrorMessage(error, "获取收藏状态失败") };
+      return {
+        success: false,
+        message: getErrorMessage(error, "获取收藏状态失败"),
+      };
     }
   }
 
@@ -380,7 +387,10 @@ export class PostController {
         pagination: buildPaginationMeta(result),
       };
     } catch (error) {
-      return { success: false, message: getErrorMessage(error, "获取收藏列表失败") };
+      return {
+        success: false,
+        message: getErrorMessage(error, "获取收藏列表失败"),
+      };
     }
   }
 

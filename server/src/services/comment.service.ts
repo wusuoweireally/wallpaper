@@ -104,11 +104,20 @@ export class CommentService {
    * @param id 评论ID
    * @returns 评论信息
    */
+  // 作者关联仅暴露公开字段，避免泄露 email/role/passwordHash 等敏感信息
+  private static readonly AUTHOR_PUBLIC_FIELDS = [
+    "author.id",
+    "author.username",
+    "author.avatarUrl",
+  ];
+
   async findById(id: number): Promise<Comment> {
-    const comment = await this.commentRepository.findOne({
-      where: { id },
-      relations: ["author"],
-    });
+    const comment = await this.commentRepository
+      .createQueryBuilder("comment")
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
+      .where("comment.id = :id", { id })
+      .getOne();
 
     if (!comment) {
       throw new NotFoundException(`评论 ID ${id} 不存在`);
@@ -151,8 +160,10 @@ export class CommentService {
       queryBuilder.andWhere("comment.parentId IS NULL");
     }
 
-    // 添加作者信息关联
-    queryBuilder.leftJoinAndSelect("comment.author", "author");
+    // 添加作者信息关联（仅公开字段）
+    queryBuilder
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS);
 
     // 处理排序
     const validSortFields = ["createdAt", "updatedAt", "likeCount"];
@@ -175,11 +186,13 @@ export class CommentService {
    * @returns 子评论列表
    */
   async getChildComments(parentCommentId: number): Promise<Comment[]> {
-    return await this.commentRepository.find({
-      where: { parentId: parentCommentId },
-      relations: ["author"],
-      order: { createdAt: "ASC" },
-    });
+    return await this.commentRepository
+      .createQueryBuilder("comment")
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
+      .where("comment.parentId = :parentCommentId", { parentCommentId })
+      .orderBy("comment.createdAt", "ASC")
+      .getMany();
   }
 
   /**
@@ -290,13 +303,16 @@ export class CommentService {
   ): Promise<PaginatedResult<Comment>> {
     const skip = (page - 1) * limit;
 
-    const [comments, total] = await this.commentRepository.findAndCount({
-      where: { authorId: userId },
-      relations: ["author", "post"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
+    const [comments, total] = await this.commentRepository
+      .createQueryBuilder("comment")
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
+      .leftJoinAndSelect("comment.post", "post")
+      .where("comment.authorId = :userId", { userId })
+      .orderBy("comment.createdAt", "DESC")
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
     return { data: comments, total, page, limit };
   }
@@ -345,11 +361,14 @@ export class CommentService {
    * @returns 最新评论列表
    */
   async getLatestComments(limit: number = 10): Promise<Comment[]> {
-    return await this.commentRepository.find({
-      relations: ["author", "post"],
-      order: { createdAt: "DESC" },
-      take: limit,
-    });
+    return await this.commentRepository
+      .createQueryBuilder("comment")
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
+      .leftJoinAndSelect("comment.post", "post")
+      .orderBy("comment.createdAt", "DESC")
+      .take(limit)
+      .getMany();
   }
 
   /**
@@ -451,15 +470,17 @@ export class CommentService {
   ): Promise<PaginatedResult<Comment>> {
     const skip = (page - 1) * limit;
 
-    const [commentLikes, total] = await this.commentLikeRepository.findAndCount(
-      {
-        where: { userId },
-        relations: ["comment", "comment.author", "comment.post"],
-        order: { createdAt: "DESC" },
-        skip,
-        take: limit,
-      },
-    );
+    const [commentLikes, total] = await this.commentLikeRepository
+      .createQueryBuilder("like")
+      .leftJoinAndSelect("like.comment", "comment")
+      .leftJoin("comment.author", "author")
+      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
+      .leftJoinAndSelect("comment.post", "post")
+      .where("like.userId = :userId", { userId })
+      .orderBy("like.createdAt", "DESC")
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
     const comments = commentLikes.map((like) => like.comment);
 

@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsNotEmpty,
   IsNumber,
+  IsEmail,
   Length,
 } from "class-validator";
 
@@ -17,6 +18,7 @@ export class CreateUserDto {
   username?: string;
 
   @IsOptional()
+  @IsEmail({}, { message: "邮箱格式不正确" })
   email?: string;
 
   @IsString()
@@ -37,6 +39,7 @@ export class UpdateUserDto {
   username?: string;
 
   @IsOptional()
+  @IsEmail({}, { message: "邮箱格式不正确" })
   email?: string;
 
   @IsOptional()

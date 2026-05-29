@@ -19,7 +19,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
-import { Throttle, SkipThrottle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { extname } from "path";
@@ -36,7 +36,7 @@ import type { CurrentUserType } from "../decorators/current-user.decorator";
 import { User } from "../entities/user.entity";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
-import { UserRole } from "../entities/user.entity";
+import { UserRole, isAdminRole } from "../entities/user.entity";
 import { getAuthCookieOptions } from "../utils/cookie";
 
 @Controller("users")
@@ -67,7 +67,7 @@ export class UserController {
   // 用户登录
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  @Throttle({ auth: { limit: 10, ttl: 300000 } })
+  @Throttle({ auth: { limit: 5, ttl: 900000 } })
   async login(
     @Body(ValidationPipe) loginDto: LoginDto,
     @Req() request: Request,
@@ -135,7 +135,11 @@ export class UserController {
 
     // 处理头像URL
     let avatarUrl: string;
-    if (!result.avatarUrl || result.avatarUrl === "defaultAvatar.png" || result.avatarUrl === "defaultAvatar.webp") {
+    if (
+      !result.avatarUrl ||
+      result.avatarUrl === "defaultAvatar.png" ||
+      result.avatarUrl === "defaultAvatar.webp"
+    ) {
       avatarUrl = "/uploads/profile-pictures/defaultAvatar.png";
     } else if (result.avatarUrl.startsWith("http")) {
       avatarUrl = result.avatarUrl;
@@ -242,7 +246,7 @@ export class UserController {
       throw new ForbiddenException("无权删除该用户");
     }
 
-    await this.userService.remove(userId);
+    await this.userService.remove(userId, currentUser);
     return {
       success: true,
       message: "删除成功",
@@ -253,14 +257,17 @@ export class UserController {
   @Patch(":id/toggle-status")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async toggleStatus(@Param("id") id: string) {
+  async toggleStatus(
+    @Param("id") id: string,
+    @CurrentUser() currentUser: CurrentUserType,
+  ) {
     // 转换并验证ID
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
       throw new BadRequestException("用户ID无效4");
     }
 
-    const user = await this.userService.toggleStatus(userId);
+    const user = await this.userService.toggleStatus(userId, currentUser);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = user;
     return {
@@ -462,7 +469,10 @@ export class UserController {
   // 根据ID查询用户
   @Get(":id")
   @UseGuards(JwtAuthGuard)
-  async findOne(@Param("id") id: string) {
+  async findOne(
+    @Param("id") id: string,
+    @CurrentUser() currentUser: CurrentUserType,
+  ) {
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
       throw new BadRequestException("用户ID无效 fava");
@@ -471,6 +481,31 @@ export class UserController {
     const user = await this.userService.findById(userId);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = user;
+
+    // 仅本人或管理员可查看完整信息；其他用户只返回公开字段，避免邮箱等隐私泄露
+    const canViewPrivate =
+      currentUser.userId === userId || isAdminRole(currentUser.role);
+
+    if (!canViewPrivate) {
+      const {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        email,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        githubId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        githubLogin,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        githubBio,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        status,
+        ...publicData
+      } = result;
+      return {
+        success: true,
+        data: publicData,
+      };
+    }
+
     return {
       success: true,
       data: result,

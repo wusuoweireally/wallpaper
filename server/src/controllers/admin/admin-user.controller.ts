@@ -21,6 +21,8 @@ import {
   UpdateUserStatusDto,
 } from "../../dto/admin.dto";
 import { RolesGuard } from "../../guards/roles.guard";
+import { CurrentUser } from "../../decorators/current-user.decorator";
+import type { CurrentUserType } from "../../decorators/current-user.decorator";
 
 @Controller("admin/users")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -60,8 +62,15 @@ export class AdminUserController {
   }
 
   @Post()
-  async create(@Body() dto: AdminCreateUserDto) {
-    const user = await this.userService.create(dto, dto.role ?? UserRole.USER);
+  async create(
+    @Body() dto: AdminCreateUserDto,
+    @CurrentUser() actor: CurrentUserType,
+  ) {
+    const user = await this.userService.create(
+      dto,
+      dto.role ?? UserRole.USER,
+      actor,
+    );
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...rest } = user;
     return {
@@ -75,8 +84,9 @@ export class AdminUserController {
   async update(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateUserDto,
+    @CurrentUser() actor: CurrentUserType,
   ) {
-    const user = await this.userService.adminUpdateUser(id, dto);
+    const user = await this.userService.adminUpdateUser(id, dto, actor);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...rest } = user;
     return {
@@ -90,8 +100,9 @@ export class AdminUserController {
   async updateStatus(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateUserStatusDto,
+    @CurrentUser() actor: CurrentUserType,
   ) {
-    const user = await this.userService.setStatus(id, dto.status);
+    const user = await this.userService.setStatus(id, dto.status, actor);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...rest } = user;
     return {
@@ -102,8 +113,11 @@ export class AdminUserController {
   }
 
   @Delete(":id")
-  async remove(@Param("id", ParseIntPipe) id: number) {
-    await this.userService.remove(id);
+  async remove(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() actor: CurrentUserType,
+  ) {
+    await this.userService.remove(id, actor);
     return {
       success: true,
       message: "用户已删除",
