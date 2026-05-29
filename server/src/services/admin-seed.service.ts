@@ -30,11 +30,14 @@ export class AdminSeedService implements OnModuleInit {
       return;
     }
 
-    const existingAdmin = await this.userRepository.findOne({
-      where: [{ role: UserRole.SUPER_ADMIN }, { role: UserRole.ADMIN }],
+    // 仅当系统中已存在超级管理员时才跳过；
+    // 否则即使存在普通 ADMIN，也需要把指定账号提升为 SUPER_ADMIN，
+    // 避免引入角色层级护栏后出现“无人拥有超级管理员权限、无法管理角色”的死锁。
+    const existingSuperAdmin = await this.userRepository.findOne({
+      where: { role: UserRole.SUPER_ADMIN },
     });
-    if (existingAdmin) {
-      this.logger.log("已存在管理员账号，跳过初始化。");
+    if (existingSuperAdmin) {
+      this.logger.log("已存在超级管理员账号，跳过初始化。");
       return;
     }
 
@@ -47,7 +50,7 @@ export class AdminSeedService implements OnModuleInit {
     });
 
     if (existingById) {
-      // 如果指定 ID 已存在，则升级为管理员并更新凭证
+      // 如果指定 ID 已存在（如旧的 ADMIN），则提升为超级管理员并更新凭证
       if (adminEmail) {
         const emailOwner = await this.userRepository.findOne({
           where: { email: adminEmail },
