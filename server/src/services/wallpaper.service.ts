@@ -521,10 +521,9 @@ export class WallpaperService {
     if (filters.search) {
       const searchTerm = `%${filters.search}%`;
       qb.andWhere(
-        '(wallpaper.title LIKE :search OR wallpaper.description LIKE :search OR searchTags.name LIKE :search)',
+        '(wallpaper.title LIKE :search OR wallpaper.description LIKE :search OR tags.name LIKE :search)',
         { search: searchTerm },
       );
-      qb.leftJoinAndSelect("wallpaper.tags", "searchTags");
     }
 
     if (filters.status !== undefined) {

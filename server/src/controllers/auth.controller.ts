@@ -110,7 +110,7 @@ export class AuthController {
 
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
       const cookieOptions = getAuthCookieOptions(req, {
-        maxAge: 60 * 24 * 60 * 60 * 1000, // 60天
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（与 JWT_EXPIRES_IN 一致）
       });
 
       response.cookie(

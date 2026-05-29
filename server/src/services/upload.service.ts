@@ -55,6 +55,7 @@ export class UploadService {
       const fileDir = path.join(uploadDir, "wallpapers");
       await fs.mkdir(uploadDir, { recursive: true });
       await fs.mkdir(thumbnailsDir, { recursive: true });
+      await fs.mkdir(fileDir, { recursive: true });
 
       // 保存原始文件
       const filePath = path.join(fileDir, fileName);

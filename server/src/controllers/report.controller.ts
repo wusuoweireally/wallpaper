@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   Post,
   Query,
@@ -91,13 +92,14 @@ export class ReportController {
   @Get("check/:targetType/:targetId")
   @UseGuards(JwtAuthGuard)
   async checkCanReport(
-    @Param("targetType") targetType: string,
+    @Param("targetType", new ParseEnumPipe(ReportTargetType))
+    targetType: ReportTargetType,
     @Param("targetId", ParseIntPipe) targetId: number,
     @CurrentUser() user: CurrentUserType,
   ) {
     const result = await this.reportService.checkCanReport(
       user.userId,
-      targetType as ReportTargetType,
+      targetType,
       targetId,
     );
     return {

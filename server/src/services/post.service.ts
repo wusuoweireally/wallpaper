@@ -3,8 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, SelectQueryBuilder } from "typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { PaginatedResult } from "../common/pagination";
 import {
   CreatePostDto,
@@ -33,6 +33,8 @@ export class PostService {
     private readonly postLikeRepository: Repository<PostLike>,
     @InjectRepository(PostBookmark)
     private readonly postBookmarkRepository: Repository<PostBookmark>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   private buildPublishedPostQuery(): SelectQueryBuilder<Post> {
@@ -228,14 +230,15 @@ export class PostService {
       throw new ForbiddenException("只能删除自己的帖子");
     }
 
-    // 删除相关的点赞记录
-    await this.postLikeRepository.delete({ postId: id });
-
-    // 删除帖子
-    const result = await this.postRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`帖子 ID ${id} 删除失败`);
-    }
+    // 事务内删除（PostLike/Comment 有 ON DELETE CASCADE，无需手动删关联）
+    await this.dataSource.transaction(async (manager) => {
+      const postRepo = manager.getRepository(Post);
+      // TODO: Post 实体有 @DeleteDateColumn，应改用 softDelete 实现软删除
+      const result = await postRepo.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`帖子 ID ${id} 删除失败`);
+      }
+    });
   }
 
   /**
@@ -312,20 +315,34 @@ export class PostService {
    * 切换点赞状态
    */
   async toggleLike(postId: number, userId: number): Promise<boolean> {
-    const existingLike = await this.postLikeRepository.findOne({
-      where: { postId, userId },
-    });
+    return await this.dataSource.transaction(async (manager) => {
+      const postLikeRepo = manager.getRepository(PostLike);
+      const postRepo = manager.getRepository(Post);
 
-    if (existingLike) {
-      await this.postLikeRepository.delete({ postId, userId });
-      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
-      return false;
-    } else {
-      const postLike = this.postLikeRepository.create({ postId, userId });
-      await this.postLikeRepository.save(postLike);
-      await this.postRepository.increment({ id: postId }, "likeCount", 1);
-      return true;
-    }
+      const existingLike = await postLikeRepo.findOne({
+        where: { postId, userId },
+      });
+
+      if (existingLike) {
+        await postLikeRepo.delete({ postId, userId });
+        await postRepo.decrement({ id: postId }, "likeCount", 1);
+        return false;
+      }
+
+      // 并发保护：捕获 UNIQUE 约束冲突
+      try {
+        const postLike = postLikeRepo.create({ postId, userId });
+        await postLikeRepo.save(postLike);
+        await postRepo.increment({ id: postId }, "likeCount", 1);
+        return true;
+      } catch (error: any) {
+        if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) {
+          // 并发请求已插入成功，视为已点赞
+          return true;
+        }
+        throw error;
+      }
+    });
   }
 
   /**

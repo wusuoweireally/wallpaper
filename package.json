@@ -19,7 +19,6 @@
     "type-check": "pnpm -r run type-check",
     "format": "pnpm -r run format",
     "test": "pnpm -r run test",
-    "test:e2e": "pnpm -C server test:e2e",
     "start": "pnpm -C server start:prod",
     "preview": "pnpm -C web preview",
     "docker:prod": "docker compose --env-file server/.env.production up -d --build",

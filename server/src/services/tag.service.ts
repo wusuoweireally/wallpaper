@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { DataSource, Repository } from "typeorm";
 import { Tag } from "../entities/tag.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { CreateTagDto } from "../dto/tag.dto";
@@ -12,6 +12,8 @@ export class TagService {
     private tagRepository: Repository<Tag>,
     @InjectRepository(WallpaperTag)
     private wallpaperTagRepository: Repository<WallpaperTag>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   private generateSlug(name: string): string {
@@ -241,37 +243,47 @@ export class TagService {
       ),
     );
 
-    const currentTags = await this.wallpaperTagRepository.find({
-      where: { wallpaperId },
-      relations: ["tag"],
-    });
+    // 事务内：删除旧关联 + 创建新关联 + 更新 usageCount 原子执行
+    return await this.dataSource.transaction(async (manager) => {
+      const tagRepo = manager.getRepository(Tag);
+      const wallpaperTagRepo = manager.getRepository(WallpaperTag);
 
-    if (currentTags.length > 0) {
-      await this.wallpaperTagRepository.delete({ wallpaperId });
-      for (const relation of currentTags) {
-        if (relation.tag && relation.tag.usageCount > 0) {
-          await this.decrementUsageCount(relation.tagId);
+      const currentTags = await wallpaperTagRepo.find({
+        where: { wallpaperId },
+        relations: ["tag"],
+      });
+
+      if (currentTags.length > 0) {
+        await wallpaperTagRepo.delete({ wallpaperId });
+        for (const relation of currentTags) {
+          if (relation.tag && relation.tag.usageCount > 0) {
+            await tagRepo.decrement({ id: relation.tagId }, "usageCount", 1);
+          }
         }
       }
-    }
 
-    if (uniqueNames.length === 0) {
-      return [];
-    }
+      if (uniqueNames.length === 0) {
+        return [];
+      }
 
-    const tags: Tag[] = [];
-    for (const name of uniqueNames) {
-      const tag = await this.createTag({ name });
-      tags.push(tag);
-      await this.wallpaperTagRepository.save(
-        this.wallpaperTagRepository.create({
-          wallpaperId,
-          tagId: tag.id,
-        }),
-      );
-      await this.incrementUsageCount(tag.id);
-    }
+      const tags: Tag[] = [];
+      for (const name of uniqueNames) {
+        const slug = this.generateSlug(name);
+        let tag = await tagRepo.findOne({ where: { slug } });
 
-    return tags;
+        if (!tag) {
+          tag = tagRepo.create({ name, slug, usageCount: 0 });
+          await tagRepo.save(tag);
+        }
+
+        tags.push(tag);
+        await wallpaperTagRepo.save(
+          wallpaperTagRepo.create({ wallpaperId, tagId: tag.id }),
+        );
+        await tagRepo.increment({ id: tag.id }, "usageCount", 1);
+      }
+
+      return tags;
+    });
   }
 }

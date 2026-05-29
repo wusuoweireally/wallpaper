@@ -62,7 +62,9 @@ export class DemoSeedService implements OnApplicationBootstrap {
 
     const wallpapersDir = join(process.cwd(), "uploads", "壁纸");
     const thumbnailsDir = join(process.cwd(), "uploads", "thumbnails");
+    const targetWallpapersDir = join(process.cwd(), "uploads", "wallpapers");
     await fs.mkdir(thumbnailsDir, { recursive: true });
+    await fs.mkdir(targetWallpapersDir, { recursive: true });
 
     const files = await this.loadWallpaperFiles(wallpapersDir);
     if (files.length === 0) {

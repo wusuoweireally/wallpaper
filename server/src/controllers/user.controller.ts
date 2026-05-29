@@ -89,7 +89,7 @@ export class UserController {
       "Authentication",
       result.access_token,
       getAuthCookieOptions(request, {
-        maxAge: 60 * 24 * 60 * 60 * 1000, // 60天（毫秒）
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（与 JWT_EXPIRES_IN 一致）
       }),
     );
 

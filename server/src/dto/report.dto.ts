@@ -46,9 +46,11 @@ export class UpdateReportDto {
 }
 
 export class GetReportsDto {
+  @Type(() => Number)
   @IsOptional()
   page?: number = 1;
 
+  @Type(() => Number)
   @IsOptional()
   limit?: number = 20;
 
@@ -64,6 +66,7 @@ export class GetReportsDto {
   @IsOptional()
   status?: ReportStatus;
 
+  @Type(() => Number)
   @IsOptional()
   userId?: number;
 

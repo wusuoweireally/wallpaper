@@ -12,7 +12,7 @@ services:
     environment:
       # 从 server/.env.xxx 读取密码
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: wallpaper_site
+      MYSQL_DATABASE: ${DB_DATABASE:-wallpaper_site}
     command:
       [
         "--character-set-server=utf8mb4",

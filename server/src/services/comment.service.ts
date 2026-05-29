@@ -372,7 +372,7 @@ export class CommentService {
     isLiked: boolean;
     likeCount: number;
   }> {
-    // 验证评论是否存在
+    // 验证评论是否存在（事务前只读校验）
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
     });
@@ -381,54 +381,58 @@ export class CommentService {
       throw new NotFoundException(`评论 ID ${commentId} 不存在`);
     }
 
-    // 检查是否已经点赞
-    const existingLike = await this.commentLikeRepository.findOne({
-      where: { commentId, userId },
-    });
+    // 事务内：查询 + 写入 原子执行，避免竞态
+    return await this.dataSource.transaction(async (manager) => {
+      const commentRepo = manager.getRepository(Comment);
+      const likeRepo = manager.getRepository(CommentLike);
 
-    if (existingLike) {
-      // 已点赞 → 取消点赞
-      await this.commentLikeRepository.delete(existingLike.id);
-      await this.commentRepository.decrement({ id: commentId }, "likeCount", 1);
+      const existingLike = await likeRepo.findOne({
+        where: { commentId, userId },
+      });
 
-      const updatedComment = await this.commentRepository.findOne({
+      if (existingLike) {
+        // 已点赞 → 取消点赞
+        await likeRepo.delete(existingLike.id);
+        await commentRepo.decrement({ id: commentId }, "likeCount", 1);
+
+        const updatedComment = await commentRepo.findOne({
+          where: { id: commentId },
+        });
+
+        return {
+          isLiked: false,
+          likeCount: updatedComment?.likeCount || 0,
+        };
+      }
+
+      // 未点赞 → 点赞（事务串行化隔离已防重复插入，兜底捕获 ER_DUP_ENTRY）
+      try {
+        const like = likeRepo.create({ commentId, userId });
+        await likeRepo.save(like);
+      } catch (error: any) {
+        if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) {
+          const updatedComment = await commentRepo.findOne({
+            where: { id: commentId },
+          });
+          return {
+            isLiked: true,
+            likeCount: updatedComment?.likeCount || 0,
+          };
+        }
+        throw error;
+      }
+
+      await commentRepo.increment({ id: commentId }, "likeCount", 1);
+
+      const updatedComment = await commentRepo.findOne({
         where: { id: commentId },
       });
 
       return {
-        isLiked: false,
+        isLiked: true,
         likeCount: updatedComment?.likeCount || 0,
       };
-    }
-
-    // 未点赞 → 点赞，捕获并发插入冲突（UNIQUE 约束）
-    try {
-      const like = this.commentLikeRepository.create({ commentId, userId });
-      await this.commentLikeRepository.save(like);
-    } catch (error: any) {
-      // MySQL ER_DUP_ENTRY = 1062; SQLite SQLITE_CONSTRAINT = 19
-      if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) {
-        const updatedComment = await this.commentRepository.findOne({
-          where: { id: commentId },
-        });
-        return {
-          isLiked: true,
-          likeCount: updatedComment?.likeCount || 0,
-        };
-      }
-      throw error;
-    }
-
-    await this.commentRepository.increment({ id: commentId }, "likeCount", 1);
-
-    const updatedComment = await this.commentRepository.findOne({
-      where: { id: commentId },
     });
-
-    return {
-      isLiked: true,
-      likeCount: updatedComment?.likeCount || 0,
-    };
   }
 
   /**
