@@ -5,7 +5,7 @@ import type { Wallpaper } from "@/services/wallpaper"
 /**
  * 用户角色枚举
  */
-export type UserRole = "user" | "admin"
+export type UserRole = "user" | "admin" | "super_admin"
 
 /**
  * 用户信息接口

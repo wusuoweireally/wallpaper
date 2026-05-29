@@ -162,7 +162,7 @@
                   📤 上传壁纸
                 </router-link>
                 <router-link
-                  v-if="user?.role === 'admin'"
+                  v-if="user?.role === 'admin' || user?.role === 'super_admin'"
                   to="/admin/dashboard"
                   class="block w-full px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
                   role="menuitem"

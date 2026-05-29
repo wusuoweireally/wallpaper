@@ -166,6 +166,7 @@
                   <option value="" class="bg-slate-900">全部</option>
                   <option value="user" class="bg-slate-900">普通用户</option>
                   <option value="admin" class="bg-slate-900">管理员</option>
+                  <option value="super_admin" class="bg-slate-900">超级管理员</option>
                 </select>
               </div>
               <div class="md:col-span-2 xl:col-span-1">
@@ -245,6 +246,17 @@
               @click="applyQuickFilter('admin')"
             >
               管理员
+            </button>
+            <button
+              class="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+              :class="
+                filters.role === 'super_admin'
+                  ? 'bg-white/30 text-white'
+                  : 'border border-white/20 text-white/70 hover:border-white/40 hover:text-white'
+              "
+              @click="applyQuickFilter('super_admin')"
+            >
+              超级管理员
             </button>
             <button
               class="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
@@ -367,6 +379,13 @@
                     >
                       <iconify-icon icon="mdi:shield-crown" class="text-sm"></iconify-icon>
                       管理员
+                    </div>
+                    <div
+                      v-else-if="user.role === 'super_admin'"
+                      class="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400/90 to-orange-500/90 px-3 py-1 text-xs font-semibold text-white shadow"
+                    >
+                      <iconify-icon icon="mdi:shield-star" class="text-sm"></iconify-icon>
+                      超级管理员
                     </div>
                     <div
                       v-else
@@ -723,7 +742,7 @@ const formatDate = (date: string) => {
 
 const totalUsers = computed(() => pagination.value.total || 0)
 const activeUsers = computed(() => users.value.filter((user) => user.status === 1).length)
-const adminUsers = computed(() => users.value.filter((user) => user.role === "admin").length)
+const adminUsers = computed(() => users.value.filter((user) => user.role === "admin" || user.role === "super_admin").length)
 const activeRate = computed(() => {
   const total = users.value.length
   if (!total) return 0
@@ -908,13 +927,15 @@ const resetFilters = () => {
   refreshList()
 }
 
-const applyQuickFilter = (type: "active" | "inactive" | "admin" | "user") => {
+const applyQuickFilter = (type: "active" | "inactive" | "admin" | "super_admin" | "user") => {
   if (type === "active") {
     filters.status = "1"
   } else if (type === "inactive") {
     filters.status = "0"
   } else if (type === "admin") {
     filters.role = UserRole.ADMIN
+  } else if (type === "super_admin") {
+    filters.role = UserRole.SUPER_ADMIN
   } else if (type === "user") {
     filters.role = UserRole.USER
   }

@@ -397,7 +397,7 @@ router.beforeEach(async (to, _from, next) => {
     const requiredRoles = to.meta.roles as string[]
     const userRole = currentUser.value?.role
 
-    if (requiredRoles.includes("ADMIN") && userRole !== "admin") {
+    if (requiredRoles.includes("ADMIN") && userRole !== "admin" && userRole !== "super_admin") {
       next({ name: "Home" })
       return
     }

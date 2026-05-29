@@ -218,7 +218,7 @@
           账号设置
         </router-link>
         <router-link
-          v-if="userStore.user?.role === 'admin'"
+          v-if="userStore.user?.role === 'admin' || userStore.user?.role === 'super_admin'"
           to="/admin/dashboard"
           class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-gradient-to-r from-red-50 to-pink-50 px-5 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-all hover:border-red-400 hover:from-red-100 hover:to-pink-100 hover:shadow-md"
           active-class="border-red-500 bg-gradient-to-r from-red-100 to-pink-100 text-red-900 shadow-md ring-2 ring-red-400/30"
