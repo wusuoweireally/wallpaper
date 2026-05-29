@@ -5,7 +5,13 @@ import type { Wallpaper } from "@/services/wallpaper"
 /**
  * 用户角色枚举
  */
-export type UserRole = "user" | "admin" | "super_admin"
+export const UserRole = {
+  USER: "user",
+  ADMIN: "admin",
+  SUPER_ADMIN: "super_admin",
+} as const
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 /**
  * 用户信息接口
@@ -93,7 +99,9 @@ class UserService {
    */
   async login(loginDto: LoginDto) {
     try {
-      const response = await api.post("/users/login", loginDto)
+      const response = await api.post("/users/login", loginDto, {
+        skipAuthExpiredHandler: true,
+      } as import("axios").AxiosRequestConfig)
       return response as unknown as ApiResponse<LoginResponse>
     } catch (error) {
       console.error("登录失败:", error)

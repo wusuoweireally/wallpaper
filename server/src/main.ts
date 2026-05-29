@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { join } from "path";
 import * as express from "express";
 import cookieParser from "cookie-parser";
@@ -7,7 +8,7 @@ import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./filters/http-exception.filter";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // 启用CORS - 生产环境限制域名，开发环境允许所有
   const allowedOrigins =
@@ -32,6 +33,10 @@ async function bootstrap() {
   app.use("/uploads", express.static(join(__dirname, "..", "uploads")));
 
   // 全局验证管道
+  // 信任反向代理的 X-Forwarded-For 头（Docker Compose 架构: 宿主机 Nginx → web 容器 Nginx → server）
+  // 不设置会导致全局限流器所有用户共享同一个 IP，限流失效
+  app.set("trust proxy", 2);
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

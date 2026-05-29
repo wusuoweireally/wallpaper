@@ -273,24 +273,29 @@ export class WallpaperService {
    * 删除壁纸（包含标签/点赞/收藏等关联清理）- 使用事务保护
    */
   async delete(id: number): Promise<void> {
-    const tags = await this.tagService.getTagsByWallpaperId(id);
-
     await this.dataSource.transaction(async (manager) => {
+      // 在事务内读取关联标签，确保事务隔离一致性
+      const wallpaperTags = await manager.find(WallpaperTag, {
+        where: { wallpaperId: id },
+        relations: ["tag"],
+      });
+
       await manager.delete(UserLike, { wallpaperId: id });
       await manager.delete(UserFavorite, { wallpaperId: id });
       await manager.delete(WallpaperTag, { wallpaperId: id });
+
+      // 标签 usageCount 递减在事务内执行，保证与关联删除原子性
+      for (const wt of wallpaperTags) {
+        if (wt.tag && wt.tag.usageCount > 0) {
+          await manager.decrement(Tag, { id: wt.tagId }, "usageCount", 1);
+        }
+      }
 
       const result = await manager.delete(Wallpaper, id);
       if (result.affected === 0) {
         throw new NotFoundException(`壁纸 ID ${id} 不存在`);
       }
     });
-
-    for (const tag of tags) {
-      if (tag.usageCount > 0) {
-        await this.tagService.decrementUsageCount(tag.id);
-      }
-    }
   }
 
   /**
@@ -671,17 +676,19 @@ export class WallpaperService {
   ): Promise<{ data: Wallpaper[]; total: number }> {
     const skip = (page - 1) * limit;
 
-    const [likes, total] = await this.userLikeRepository.findAndCount({
-      where: { userId },
-      relations: ["wallpaper", "wallpaper.uploader"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
+    // 使用 QueryBuilder 确保 total 与 data 基于同一过滤结果集（仅 status=1 的壁纸）
+    const qb = this.userLikeRepository
+      .createQueryBuilder("like")
+      .leftJoinAndSelect("like.wallpaper", "wallpaper")
+      .leftJoinAndSelect("wallpaper.uploader", "uploader")
+      .where("like.userId = :userId", { userId })
+      .andWhere("wallpaper.status = :status", { status: 1 })
+      .orderBy("like.createdAt", "DESC")
+      .skip(skip)
+      .take(limit);
 
-    const wallpapers = likes
-      .map((like) => like.wallpaper)
-      .filter((wallpaper) => wallpaper && wallpaper.status === 1);
+    const [likes, total] = await qb.getManyAndCount();
+    const wallpapers = likes.map((like) => like.wallpaper).filter(Boolean);
 
     return { data: wallpapers, total };
   }
@@ -696,17 +703,18 @@ export class WallpaperService {
   ): Promise<{ data: Wallpaper[]; total: number }> {
     const skip = (page - 1) * limit;
 
-    const [favorites, total] = await this.userFavoriteRepository.findAndCount({
-      where: { userId },
-      relations: ["wallpaper", "wallpaper.uploader"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
+    const qb = this.userFavoriteRepository
+      .createQueryBuilder("favorite")
+      .leftJoinAndSelect("favorite.wallpaper", "wallpaper")
+      .leftJoinAndSelect("wallpaper.uploader", "uploader")
+      .where("favorite.userId = :userId", { userId })
+      .andWhere("wallpaper.status = :status", { status: 1 })
+      .orderBy("favorite.createdAt", "DESC")
+      .skip(skip)
+      .take(limit);
 
-    const wallpapers = favorites
-      .map((favorite) => favorite.wallpaper)
-      .filter((wallpaper) => wallpaper && wallpaper.status === 1);
+    const [favorites, total] = await qb.getManyAndCount();
+    const wallpapers = favorites.map((favorite) => favorite.wallpaper).filter(Boolean);
 
     return { data: wallpapers, total };
   }

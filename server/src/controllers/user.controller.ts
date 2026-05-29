@@ -214,7 +214,7 @@ export class UserController {
     }
 
     // 仅允许本人或管理员修改
-    if (currentUser.userId !== userId && currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.userId !== userId && !isAdminRole(currentUser.role)) {
       throw new ForbiddenException("无权修改该用户信息");
     }
 
@@ -242,7 +242,7 @@ export class UserController {
     }
 
     // 仅允许本人或管理员删除
-    if (currentUser.userId !== userId && currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.userId !== userId && !isAdminRole(currentUser.role)) {
       throw new ForbiddenException("无权删除该用户");
     }
 
@@ -312,7 +312,7 @@ export class UserController {
     }
 
     // 仅允许本人或管理员上传
-    if (currentUser.userId !== userId && currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.userId !== userId && !isAdminRole(currentUser.role)) {
       throw new ForbiddenException("无权上传该用户头像");
     }
 

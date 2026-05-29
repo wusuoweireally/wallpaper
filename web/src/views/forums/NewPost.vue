@@ -193,7 +193,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, reactive, onMounted } from "vue"
+import { ref, computed, reactive, onMounted, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import { forumService, type CreatePostDto } from "@/services/forum"
 import { useUserStore } from "@/stores/user"
@@ -362,9 +362,13 @@ onMounted(() => {
 })
 
 // Save draft before page unload (only if has content)
-window.addEventListener("beforeunload", () => {
+const saveDraftHandler = () => {
   if (hasContent.value) {
     localStorage.setItem("forum_post_draft", JSON.stringify(formData))
   }
+}
+window.addEventListener("beforeunload", saveDraftHandler)
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", saveDraftHandler)
 })
 </script>

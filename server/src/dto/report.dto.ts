@@ -1,10 +1,13 @@
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from "class-validator";
+import { Type } from "class-transformer";
 import {
   ReportReason,
   ReportStatus,
@@ -16,7 +19,9 @@ export class CreateReportDto {
   @IsNotEmpty({ message: "举报目标类型不能为空" })
   targetType: ReportTargetType;
 
-  @IsNotEmpty({ message: "举报目标ID不能为空" })
+  @Type(() => Number)
+  @IsInt({ message: "举报目标ID必须是整数" })
+  @Min(1, { message: "举报目标ID必须大于0" })
   targetId: number;
 
   @IsEnum(ReportReason)

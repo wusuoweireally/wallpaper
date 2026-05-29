@@ -3,8 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { IsNull, Repository } from "typeorm";
+import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
+import { DataSource, IsNull, Repository } from "typeorm";
 import { PaginatedResult } from "../common/pagination";
 import { CommentQueryDto, CreateCommentDto } from "../dto/comment.dto";
 import { Comment } from "../entities/comment.entity";
@@ -29,6 +29,8 @@ export class CommentService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(CommentLike)
     private readonly commentLikeRepository: Repository<CommentLike>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -42,7 +44,7 @@ export class CommentService {
     commentData: CreateCommentDto,
     authorId: number,
   ): Promise<Comment> {
-    // 验证帖子是否存在
+    // 验证帖子是否存在（事务前校验，只读）
     const post = await this.postRepository.findOne({
       where: { id: commentData.postId },
     });
@@ -61,41 +63,36 @@ export class CommentService {
         throw new NotFoundException(`父评论 ID ${commentData.parentId} 不存在`);
       }
 
-      // 确保父评论属于同一帖子
       if (parentComment.postId != commentData.postId) {
         throw new ForbiddenException("父评论不属于指定帖子");
       }
     }
 
-    const comment = this.commentRepository.create({
-      content: commentData.content,
-      parentId: commentData.parentId,
-      postId: commentData.postId,
-      authorId,
+    // 事务内：创建评论 + 更新计数，保证原子性
+    const savedId = await this.dataSource.transaction(async (manager) => {
+      const commentRepo = manager.getRepository(Comment);
+      const postRepo = manager.getRepository(Post);
+
+      const comment = commentRepo.create({
+        content: commentData.content,
+        parentId: commentData.parentId,
+        postId: commentData.postId,
+        authorId,
+      });
+
+      const savedComment = await commentRepo.save(comment);
+
+      await postRepo.increment({ id: commentData.postId }, "commentCount", 1);
+      await postRepo.update(commentData.postId, { lastCommentAt: new Date() });
+
+      if (commentData.parentId) {
+        await commentRepo.increment({ id: commentData.parentId }, "replyCount", 1);
+      }
+
+      return savedComment.id;
     });
 
-    const savedComment = await this.commentRepository.save(comment);
-
-    // 更新帖子评论数 & 最后评论时间
-    await this.postRepository.increment(
-      { id: commentData.postId },
-      "commentCount",
-      1,
-    );
-    await this.postRepository.update(commentData.postId, {
-      lastCommentAt: new Date(),
-    });
-
-    // 更新父评论回复数
-    if (commentData.parentId) {
-      await this.commentRepository.increment(
-        { id: commentData.parentId },
-        "replyCount",
-        1,
-      );
-    }
-
-    return this.findById(savedComment.id);
+    return this.findById(savedId);
   }
 
   /**
@@ -196,7 +193,7 @@ export class CommentService {
   }
 
   /**
-   * 删除评论
+   * 删除评论（事务保护：删除评论 + 递归删子评论 + 更新所有计数器 原子执行）
    *
    * @param id 评论ID
    * @param userId 当前用户ID
@@ -214,54 +211,44 @@ export class CommentService {
       throw new ForbiddenException("只能删除自己的评论");
     }
 
-    // 递归删除子评论
-    await this.deleteChildComments(id);
+    await this.dataSource.transaction(async (manager) => {
+      const commentRepo = manager.getRepository(Comment);
+      const postRepo = manager.getRepository(Post);
 
-    // 删除评论
-    const result = await this.commentRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`评论 ID ${id} 删除失败`);
-    }
+      // 递归删除子评论（使用事务 manager）
+      await this.deleteChildCommentsWithManager(id, manager);
 
-    // 更新帖子评论数
-    await this.postRepository.decrement(
-      { id: comment.postId },
-      "commentCount",
-      1,
-    );
+      const result = await commentRepo.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`评论 ID ${id} 删除失败`);
+      }
 
-    if (comment.parentId) {
-      await this.commentRepository.decrement(
-        { id: comment.parentId },
-        "replyCount",
-        1,
-      );
-    }
+      await postRepo.decrement({ id: comment.postId }, "commentCount", 1);
+
+      if (comment.parentId) {
+        await commentRepo.decrement({ id: comment.parentId }, "replyCount", 1);
+      }
+    });
   }
 
   /**
-   * 递归删除子评论
-   *
-   * @param parentCommentId 父评论ID
+   * 递归删除子评论（事务内，使用传入的 EntityManager）
    */
-  private async deleteChildComments(parentCommentId: number): Promise<void> {
-    const childComments = await this.commentRepository.find({
+  private async deleteChildCommentsWithManager(
+    parentCommentId: number,
+    manager: import("typeorm").EntityManager,
+  ): Promise<void> {
+    const commentRepo = manager.getRepository(Comment);
+    const postRepo = manager.getRepository(Post);
+
+    const childComments = await commentRepo.find({
       where: { parentId: parentCommentId },
     });
 
     for (const child of childComments) {
-      // 递归删除子评论的子评论
-      await this.deleteChildComments(child.id);
-
-      // 删除子评论
-      await this.commentRepository.delete(child.id);
-
-      // 更新帖子评论数
-      await this.postRepository.decrement(
-        { id: child.postId },
-        "commentCount",
-        1,
-      );
+      await this.deleteChildCommentsWithManager(child.id, manager);
+      await commentRepo.delete(child.id);
+      await postRepo.decrement({ id: child.postId }, "commentCount", 1);
     }
   }
 
@@ -400,13 +387,10 @@ export class CommentService {
     });
 
     if (existingLike) {
-      // 已经点赞，执行取消点赞
+      // 已点赞 → 取消点赞
       await this.commentLikeRepository.delete(existingLike.id);
-
-      // 减少点赞数
       await this.commentRepository.decrement({ id: commentId }, "likeCount", 1);
 
-      // 获取更新后的点赞数
       const updatedComment = await this.commentRepository.findOne({
         where: { id: commentId },
       });
@@ -415,27 +399,36 @@ export class CommentService {
         isLiked: false,
         likeCount: updatedComment?.likeCount || 0,
       };
-    } else {
-      // 执行点赞
-      const like = this.commentLikeRepository.create({
-        commentId,
-        userId,
-      });
-      await this.commentLikeRepository.save(like);
-
-      // 增加点赞数
-      await this.commentRepository.increment({ id: commentId }, "likeCount", 1);
-
-      // 获取更新后的点赞数
-      const updatedComment = await this.commentRepository.findOne({
-        where: { id: commentId },
-      });
-
-      return {
-        isLiked: true,
-        likeCount: updatedComment?.likeCount || 0,
-      };
     }
+
+    // 未点赞 → 点赞，捕获并发插入冲突（UNIQUE 约束）
+    try {
+      const like = this.commentLikeRepository.create({ commentId, userId });
+      await this.commentLikeRepository.save(like);
+    } catch (error: any) {
+      // MySQL ER_DUP_ENTRY = 1062; SQLite SQLITE_CONSTRAINT = 19
+      if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) {
+        const updatedComment = await this.commentRepository.findOne({
+          where: { id: commentId },
+        });
+        return {
+          isLiked: true,
+          likeCount: updatedComment?.likeCount || 0,
+        };
+      }
+      throw error;
+    }
+
+    await this.commentRepository.increment({ id: commentId }, "likeCount", 1);
+
+    const updatedComment = await this.commentRepository.findOne({
+      where: { id: commentId },
+    });
+
+    return {
+      isLiked: true,
+      likeCount: updatedComment?.likeCount || 0,
+    };
   }
 
   /**

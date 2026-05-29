@@ -10,14 +10,15 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ForbiddenException,
   UseGuards,
   Req,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Request } from "express";
-import { InjectConnection } from "@nestjs/typeorm";
-import { Connection } from "typeorm";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 import { WallpaperService } from "../services/wallpaper.service";
 import { UploadService } from "../services/upload.service";
 import {
@@ -50,7 +51,7 @@ export class WallpaperController {
     private readonly uploadService: UploadService,
     private readonly tagService: TagService,
     private readonly viewHistoryService: ViewHistoryService,
-    @InjectConnection() private readonly connection: Connection,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -92,33 +93,28 @@ export class WallpaperController {
       throw new BadRequestException("文件处理失败");
     }
 
-    // 第二步：使用事务处理数据库操作
+    // 第二步：数据库操作
+    // TODO: 用 dataSource.transaction() 包裹 create + processWallpaperTags，
+    // 需先将 Service 层方法改为支持传入事务 EntityManager
     try {
-      await this.connection.transaction(async () => {
-        // 创建壁纸记录
-        const createData: CreateWallpaperData = {
-          ...createWallpaperDto,
-          ...fileInfo,
-        };
+      const createData: CreateWallpaperData = {
+        ...createWallpaperDto,
+        ...fileInfo,
+      };
 
-        // 创建壁纸（使用事务管理器）
-        const wallpaper = await this.wallpaperService.create(
-          createData,
-          user.userId,
+      const wallpaper = await this.wallpaperService.create(
+        createData,
+        user.userId,
+      );
+
+      // 仅管理员可在上传时创建新标签，普通用户只能关联已存在标签
+      if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
+        await this.tagService.processWallpaperTags(
+          wallpaper.id,
+          createWallpaperDto.tags,
+          isAdminRole(user.role),
         );
-
-        // 处理标签关联（在同一事务中）
-        // 仅管理员可在上传时创建新标签，普通用户只能关联已存在标签
-        if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
-          await this.tagService.processWallpaperTags(
-            wallpaper.id,
-            createWallpaperDto.tags,
-            isAdminRole(user.role),
-          );
-        }
-
-        return wallpaper;
-      });
+      }
 
       return {
         success: true,
@@ -126,10 +122,14 @@ export class WallpaperController {
       };
     } catch (error) {
       // 如果数据库操作失败，删除已上传的文件
-      await this.uploadService.deleteUploadedFiles(
-        fileInfo.fileUrl,
-        fileInfo.thumbnailUrl || "",
-      );
+      try {
+        await this.uploadService.deleteUploadedFiles(
+          fileInfo.fileUrl,
+          fileInfo.thumbnailUrl || "",
+        );
+      } catch (cleanupErr) {
+        console.error("文件清理失败:", cleanupErr);
+      }
 
       if (error instanceof Error) {
         throw new BadRequestException(error.message || "上传失败");
@@ -375,7 +375,7 @@ export class WallpaperController {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
     if (wallpaper.uploaderId !== user.userId) {
-      throw new BadRequestException("无权修改此壁纸");
+      throw new ForbiddenException("无权修改此壁纸");
     }
 
     const updatedWallpaper = await this.wallpaperService.update(
@@ -402,7 +402,7 @@ export class WallpaperController {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
     if (wallpaper.uploaderId !== user.userId) {
-      throw new BadRequestException("无权删除此壁纸");
+      throw new ForbiddenException("无权删除此壁纸");
     }
 
     await this.wallpaperService.delete(Number(id));
@@ -434,7 +434,7 @@ export class WallpaperController {
   }
 
   /**
-   * 点赞壁纸
+   * 切换点赞状态
    */
   @Post(":id/like")
   @UseGuards(JwtAuthGuard)
@@ -442,16 +442,18 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    await this.wallpaperService.incrementLikeCount(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleLike(user.userId, Number(id));
 
     return {
       success: true,
-      message: "点赞成功",
+      message: result.isLiked ? "点赞成功" : "取消点赞成功",
+      data: result,
     };
   }
 
   /**
-   * 取消点赞壁纸
+   * 取消点赞（等同 toggle：已赞则取消，未赞则点赞）
+   * @deprecated 使用 POST /:id/like 统一 toggle 端点
    */
   @Post(":id/unlike")
   @UseGuards(JwtAuthGuard)
@@ -459,11 +461,12 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    await this.wallpaperService.decrementLikeCount(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleLike(user.userId, Number(id));
 
     return {
       success: true,
-      message: "取消点赞成功",
+      message: result.isLiked ? "点赞成功" : "取消点赞成功",
+      data: result,
     };
   }
 
@@ -476,16 +479,18 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    await this.wallpaperService.incrementFavoriteCount(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleFavorite(user.userId, Number(id));
 
     return {
       success: true,
-      message: "收藏成功",
+      message: result.isFavorited ? "收藏成功" : "取消收藏成功",
+      data: result,
     };
   }
 
   /**
-   * 取消收藏壁纸
+   * 取消收藏（等同 toggle）
+   * @deprecated 使用 POST /:id/favorite 统一 toggle 端点
    */
   @Post(":id/unfavorite")
   @UseGuards(JwtAuthGuard)
@@ -493,11 +498,12 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    await this.wallpaperService.decrementFavoriteCount(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleFavorite(user.userId, Number(id));
 
     return {
       success: true,
-      message: "取消收藏成功",
+      message: result.isFavorited ? "收藏成功" : "取消收藏成功",
+      data: result,
     };
   }
 }

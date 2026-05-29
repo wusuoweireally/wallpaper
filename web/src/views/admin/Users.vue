@@ -674,7 +674,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, computed, onBeforeUnmount } from "vue"
 import adminService, { type AdminUser, type AdminUserQuery } from "@/services/admin"
-import type { UserRole } from "@/services/user"
+import { UserRole } from "@/services/user"
 
 interface PaginationMeta {
   page: number

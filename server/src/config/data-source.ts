@@ -7,6 +7,12 @@ import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { UserFavorite } from "../entities/user-favorite.entity";
 import { UserLike } from "../entities/user-like.entity";
 import { ViewHistory } from "../entities/view-history.entity";
+import { Post } from "../entities/post.entity";
+import { Comment } from "../entities/comment.entity";
+import { PostLike } from "../entities/post-like.entity";
+import { CommentLike } from "../entities/comment-like.entity";
+import { Report } from "../entities/report.entity";
+import { PostBookmark } from "../entities/post-bookmark.entity";
 
 // TypeORM DataSource 配置
 // 用于 CLI 工具（迁移生成和执行）
@@ -25,6 +31,12 @@ export const AppDataSource = new DataSource({
     UserFavorite,
     UserLike,
     ViewHistory,
+    Post,
+    Comment,
+    PostLike,
+    CommentLike,
+    Report,
+    PostBookmark,
   ],
   migrations: ["src/migrations/*.ts"],
   synchronize: false,

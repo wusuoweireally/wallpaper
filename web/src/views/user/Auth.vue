@@ -428,7 +428,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from "vue"
+import { ref, reactive, computed, watch, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useUserStore, type RegisterDto } from "@/stores/user"
 import GitHubLoginButton from "@/components/GitHubLoginButton.vue"
@@ -453,12 +453,19 @@ const switchForm = (mode: AuthMode) => {
   isLogin.value = mode === "login"
 }
 
-router.afterEach((to) => {
-  if (to.name === "Login" || to.name === "Register") {
-    isLogin.value = to.name === "Login"
-    loginError.value = ""
-    registerError.value = ""
-  }
+// 使用 watch 替代 router.afterEach：自动在组件卸载时清理，无需手动管理
+const stopRouteWatch = watch(
+  () => route.name,
+  (name) => {
+    if (name === "Login" || name === "Register") {
+      isLogin.value = name === "Login"
+      loginError.value = ""
+      registerError.value = ""
+    }
+  },
+)
+onBeforeUnmount(() => {
+  stopRouteWatch()
 })
 
 const loginForm = reactive({

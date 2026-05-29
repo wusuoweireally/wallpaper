@@ -8,8 +8,6 @@ import {
   Index,
 } from "typeorm";
 import { User } from "./user.entity";
-import { Post } from "./post.entity";
-import { Comment } from "./comment.entity";
 
 export enum ReportTargetType {
   POST = "post",
@@ -114,19 +112,9 @@ export class Report {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @ManyToOne(() => Post, { eager: false, nullable: true })
-  @JoinColumn({
-    name: "target_id",
-    foreignKeyConstraintName: "FK_report_target_post",
-  })
-  post: Post;
-
-  @ManyToOne(() => Comment, { eager: false, nullable: true })
-  @JoinColumn({
-    name: "target_id",
-    foreignKeyConstraintName: "FK_report_target_comment",
-  })
-  comment: Comment;
+  // target_id 是多态外键（根据 targetType 指向 Post 或 Comment），
+  // 不能同时建两个 @ManyToOne 到同一列（MySQL 双外键约束冲突）。
+  // 关联数据在 Service 层根据 targetType 手动加载。
 
   @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: "reviewed_by" })

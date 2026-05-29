@@ -85,8 +85,6 @@ export class ReportService {
     const queryBuilder = this.reportRepository
       .createQueryBuilder("report")
       .leftJoinAndSelect("report.user", "user")
-      .leftJoinAndSelect("report.post", "post")
-      .leftJoinAndSelect("report.comment", "comment")
       .leftJoinAndSelect("report.reviewer", "reviewer")
       .orderBy("report.createdAt", "DESC")
       .skip(skip)
@@ -131,7 +129,7 @@ export class ReportService {
   async getReportById(id: number): Promise<Report> {
     const report = await this.reportRepository.findOne({
       where: { id },
-      relations: ["user", "post", "comment", "reviewer"],
+      relations: ["user", "reviewer"],
     });
 
     if (!report) {
@@ -188,7 +186,7 @@ export class ReportService {
 
     const [data, total] = await this.reportRepository.findAndCount({
       where: { userId },
-      relations: ["post", "comment"],
+      relations: [],
       order: { createdAt: "DESC" },
       skip,
       take: limit,
