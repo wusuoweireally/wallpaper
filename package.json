@@ -26,6 +26,9 @@
     "docker:prod:logs": "docker compose --env-file server/.env.production logs -f"
   },
   "packageManager": "pnpm@10.13.1",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },

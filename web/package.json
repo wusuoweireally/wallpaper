@@ -41,8 +41,5 @@
     "vite": "^7.1.2",
     "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^3.0.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
   }
 }
