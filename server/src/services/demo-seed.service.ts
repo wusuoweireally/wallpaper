@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { promises as fs } from "fs";
 import { join } from "path";
 import sharp from "sharp";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { Tag } from "../entities/tag.entity";
 import { User, UserRole } from "../entities/user.entity";
@@ -50,8 +50,9 @@ export class DemoSeedService implements OnApplicationBootstrap {
       return;
     }
 
+    // 接受 ADMIN 或 SUPER_ADMIN 作为上传者（种子管理员现为 SUPER_ADMIN）
     const uploader = await this.userRepository.findOne({
-      where: { role: UserRole.ADMIN },
+      where: { role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN]) },
       order: { createdAt: "ASC" },
     });
     if (!uploader) {
@@ -100,7 +101,10 @@ export class DemoSeedService implements OnApplicationBootstrap {
         .webp({ quality: 100 })
         .toFile(join(thumbnailsDir, thumbnailName));
 
-      const relatedTags = [tags[index % tags.length], tags[(index + 1) % tags.length]];
+      const relatedTags = [
+        tags[index % tags.length],
+        tags[(index + 1) % tags.length],
+      ];
       relatedTags.forEach((tag) => {
         tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
       });

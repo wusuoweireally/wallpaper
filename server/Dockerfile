@@ -29,8 +29,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
 
-# Ensure uploads directory exists for runtime volume mount
-RUN mkdir -p /app/uploads
+# 拷贝默认上传资源（uploads/壁纸 源图、defaultAvatar 等）到镜像中。
+# 当挂载的命名卷为空（如执行 down -v 后）时，Docker 会用镜像里的内容初始化该卷，
+# 从而保证演示数据 seed 能找到默认壁纸源图。已有卷不受影响。
+COPY --from=build /app/uploads ./uploads
 
 EXPOSE 3000
 CMD ["node", "dist/main"]
