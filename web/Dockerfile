@@ -2,6 +2,8 @@ FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
 
+# 关闭 corepack 下载确认提示（非交互式构建必需）；pnpm 版本由 package.json 的 packageManager 字段锁定为 10.x
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # Enable pnpm via corepack
 RUN corepack enable
 

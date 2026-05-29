@@ -2,6 +2,8 @@ FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
 
+# 关闭 corepack 下载确认提示（非交互式构建必需）；pnpm 版本由 package.json 的 packageManager 字段锁定为 10.x
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # Enable pnpm via corepack
 RUN corepack enable
 
@@ -33,6 +35,8 @@ COPY --from=build /app/package.json ./package.json
 # 当挂载的命名卷为空（如执行 down -v 后）时，Docker 会用镜像里的内容初始化该卷，
 # 从而保证演示数据 seed 能找到默认壁纸源图。已有卷不受影响。
 COPY --from=build /app/uploads ./uploads
+# 确保运行时所需的上传子目录存在（demo-seed 会向 wallpapers/ 写入文件，缺目录会报错）
+RUN mkdir -p uploads/wallpapers uploads/thumbnails uploads/profile-pictures
 
 EXPOSE 3000
 CMD ["node", "dist/main"]

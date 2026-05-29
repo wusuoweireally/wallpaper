@@ -22,10 +22,11 @@
     "test:e2e": "pnpm -C server test:e2e",
     "start": "pnpm -C server start:prod",
     "preview": "pnpm -C web preview",
-    "docker:prod": "docker compose up -d --build",
-    "docker:prod:down": "docker compose down",
-    "docker:prod:logs": "docker compose logs -f"
+    "docker:prod": "docker compose --env-file server/.env.production up -d --build",
+    "docker:prod:down": "docker compose --env-file server/.env.production down",
+    "docker:prod:logs": "docker compose --env-file server/.env.production logs -f"
   },
+  "packageManager": "pnpm@10.13.1",
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
