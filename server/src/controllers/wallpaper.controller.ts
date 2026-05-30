@@ -10,7 +10,6 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
-  ForbiddenException,
   UseGuards,
   Req,
 } from "@nestjs/common";
@@ -30,6 +29,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { CurrentUser } from "../decorators/current-user.decorator";
 import type { CurrentUserType } from "../decorators/current-user.decorator";
+import { verifyOwnership } from "../decorators/ownership.decorator";
 import { isAdminRole } from "../entities/user.entity";
 import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
@@ -374,9 +374,7 @@ export class WallpaperController {
   ) {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
-    if (wallpaper.uploaderId !== user.userId) {
-      throw new ForbiddenException("无权修改此壁纸");
-    }
+    verifyOwnership(wallpaper.uploaderId, user, "修改此壁纸");
 
     const updatedWallpaper = await this.wallpaperService.update(
       Number(id),
@@ -401,9 +399,7 @@ export class WallpaperController {
   ) {
     // 验证用户权限
     const wallpaper = await this.wallpaperService.findById(Number(id));
-    if (wallpaper.uploaderId !== user.userId) {
-      throw new ForbiddenException("无权删除此壁纸");
-    }
+    verifyOwnership(wallpaper.uploaderId, user, "删除此壁纸");
 
     await this.wallpaperService.delete(Number(id));
 
@@ -439,25 +435,6 @@ export class WallpaperController {
   @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async likeWallpaper(
-    @Param("id") id: string,
-    @CurrentUser() user: { userId: number; username: string },
-  ) {
-    const result = await this.wallpaperService.toggleLike(user.userId, Number(id));
-
-    return {
-      success: true,
-      message: result.isLiked ? "点赞成功" : "取消点赞成功",
-      data: result,
-    };
-  }
-
-  /**
-   * 取消点赞（等同 toggle：已赞则取消，未赞则点赞）
-   * @deprecated 使用 POST /:id/like 统一 toggle 端点
-   */
-  @Post(":id/unlike")
-  @UseGuards(JwtAuthGuard)
-  async unlikeWallpaper(
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
