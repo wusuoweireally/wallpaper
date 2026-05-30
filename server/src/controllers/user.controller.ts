@@ -352,21 +352,7 @@ export class UserController {
       Number(limit),
     );
 
-    const { data, total } = result;
-    const limitCount: number = Number(limit) || 20;
-    const totalCount: number = typeof total === "number" ? total : 0;
-    const safeData = Array.isArray(data) ? data : [];
-
-    return {
-      success: true,
-      data: safeData,
-      pagination: {
-        page: Number(page),
-        limit: limitCount,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limitCount),
-      },
-    };
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
   }
 
   /**
@@ -385,21 +371,7 @@ export class UserController {
       Number(limit),
     );
 
-    const { data, total } = result;
-    const limitCount: number = Number(limit) || 20;
-    const totalCount: number = typeof total === "number" ? total : 0;
-    const safeData = Array.isArray(data) ? data : [];
-
-    return {
-      success: true,
-      data: safeData,
-      pagination: {
-        page: Number(page),
-        limit: limitCount,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limitCount),
-      },
-    };
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
   }
 
   /**
@@ -418,21 +390,7 @@ export class UserController {
       Number(limit),
     );
 
-    const { data, total } = result;
-    const limitCount: number = Number(limit) || 20;
-    const totalCount: number = typeof total === "number" ? total : 0;
-    const safeData = Array.isArray(data) ? data : [];
-
-    return {
-      success: true,
-      data: safeData,
-      pagination: {
-        page: Number(page),
-        limit: limitCount,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limitCount),
-      },
-    };
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
   }
   /**
    * 获取当前用户上传的壁纸列表
@@ -450,21 +408,7 @@ export class UserController {
       Number(limit),
     );
 
-    const { data, total } = result;
-    const limitCount: number = Number(limit) || 20;
-    const totalCount: number = typeof total === "number" ? total : 0;
-    const safeData = Array.isArray(data) ? data : [];
-
-    return {
-      success: true,
-      data: safeData,
-      pagination: {
-        page: Number(page),
-        limit: limitCount,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limitCount),
-      },
-    };
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
   }
   // 根据ID查询用户
   @Get(":id")
@@ -509,6 +453,26 @@ export class UserController {
     return {
       success: true,
       data: result,
+    };
+  }
+
+  /** 构建统分页响应，消除 4 处重复的 `Math.ceil` + Array.isArray 样板 */
+  private buildPaginatedResponse(
+    result: { data: unknown[]; total: number },
+    page: number,
+    limit: number = 20,
+  ) {
+    const totalCount = typeof result.total === "number" ? result.total : 0;
+    const safeData = Array.isArray(result.data) ? result.data : [];
+    return {
+      success: true,
+      data: safeData,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit),
+      },
     };
   }
 }

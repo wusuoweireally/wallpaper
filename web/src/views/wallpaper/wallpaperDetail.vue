@@ -494,10 +494,7 @@ const fetchWallpaperDetail = async () => {
       throw new Error("无效的壁纸ID")
     }
 
-    const [wallpaperResponse, tagsResponse] = await Promise.all([
-      wallpaperService.getWallpaperDetail(id),
-      wallpaperService.getWallpaperTags(id),
-    ])
+    const wallpaperResponse = await wallpaperService.getWallpaperDetail(id)
 
     if (!wallpaperResponse.success) {
       throw new Error(wallpaperResponse.message || "获取壁纸详情失败")
@@ -514,7 +511,7 @@ const fetchWallpaperDetail = async () => {
       width: wallpaperResponse.data.width,
       height: wallpaperResponse.data.height,
       fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
-      tags: tagsResponse.success ? tagsResponse.data.map((tag: { name: string }) => tag.name) : [],
+      tags: (wallpaperResponse.data.tags || []).map((tag: { name: string }) => tag.name),
       title: wallpaperResponse.data.title || "",
       description: wallpaperResponse.data.description || "",
       uploader: {

@@ -11,6 +11,10 @@ import { Tag } from "../entities/tag.entity";
 
 @Injectable()
 export class WallpaperService {
+  // 壁纸热门评分公式：浏览x1 + 点赞x5 + 收藏x8 + 下载x3
+  private static readonly POPULARITY_SCORE =
+    "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)";
+
   constructor(
     @InjectRepository(Wallpaper)
     private readonly wallpaperRepository: Repository<Wallpaper>,
@@ -209,7 +213,7 @@ export class WallpaperService {
       // 热门排序：加权综合评分
       // 浏览x1 + 点赞x5 + 收藏x8 + 下载x3
       queryBuilder.addSelect(
-        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        WallpaperService.POPULARITY_SCORE,
         "popularity_score",
       );
       queryBuilder.orderBy("popularity_score", "DESC");
@@ -378,21 +382,6 @@ export class WallpaperService {
     });
   }
 
-  /**
-   * 增加点赞次数（同时创建用户点赞记录）
-   * @deprecated 使用 toggleLike 替代
-   */
-  async incrementLikeCount(userId: number, wallpaperId: number): Promise<void> {
-    await this.toggleLike(userId, wallpaperId);
-  }
-
-  /**
-   * 减少点赞次数（同时删除用户点赞记录）
-   * @deprecated 使用 toggleLike 替代
-   */
-  async decrementLikeCount(userId: number, wallpaperId: number): Promise<void> {
-    await this.toggleLike(userId, wallpaperId);
-  }
 
   /**
    * 检查用户是否已收藏
@@ -455,27 +444,6 @@ export class WallpaperService {
     });
   }
 
-  /**
-   * 增加收藏次数（同时创建用户收藏记录）
-   * @deprecated 使用 toggleFavorite 替代
-   */
-  async incrementFavoriteCount(
-    userId: number,
-    wallpaperId: number,
-  ): Promise<void> {
-    await this.toggleFavorite(userId, wallpaperId);
-  }
-
-  /**
-   * 减少收藏次数（同时删除用户收藏记录）
-   * @deprecated 使用 toggleFavorite 替代
-   */
-  async decrementFavoriteCount(
-    userId: number,
-    wallpaperId: number,
-  ): Promise<void> {
-    await this.toggleFavorite(userId, wallpaperId);
-  }
 
   /**
    * 根据上传者ID查询壁纸
@@ -597,7 +565,17 @@ export class WallpaperService {
       qb.andWhere("wallpaper.category = :category", { category });
     }
 
-    qb.orderBy("RAND()").take(limit);
+    // 随机偏移替代 ORDER BY RAND()（避免全表扫描计算随机数）
+    const maxId = await this.wallpaperRepository
+      .createQueryBuilder("w")
+      .select("MAX(w.id)", "max")
+      .getRawOne<{ max: number }>();
+    if (maxId?.max) {
+      qb.andWhere("wallpaper.id >= :randomOffset", {
+        randomOffset: Math.floor(Math.random() * maxId.max),
+      });
+    }
+    qb.orderBy("wallpaper.id", "ASC").take(limit);
 
     return qb.getMany();
   }
@@ -617,7 +595,7 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.uploader", "uploader")
       .leftJoinAndSelect("wallpaper.tags", "tags")
       .addSelect(
-        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        WallpaperService.POPULARITY_SCORE,
         "popularity_score",
       )
       .where("wallpaper.status = :status", { status: 1 })
@@ -652,7 +630,7 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.uploader", "uploader")
       .leftJoinAndSelect("wallpaper.tags", "tags")
       .addSelect(
-        "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)",
+        WallpaperService.POPULARITY_SCORE,
         "popularity_score",
       )
       .where("wallpaper.status = :status", { status: 1 })

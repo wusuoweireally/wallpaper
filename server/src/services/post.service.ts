@@ -279,38 +279,6 @@ export class PostService {
    * @param postId 帖子ID
    * @param userId 用户ID
    */
-  async incrementLikeCount(postId: number, userId: number): Promise<void> {
-    const existingLike = await this.postLikeRepository.findOne({
-      where: { postId, userId },
-    });
-
-    if (!existingLike) {
-      const postLike = this.postLikeRepository.create({
-        postId,
-        userId,
-      });
-      await this.postLikeRepository.save(postLike);
-      await this.postRepository.increment({ id: postId }, "likeCount", 1);
-    }
-  }
-
-  /**
-   * 减少点赞次数（同时删除用户点赞记录）
-   *
-   * @param postId 帖子ID
-   * @param userId 用户ID
-   */
-  async decrementLikeCount(postId: number, userId: number): Promise<void> {
-    const result = await this.postLikeRepository.delete({
-      postId,
-      userId,
-    });
-
-    if (result.affected && result.affected > 0) {
-      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
-    }
-  }
-
   /**
    * 切换点赞状态
    */

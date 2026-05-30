@@ -194,37 +194,43 @@ export class TagService {
   ): Promise<void> {
     if (!tagNames || tagNames.length === 0) return;
 
-    // 创建或获取标签
-    const tags: Tag[] = [];
-    for (const tagName of tagNames) {
-      const normalized = tagName.trim();
-      if (!normalized) continue;
+    const normalizedNames = Array.from(
+      new Set(tagNames.map((t) => t.trim()).filter(Boolean)),
+    );
+    if (normalizedNames.length === 0) return;
 
-      let tag = await this.findTagByName(normalized);
+    // 批量查询已存在的标签（避免 N+1）
+    const slugs = normalizedNames.map((n) => this.generateSlug(n));
+    const existingTags = await this.tagRepository.find({
+      where: slugs.map((s) => ({ slug: s })),
+    });
+    const existingBySlug = new Map(existingTags.map((t) => [t.slug, t]));
+
+    const tags: Tag[] = [];
+    for (const name of normalizedNames) {
+      const slug = this.generateSlug(name);
+      let tag = existingBySlug.get(slug);
       if (!tag) {
-        // 标签不存在：仅在允许创建时（管理员）才新建，否则跳过
         if (!allowCreate) continue;
-        tag = await this.createTag({ name: normalized });
+        tag = await this.createTag({ name });
       }
       tags.push(tag);
     }
 
-    // 创建壁纸标签关联
-    for (const tag of tags) {
-      const existingAssociation = await this.wallpaperTagRepository.findOne({
-        where: { wallpaperId, tagId: tag.id },
-      });
+    if (tags.length === 0) return;
 
-      if (!existingAssociation) {
-        const wallpaperTag = this.wallpaperTagRepository.create({
-          wallpaperId,
-          tagId: tag.id,
-        });
-        await this.wallpaperTagRepository.save(wallpaperTag);
+    // 批量检查已有关联
+    const existingAssociations = await this.wallpaperTagRepository.find({
+      where: { wallpaperId },
+    });
+    const associatedTagIds = new Set(existingAssociations.map((a) => a.tagId));
 
-        // 增加标签使用次数
-        await this.incrementUsageCount(tag.id);
-      }
+    const newTags = tags.filter((t) => !associatedTagIds.has(t.id));
+    for (const tag of newTags) {
+      await this.wallpaperTagRepository.save(
+        this.wallpaperTagRepository.create({ wallpaperId, tagId: tag.id }),
+      );
+      await this.incrementUsageCount(tag.id);
     }
   }
 

@@ -1,5 +1,4 @@
 import api from "@/config/api"
-import type { ApiResponse } from "@/config/api"
 import type { AxiosProgressEvent } from "axios"
 
 /**
@@ -26,9 +25,6 @@ export interface WallpaperQueryParams {
   maxFileSize?: number
 }
 
-/**
- * 壁纸上传参数接口
- */
 export interface UploadWallpaperParams {
   file: File
   category: string
@@ -37,9 +33,6 @@ export interface UploadWallpaperParams {
   description?: string
 }
 
-/**
- * 标签接口
- */
 export interface Tag {
   id: number
   name: string
@@ -48,23 +41,6 @@ export interface Tag {
   createdAt: string
 }
 
-/**
- * 上传者接口
- */
-export interface Uploader {
-  id: number
-  username: string
-  email: string
-  avatarUrl?: string
-  bio?: string
-  status: number
-  createdAt: string
-  updatedAt: string
-}
-
-/**
- * 壁纸数据接口
- */
 export interface Wallpaper {
   id: number
   fileUrl: string
@@ -77,7 +53,6 @@ export interface Wallpaper {
   height: number
   aspectRatio: number
   uploaderId: number
-  uploader?: Uploader
   viewCount: number
   likeCount: number
   favoriteCount: number
@@ -91,340 +66,126 @@ export interface Wallpaper {
   tags?: Tag[]
   isLiked?: boolean
   isFavorited?: boolean
-}
-
-/**
- * 壁纸列表响应接口
- */
-export interface WallpaperListResponse {
-  data: Wallpaper[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
+  uploader?: {
+    id: number; username: string; email: string
+    avatarUrl?: string; bio?: string; status: number
+    createdAt: string; updatedAt: string
   }
 }
 
-/**
- * 壁纸服务类
- */
+/** 构建查询参数，过滤 undefined 值 */
+function buildQuery(params: Record<string, unknown>) {
+  const q: Record<string, string | number | string[]> = {}
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) q[k] = v as string | number | string[]
+  }
+  return q
+}
+
 class WallpaperService {
-  /**
-   * 上传壁纸
-   */
   async uploadWallpaper(
     params: UploadWallpaperParams,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ) {
     const formData = new FormData()
     formData.append("file", params.file)
-
     formData.append("category", params.category)
+    if (params.title) formData.append("title", params.title)
+    if (params.description) formData.append("description", params.description)
+    params.tags?.forEach((tag) => formData.append("tags[]", tag))
 
-    if (params.title) {
-      formData.append("title", params.title)
-    }
-
-    if (params.description) {
-      formData.append("description", params.description)
-    }
-
-    if (params.tags && params.tags.length > 0) {
-      // 后端期望tags是数组，但FormData不能直接传递数组
-      // 需要将每个标签作为单独的字段传递
-      params.tags.forEach((tag) => {
-        formData.append("tags[]", tag)
-      })
-    }
-
-    // 生成请求ID用于取消上传
-    const requestId = `upload_${Date.now()}`
-
-    try {
-      const response = await api.post("/wallpapers/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress,
-      })
-
-      return { response, requestId }
-    } catch (error) {
-      console.error("上传壁纸失败:", error)
-      throw error
-    }
+    const response = await api.post("/wallpapers/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress,
+    })
+    return { response, requestId: `upload_${Date.now()}` }
   }
 
-  /**
-   * 获取壁纸列表
-   */
   async getWallpapers(params: WallpaperQueryParams = {}) {
     try {
-      // 构建查询参数对象，确保数字类型参数正确传递
-      const queryParams: Record<string, string | number | string[]> = {
+      const queryParams = buildQuery({
         page: Math.max(1, params.page ?? 1),
         limit: Math.max(1, Math.min(100, params.limit ?? 20)),
-      }
-
-      if (params.search) queryParams.search = params.search
-      if (params.sortBy) queryParams.sortBy = params.sortBy
-      if (params.sortOrder) queryParams.sortOrder = params.sortOrder
-      if (params.category) queryParams.category = params.category
-      if (params.subCategory) queryParams.subCategory = params.subCategory
-      if (params.aspectRatio) queryParams.aspectRatio = params.aspectRatio
-      if (params.orientation) queryParams.orientation = params.orientation
-      if (params.minWidth) queryParams.minWidth = params.minWidth
-      if (params.maxWidth) queryParams.maxWidth = params.maxWidth
-      if (params.minHeight) queryParams.minHeight = params.minHeight
-      if (params.maxHeight) queryParams.maxHeight = params.maxHeight
-      if (params.format) queryParams.format = params.format
-      if (params.minFileSize) queryParams.minFileSize = params.minFileSize
-      if (params.maxFileSize) queryParams.maxFileSize = params.maxFileSize
-
-      if (params.tags && params.tags.length > 0) {
-        queryParams.tags = params.tags
-      }
-
-      if (params.tagKeyword) {
-        queryParams.tagKeyword = params.tagKeyword
-      }
-
-      const response = await api.get<Wallpaper[]>("/wallpapers", {
-        params: queryParams,
-        timeout: 10000, // 10秒超时
+        search: params.search, sortBy: params.sortBy, sortOrder: params.sortOrder,
+        category: params.category, orientation: params.orientation,
+        minWidth: params.minWidth, maxWidth: params.maxWidth,
+        minHeight: params.minHeight, maxHeight: params.maxHeight,
+        aspectRatio: params.aspectRatio, format: params.format,
+        minFileSize: params.minFileSize, maxFileSize: params.maxFileSize,
+        tags: params.tags, tagKeyword: params.tagKeyword,
       })
-      return response
+      return await api.get<Wallpaper[]>("/wallpapers", { params: queryParams, timeout: 10000 })
     } catch (error: unknown) {
-      const err = error as Error & { name?: string; isCancelled?: boolean; code?: string; message?: string; response?: { status: number; data?: { message?: string } } }
-      console.error("获取壁纸列表失败:", err)
-
-      if (err.name === "REQUEST_CANCELLED" || err.isCancelled) {
-        // 请求被取消，静默处理，返回空结果但不抛出错误
-        return {
-          success: false,
-          message: "请求已取消",
-          data: [],
-          pagination: {
-            page: 1,
-            limit: 20,
-            total: 0,
-            pages: 0,
-          },
-        }
+      const err = error as Error & Record<string, unknown>
+      if (err.name === "REQUEST_CANCELLED" || (err as { isCancelled?: boolean }).isCancelled) {
+        return { success: false, message: "请求已取消", data: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } }
       }
-
-      if (err.code === "ECONNABORTED") {
-        throw new Error("请求超时，请检查网络连接或稍后重试")
-      } else if (err.code === "NETWORK_ERROR" || err.message?.includes("Network Error")) {
-        throw new Error("网络连接失败，请检查网络设置")
-      } else if (err.response?.status === 400) {
-        throw new Error("请求参数错误，请检查筛选条件")
-      } else if (err.response?.status === 404) {
-        throw new Error("未找到相关壁纸，请尝试其他筛选条件")
-      } else if (err.response?.status === 401) {
-        throw new Error("身份验证失败，请重新登录")
-      } else if (err.response?.status === 403) {
-        throw new Error("权限不足，无法访问该内容")
-      } else if (err.response?.status && err.response.status >= 500) {
-        throw new Error("服务器暂时不可用，请稍后重试")
-      } else if (err.response?.data?.message) {
-        throw new Error(err.response.data.message)
-      } else {
-        throw new Error("获取壁纸失败，请稍后重试")
-      }
+      const status = (err as { response?: { status: number; data?: { message?: string } } }).response?.status
+      if (err.code === "ECONNABORTED") throw new Error("请求超时，请检查网络连接或稍后重试")
+      if (err.code === "NETWORK_ERROR" || (err.message || "").includes("Network Error")) throw new Error("网络连接失败，请检查网络设置")
+      if (status === 400) throw new Error("请求参数错误，请检查筛选条件")
+      if (status === 404) throw new Error("未找到相关壁纸，请尝试其他筛选条件")
+      if (status === 401) throw new Error("身份验证失败，请重新登录")
+      if (status === 403) throw new Error("权限不足，无法访问该内容")
+      if (status && status >= 500) throw new Error("服务器暂时不可用，请稍后重试")
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+      if (msg) throw new Error(msg)
+      throw new Error("获取壁纸失败，请稍后重试")
     }
   }
 
-  /**
-   * 获取壁纸详情
-   */
-  async getWallpaperDetail(id: number): Promise<ApiResponse<Wallpaper>> {
-    try {
-      const response = await api.get<Wallpaper>(`/wallpapers/${id}`)
-      return response as ApiResponse<Wallpaper>
-    } catch (error) {
-      console.error("获取壁纸详情失败:", error)
-      throw error
-    }
+  async getWallpaperDetail(id: number) {
+    return await api.get<Wallpaper>(`/wallpapers/${id}`)
   }
 
-  /**
-   * 更新壁纸信息
-   */
-  async updateWallpaper(
-    id: number,
-    updateData: Partial<Wallpaper>,
-  ): Promise<ApiResponse<Wallpaper>> {
-    try {
-      const response = await api.put<Wallpaper>(`/wallpapers/${id}`, updateData)
-      return response as ApiResponse<Wallpaper>
-    } catch (error) {
-      console.error("更新壁纸失败:", error)
-      throw error
-    }
+  async updateWallpaper(id: number, updateData: Partial<Wallpaper>) {
+    return await api.put<Wallpaper>(`/wallpapers/${id}`, updateData)
   }
 
-  /**
-   * 删除壁纸
-   */
   async deleteWallpaper(id: number) {
-    try {
-      const response = await api.delete(`/wallpapers/${id}`)
-      return response
-    } catch (error) {
-      console.error("删除壁纸失败:", error)
-      throw error
-    }
+    return await api.delete(`/wallpapers/${id}`)
   }
 
-  /**
-   * 点赞壁纸
-   */
   async likeWallpaper(id: number) {
-    try {
-      const response = await api.post(`/wallpapers/${id}/like`)
-      return response
-    } catch (error) {
-      console.error("点赞壁纸失败:", error)
-      throw error
-    }
+    return await api.post(`/wallpapers/${id}/like`)
   }
 
-  /**
-   * 取消点赞壁纸
-   */
   async unlikeWallpaper(id: number) {
-    try {
-      const response = await api.post(`/wallpapers/${id}/unlike`)
-      return response
-    } catch (error) {
-      console.error("取消点赞壁纸失败:", error)
-      throw error
-    }
+    return this.likeWallpaper(id) // like 端点已是 toggle
   }
 
-  /**
-   * 收藏壁纸
-   */
   async favoriteWallpaper(id: number) {
-    try {
-      const response = await api.post(`/wallpapers/${id}/favorite`)
-      return response
-    } catch (error) {
-      console.error("收藏壁纸失败:", error)
-      throw error
-    }
+    return await api.post(`/wallpapers/${id}/favorite`)
   }
 
-  /**
-   * 取消收藏壁纸
-   */
   async unfavoriteWallpaper(id: number) {
-    try {
-      const response = await api.post(`/wallpapers/${id}/unfavorite`)
-      return response
-    } catch (error) {
-      console.error("取消收藏壁纸失败:", error)
-      throw error
-    }
+    return this.favoriteWallpaper(id) // favorite 端点已是 toggle
   }
 
-  /**
-   * 获取相关推荐壁纸
-   */
-  async getRelatedWallpapers(id: number, limit: number = 8): Promise<ApiResponse<Wallpaper[]>> {
-    try {
-      const response = await api.get<Wallpaper[]>(`/wallpapers/${id}/related`, {
-        params: { limit },
-      })
-      return response as ApiResponse<Wallpaper[]>
-    } catch (error) {
-      console.error("获取相关壁纸失败:", error)
-      throw error
-    }
+  async getRelatedWallpapers(id: number, limit = 8) {
+    return await api.get<Wallpaper[]>(`/wallpapers/${id}/related`, { params: { limit } })
   }
 
-  /**
-   * 获取近期热门壁纸
-   */
-  async getTrendingWallpapers(
-    days: number = 7,
-    limit: number = 10,
-  ): Promise<ApiResponse<Wallpaper[]>> {
-    try {
-      const response = await api.get<Wallpaper[]>(`/wallpapers/trending`, {
-        params: { days, limit },
-      })
-      return response as ApiResponse<Wallpaper[]>
-    } catch (error) {
-      console.error("获取近期热门壁纸失败:", error)
-      throw error
-    }
+  async getTrendingWallpapers(days = 7, limit = 10) {
+    return await api.get<Wallpaper[]>(`/wallpapers/trending`, { params: { days, limit } })
   }
 
-  /**
-   * 获取热门壁纸
-   */
-  async getPopularWallpapers(limit: number = 10): Promise<ApiResponse<Wallpaper[]>> {
-    try {
-      const response = await api.get<Wallpaper[]>(`/wallpapers/popular`, {
-        params: { limit },
-      })
-      return response as ApiResponse<Wallpaper[]>
-    } catch (error) {
-      console.error("获取热门壁纸失败:", error)
-      throw error
-    }
+  async getPopularWallpapers(limit = 10) {
+    return await api.get<Wallpaper[]>(`/wallpapers/popular`, { params: { limit } })
   }
 
-  /**
-   * 根据上传者获取壁纸
-   */
-  async getWallpapersByUploader(
-    uploaderId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<ApiResponse<Wallpaper[]>> {
-    try {
-      const response = await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, {
-        params: { page, limit },
-      })
-      return response as ApiResponse<Wallpaper[]>
-    } catch (error) {
-      console.error("获取上传者壁纸失败:", error)
-      throw error
-    }
+  async getWallpapersByUploader(uploaderId: number, page = 1, limit = 20) {
+    return await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, { params: { page, limit } })
   }
 
-  /**
-   * 记录下载次数
-   */
   async recordDownload(id: number) {
-    try {
-      const response = await api.post(`/wallpapers/${id}/download`)
-      return response
-    } catch (error) {
-      console.error("记录下载失败:", error)
-      throw error
-    }
+    return await api.post(`/wallpapers/${id}/download`)
   }
 
-  /**
-   * 获取壁纸关联标签
-   */
-  async getWallpaperTags(id: number): Promise<ApiResponse<import("./tag").Tag[]>> {
-    try {
-      const response = await api.get<import("./tag").Tag[]>(`/wallpapers/${id}/tags`)
-      return response as ApiResponse<import("./tag").Tag[]>
-    } catch (error) {
-      console.error("获取壁纸标签失败:", error)
-      throw error
-    }
+  async getWallpaperTags(id: number) {
+    return await api.get<import("./tag").Tag[]>(`/wallpapers/${id}/tags`)
   }
 }
 
-// 导出单例实例
 export const wallpaperService = new WallpaperService()
-
 export default wallpaperService

@@ -18,15 +18,3 @@ export class PaginationQueryDto {
   @Max(100)
   limit: number = 20;
 }
-
-/**
- * 简单的数量限制查询 DTO
- */
-export class LimitQueryDto {
-  @Type(() => Number)
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit: number = 10;
-}
