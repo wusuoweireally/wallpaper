@@ -33,6 +33,7 @@ import { verifyOwnership } from "../decorators/ownership.decorator";
 import { isAdminRole } from "../entities/user.entity";
 import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
+import { sanitizeUser } from "../utils/sanitize";
 
 interface CreateWallpaperData extends CreateWallpaperDto {
   fileUrl: string;
@@ -94,8 +95,8 @@ export class WallpaperController {
     }
 
     // 第二步：数据库操作
-    // TODO: 用 dataSource.transaction() 包裹 create + processWallpaperTags，
-    // 需先将 Service 层方法改为支持传入事务 EntityManager
+    // 注意：当前未包裹事务（标签处理在上传成功后执行）。
+    // 如需强一致性，可在 Service 层支持事务 EntityManager 后改造。
     try {
       const createData: CreateWallpaperData = {
         ...createWallpaperDto,
@@ -335,13 +336,11 @@ export class WallpaperController {
         ...wallpaper,
         isLiked,
         isFavorited,
-        // 添加 uploaderName 字段以方便前端使用
         uploaderName: wallpaper.uploader?.username || "未知用户",
-        // 处理上传者头像URL
-        uploader: {
+        uploader: sanitizeUser({
           ...uploader,
           avatarUrl,
-        },
+        }),
       },
     };
   }
@@ -466,21 +465,15 @@ export class WallpaperController {
   }
 
   /**
-   * 取消收藏（等同 toggle）
-   * @deprecated 使用 POST /:id/favorite 统一 toggle 端点
+   * 强制取消收藏（幂等操作）
    */
-  @Post(":id/unfavorite")
+  @Delete(":id/favorite")
   @UseGuards(JwtAuthGuard)
   async unfavoriteWallpaper(
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    const result = await this.wallpaperService.toggleFavorite(user.userId, Number(id));
-
-    return {
-      success: true,
-      message: result.isFavorited ? "收藏成功" : "取消收藏成功",
-      data: result,
-    };
+    await this.wallpaperService.removeFavorite(user.userId, Number(id));
+    return { success: true, message: "已取消收藏" };
   }
 }

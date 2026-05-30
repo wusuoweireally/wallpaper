@@ -358,7 +358,7 @@ export class WallpaperService {
   }
 
   /**
-   * 切换点赞状态（使用事务防止竞态条件）
+   * 切换点赞状态（用于点赞按钮）
    */
   async toggleLike(userId: number, wallpaperId: number): Promise<{ isLiked: boolean }> {
     return await this.dataSource.transaction(async (manager) => {
@@ -380,6 +380,19 @@ export class WallpaperService {
         return { isLiked: true };
       }
     });
+  }
+
+  /**
+   * 强制取消点赞（幂等）
+   */
+  async removeLike(userId: number, wallpaperId: number): Promise<void> {
+    const existing = await this.userLikeRepository.findOne({
+      where: { userId, wallpaperId },
+    });
+    if (existing) {
+      await this.userLikeRepository.delete(existing.id);
+      await this.wallpaperRepository.decrement({ id: wallpaperId }, "likeCount", 1);
+    }
   }
 
 
@@ -420,7 +433,7 @@ export class WallpaperService {
   }
 
   /**
-   * 切换收藏状态（使用事务防止竞态条件）
+   * 切换收藏状态（用于收藏按钮）
    */
   async toggleFavorite(userId: number, wallpaperId: number): Promise<{ isFavorited: boolean }> {
     return await this.dataSource.transaction(async (manager) => {
@@ -442,6 +455,19 @@ export class WallpaperService {
         return { isFavorited: true };
       }
     });
+  }
+
+  /**
+   * 强制取消收藏（幂等）
+   */
+  async removeFavorite(userId: number, wallpaperId: number): Promise<void> {
+    const existing = await this.userFavoriteRepository.findOne({
+      where: { userId, wallpaperId },
+    });
+    if (existing) {
+      await this.userFavoriteRepository.delete(existing.id);
+      await this.wallpaperRepository.decrement({ id: wallpaperId }, "favoriteCount", 1);
+    }
   }
 
 

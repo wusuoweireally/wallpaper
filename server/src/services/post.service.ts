@@ -280,7 +280,7 @@ export class PostService {
    * @param userId 用户ID
    */
   /**
-   * 切换点赞状态
+   * 切换点赞状态（用于点赞按钮）
    */
   async toggleLike(postId: number, userId: number): Promise<boolean> {
     return await this.dataSource.transaction(async (manager) => {
@@ -311,6 +311,19 @@ export class PostService {
         throw error;
       }
     });
+  }
+
+  /**
+   * 强制取消点赞（幂等）
+   */
+  async removeLike(postId: number, userId: number): Promise<void> {
+    const existing = await this.postLikeRepository.findOne({
+      where: { postId, userId },
+    });
+    if (existing) {
+      await this.postLikeRepository.delete({ postId, userId });
+      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
+    }
   }
 
   /**

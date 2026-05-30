@@ -6,6 +6,21 @@ import {
   IsNumberString,
   Length,
 } from "class-validator";
+import { Transform } from "class-transformer";
+
+/**
+ * 将 FormData/multipart 中的单值或数组值归一化为 string[]。
+ *
+ * Multer (busboy) 在 multipart/form-data 中遇到多个同名 key（如 tags）时
+ * 会拼成数组，但仅一个值时直接返回字符串，导致 @IsArray() 验证失败。
+ * readAsArray 统一处理三种情况：undefined | string | string[]
+ */
+const readAsArray = ({ value }: { value: unknown }): string[] | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  if (typeof value === "string") return [value];
+  return undefined;
+};
 
 export class CreateWallpaperDto {
   @IsEnum(["general", "anime", "people"])
@@ -25,6 +40,7 @@ export class CreateWallpaperDto {
   @IsOptional()
   description?: string;
 
+  @Transform(readAsArray)
   @IsArray()
   @IsOptional()
   tags?: string[];
@@ -70,6 +86,7 @@ export class WallpaperQueryDto {
   @IsOptional()
   sortOrder?: "ASC" | "DESC" = "DESC";
 
+  @Transform(readAsArray)
   @IsArray()
   @IsOptional()
   tags?: string[];

@@ -92,7 +92,7 @@ class WallpaperService {
     formData.append("category", params.category)
     if (params.title) formData.append("title", params.title)
     if (params.description) formData.append("description", params.description)
-    params.tags?.forEach((tag) => formData.append("tags[]", tag))
+    params.tags?.forEach((tag) => formData.append("tags", tag))
 
     const response = await api.post("/wallpapers/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -151,7 +151,7 @@ class WallpaperService {
   }
 
   async unlikeWallpaper(id: number) {
-    return this.likeWallpaper(id) // like 端点已是 toggle
+    return await api.delete(`/wallpapers/${id}/like`)
   }
 
   async favoriteWallpaper(id: number) {
@@ -159,7 +159,7 @@ class WallpaperService {
   }
 
   async unfavoriteWallpaper(id: number) {
-    return this.favoriteWallpaper(id) // favorite 端点已是 toggle
+    return await api.delete(`/wallpapers/${id}/favorite`)
   }
 
   async getRelatedWallpapers(id: number, limit = 8) {

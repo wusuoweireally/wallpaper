@@ -113,7 +113,7 @@ export const forumService = {
   },
 
   async unlikePost(id: number): Promise<void> {
-    await this.likePost(id) // toggle 模式
+    await api.delete(`/posts/${id}/like`)
   },
 
   async checkLikeStatus(id: number): Promise<{ hasLiked: boolean }> {
@@ -130,7 +130,7 @@ export const forumService = {
   },
 
   async unbookmarkPost(id: number): Promise<void> {
-    await this.bookmarkPost(id) // toggle 模式
+    await api.delete(`/posts/${id}/bookmark`)
   },
 
   async checkBookmarkStatus(id: number): Promise<{ hasBookmarked: boolean }> {

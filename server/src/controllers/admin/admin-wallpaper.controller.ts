@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
+  BadRequestException,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
 import { RolesGuard } from "../../guards/roles.guard";
@@ -110,10 +111,7 @@ export class AdminWallpaperController {
   @Roles(UserRole.ADMIN)
   async batchRemove(@Body() body: { ids: number[] }) {
     if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
-      return {
-        success: false,
-        message: "请提供要删除的壁纸ID列表",
-      };
+      throw new BadRequestException("请提供要删除的壁纸ID列表");
     }
 
     const result = await this.wallpaperService.batchDelete(body.ids);
@@ -135,10 +133,7 @@ export class AdminWallpaperController {
   @Roles(UserRole.ADMIN)
   async batchFeatured(@Body() body: { ids: number[]; isFeatured: boolean }) {
     if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
-      return {
-        success: false,
-        message: "请提供壁纸ID列表",
-      };
+      throw new BadRequestException("请提供壁纸ID列表");
     }
 
     const result = await this.wallpaperService.batchSetFeatured(

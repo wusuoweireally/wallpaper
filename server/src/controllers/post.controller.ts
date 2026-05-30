@@ -104,8 +104,8 @@ export class PostController {
     @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
-    const isLiked = await this.postService.toggleLike(id, user.userId);
-    return { success: true, message: isLiked ? "点赞成功" : "取消点赞成功" };
+    await this.postService.removeLike(id, user.userId);
+    return { success: true, message: "已取消点赞" };
   }
 
   @Get(":id/like")
