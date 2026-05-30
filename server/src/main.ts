@@ -53,8 +53,12 @@ async function bootstrap() {
     console.log(`🚀 应用启动成功！`);
     console.log(`📍 服务器地址: http://localhost:${port}`);
     console.log(`🌍 环境: ${process.env.NODE_ENV || "development"}`);
-    console.log(`📊 数据库: MySQL - ${process.env.DB_DATABASE || "wallpaper_site"}`);
-    console.log(`🔒 TypeORM synchronize: 已强制关闭（使用迁移文件管理 schema）`);
+    console.log(
+      `📊 数据库: MySQL - ${process.env.DB_DATABASE || "wallpaper_site"}`,
+    );
+    console.log(
+      `🔒 TypeORM synchronize: 已强制关闭（使用迁移文件管理 schema）`,
+    );
   } catch (error) {
     // 增强启动错误诊断，特别是 TypeORM / synchronize 相关问题
     console.error("\n❌ 应用启动失败！");
@@ -90,4 +94,5 @@ async function bootstrap() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap();

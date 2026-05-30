@@ -45,6 +45,7 @@ export interface CreateAdminUser {
 export interface UpdateAdminUser {
   username?: string
   email?: string | null
+  password?: string
   role?: UserRole
   status?: number
   bio?: string | null
@@ -145,6 +146,11 @@ export interface UpdateReportStatus {
 }
 
 export interface ReportStats {
+  total?: number
+  pending?: number
+  reviewing?: number
+  resolved?: number
+  dismissed?: number
   totalReports: number
   pendingReports: number
   processingReports: number

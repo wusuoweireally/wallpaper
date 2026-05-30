@@ -19,7 +19,7 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    PassportModule,
+    PassportModule.register({ defaultStrategy: "jwt" }),
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -28,7 +28,6 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
         return {
           secret: configService.get<string>("JWT_SECRET", "your-secret-key"),
           signOptions: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             expiresIn: configService.get<string>(
               "JWT_EXPIRES_IN",
               "30d",

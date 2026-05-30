@@ -21,7 +21,7 @@ services:
         "--performance-schema=OFF",
       ]
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:${DB_HOST_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -38,9 +38,13 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    # 默认使用 .env.production，开发环境改为 .env.development
+    # 本地开发用 .env.local，线上部署用 .env.production
+    # 线上部署命令：docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build
     env_file:
-      - server/.env.production
+      - server/.env.local
+    environment:
+      TYPEORM_MIGRATIONS_RUN: "true"
+      NODE_ENV: production
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -65,7 +69,6 @@ services:
       - "127.0.0.1:3001:80"
     volumes:
       - ./docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
-
 
 volumes:
   mysql_data:

@@ -234,8 +234,15 @@
                   class="btn btn-ghost btn-xs gap-1 text-slate-500 hover:text-error"
                   @click.stop="clearAllFiles"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                    />
                   </svg>
                   清空全部
                 </button>
@@ -252,19 +259,29 @@
                     :alt="item.file.name"
                   />
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{{ item.file.name }}</p>
-                    <p class="text-xs text-slate-400 dark:text-slate-500">{{ formatFileSize(item.file.size) }}</p>
+                    <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {{ item.file.name }}
+                    </p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">
+                      {{ formatFileSize(item.file.size) }}
+                    </p>
                     <!-- 上传进度 -->
                     <div v-if="item.status === 'uploading'" class="mt-1">
-                      <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600">
+                      <div
+                        class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600"
+                      >
                         <div
                           class="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
                           :style="{ width: item.progress + '%' }"
                         ></div>
                       </div>
                     </div>
-                    <p v-if="item.status === 'done'" class="mt-0.5 text-xs text-success">✓ 上传成功</p>
-                    <p v-if="item.status === 'error'" class="mt-0.5 text-xs text-error">✗ {{ item.errorMsg || '上传失败' }}</p>
+                    <p v-if="item.status === 'done'" class="mt-0.5 text-xs text-success">
+                      ✓ 上传成功
+                    </p>
+                    <p v-if="item.status === 'error'" class="mt-0.5 text-xs text-error">
+                      ✗ {{ item.errorMsg || "上传失败" }}
+                    </p>
                   </div>
                   <button
                     v-if="item.status === 'pending'"
@@ -272,8 +289,15 @@
                     @click.stop="removePendingFile(index)"
                     title="移除"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 hover:text-error" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 text-slate-400 hover:text-error"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -341,8 +365,13 @@
             <div
               class="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-emerald-600 ring-1 ring-slate-200 dark:bg-slate-700 dark:ring-slate-600"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M5 4v3h5.5v12h3V7H19V4z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M5 4v3h5.5v12h3V7H19V4z" />
               </svg>
             </div>
             <label class="text-base font-semibold">标题与描述</label>
@@ -354,7 +383,7 @@
               type="text"
               placeholder="为你的壁纸起个名字..."
               maxlength="200"
-              class="input h-12 w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
+              class="focus:ring-primary/20 input h-12 w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
             />
             <div class="text-right text-xs text-slate-400">{{ formData.title.length }}/200</div>
             <textarea
@@ -362,9 +391,11 @@
               placeholder="描述一下这张壁纸的灵感来源、拍摄地点或创作故事..."
               rows="3"
               maxlength="2000"
-              class="textarea w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 pt-3 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
+              class="focus:ring-primary/20 textarea w-full rounded-2xl border-2 border-slate-300 bg-white pl-4 pr-4 pt-3 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
             ></textarea>
-            <div class="text-right text-xs text-slate-400">{{ (formData.description || '').length }}/2000</div>
+            <div class="text-right text-xs text-slate-400">
+              {{ (formData.description || "").length }}/2000
+            </div>
           </div>
         </div>
 
@@ -401,7 +432,9 @@
                 {{ selectedTags.length }}/{{ MAX_TAGS }}
               </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">帮助大家快速找到你的壁纸</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              从已有标签中选择，避免上传后标签丢失
+            </p>
           </div>
 
           <!-- 已选标签展示 -->
@@ -445,7 +478,7 @@
               v-if="selectedTags.length === 0"
               class="text-sm italic text-slate-400 dark:text-slate-500"
             >
-              请选择或输入标签
+              请选择已有标签
             </span>
           </div>
 
@@ -466,14 +499,14 @@
                 <input
                   v-model="tagSearch"
                   type="text"
-                  placeholder="输入标签后回车或点击添加..."
+                  placeholder="搜索已有标签，回车选择精确匹配..."
                   class="focus:ring-primary/20 input h-12 w-full rounded-2xl border-2 border-slate-300 bg-white pl-12 pr-4 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 focus:border-primary focus:ring-4 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:focus:border-primary"
-                  @keyup.enter.prevent="addCustomTag"
+                  @keyup.enter.prevent="selectTagFromSearch"
                 />
               </div>
               <button
                 class="btn btn-primary h-12 rounded-2xl px-8 shadow-md transition-all hover:scale-105 hover:shadow-lg"
-                @click="addCustomTag"
+                @click="selectTagFromSearch"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -483,7 +516,7 @@
                 >
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
-                添加标签
+                选择标签
               </button>
             </div>
           </div>
@@ -703,7 +736,9 @@
               <div
                 class="shadow-primary/50 h-2.5 w-2.5 animate-pulse rounded-full bg-primary shadow-lg"
               ></div>
-              <span class="font-semibold text-primary">正在上传... ({{ uploadedCount }}/{{ pendingFiles.length }})</span>
+              <span class="font-semibold text-primary"
+                >正在上传... ({{ uploadedCount }}/{{ pendingFiles.length }})</span
+              >
             </div>
             <span class="text-base font-bold text-primary">{{ overallProgress }}%</span>
           </div>
@@ -723,27 +758,48 @@
         <div
           v-if="uploadResult"
           class="rounded-2xl border p-4"
-          :class="uploadResult.failed === 0
-            ? 'border-success/30 bg-success/5'
-            : 'border-warning/30 bg-warning/5'"
+          :class="
+            uploadResult.failed === 0
+              ? 'border-success/30 bg-success/5'
+              : 'border-warning/30 bg-warning/5'
+          "
         >
           <div class="flex items-center gap-3">
             <div
               class="flex h-10 w-10 items-center justify-center rounded-full"
-              :class="uploadResult.failed === 0 ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'"
+              :class="
+                uploadResult.failed === 0
+                  ? 'bg-success/20 text-success'
+                  : 'bg-warning/20 text-warning'
+              "
             >
-              <svg v-if="uploadResult.failed === 0" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              <svg
+                v-if="uploadResult.failed === 0"
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                />
               </svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
               </svg>
             </div>
             <div class="flex-1">
               <p class="font-medium">
-                上传完成：成功 <span class="text-success font-bold">{{ uploadResult.success }}</span> 张
+                上传完成：成功
+                <span class="font-bold text-success">{{ uploadResult.success }}</span> 张
                 <template v-if="uploadResult.failed > 0">
-                  ，失败 <span class="text-error font-bold">{{ uploadResult.failed }}</span> 张
+                  ，失败 <span class="font-bold text-error">{{ uploadResult.failed }}</span> 张
                 </template>
               </p>
             </div>
@@ -779,7 +835,11 @@
               />
             </svg>
             <span class="text-base">
-              {{ loading ? `上传中 (${uploadedCount}/${pendingFiles.length})...` : `上传 ${pendingFiles.length || ''} 张壁纸` }}
+              {{
+                loading
+                  ? `上传中 (${uploadedCount}/${pendingFiles.length})...`
+                  : `上传 ${pendingFiles.length || ""} 张壁纸`
+              }}
             </span>
           </button>
           <button
@@ -830,7 +890,7 @@ interface PendingFile {
   id: string
   file: File
   previewUrl: string
-  status: 'pending' | 'uploading' | 'done' | 'error'
+  status: "pending" | "uploading" | "done" | "error"
   progress: number
   errorMsg?: string
 }
@@ -856,7 +916,7 @@ const imageInfo = computed(() => {
     size: formatFileSize(pendingFiles.value.reduce((sum, f) => sum + f.file.size, 0)),
     width: 0,
     height: 0,
-    type: first.file.type.split('/')[1]?.toUpperCase() || 'IMAGE',
+    type: first.file.type.split("/")[1]?.toUpperCase() || "IMAGE",
   }
 })
 
@@ -868,29 +928,7 @@ const errors = reactive({
 })
 
 // 可用标签
-const defaultTagSeeds = [
-  "4K",
-  "8K",
-  "高清",
-  "超清",
-  "风景",
-  "星空",
-  "海洋",
-  "森林",
-  "城市",
-  "动漫",
-  "游戏",
-  "电影",
-  "艺术",
-  "暗色",
-  "亮色",
-  "渐变",
-  "抽象",
-  "自然",
-  "动物",
-  "植物",
-  "建筑",
-]
+const defaultTagSeeds: string[] = []
 
 const recommendedTags = ref<string[]>([...defaultTagSeeds])
 const tagSuggestions = ref<Tag[]>([])
@@ -908,6 +946,9 @@ const categories = [
 
 // 选中的标签
 const selectedTags = ref<string[]>([])
+const availableTagNames = computed(
+  () => new Set([...recommendedTags.value, ...tagSuggestions.value.map((tag) => tag.name)]),
+)
 
 const normalizeTag = (tag: string) => tag.replace(/\s+/g, " ").trim().slice(0, MAX_TAG_LENGTH)
 
@@ -924,6 +965,11 @@ const addTag = (tag: string) => {
 
   if (selectedTags.value.length >= MAX_TAGS) {
     errors.tags = `最多选择 ${MAX_TAGS} 个标签`
+    return
+  }
+
+  if (!availableTagNames.value.has(normalized)) {
+    errors.tags = "只能选择后台已存在的标签"
     return
   }
 
@@ -950,8 +996,19 @@ const toggleTag = (tag: string) => {
   }
 }
 
-const addCustomTag = () => {
-  addTag(tagSearch.value)
+const selectTagFromSearch = () => {
+  const keyword = normalizeTag(tagSearch.value)
+  if (!keyword) return
+
+  const exactTag = [...availableTagNames.value].find(
+    (tag) => tag.toLowerCase() === keyword.toLowerCase(),
+  )
+  if (!exactTag) {
+    errors.tags = "请选择搜索结果或常用标签中的已有标签"
+    return
+  }
+
+  addTag(exactTag)
   tagSearch.value = ""
   tagSuggestions.value = []
 }
@@ -1042,7 +1099,7 @@ const addFiles = (files: File[]) => {
       id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
       file,
       previewUrl,
-      status: 'pending',
+      status: "pending",
       progress: 0,
     })
   }
@@ -1062,7 +1119,7 @@ const removePendingFile = (index: number) => {
 }
 
 const clearAllFiles = () => {
-  pendingFiles.value.forEach(item => URL.revokeObjectURL(item.previewUrl))
+  pendingFiles.value.forEach((item) => URL.revokeObjectURL(item.previewUrl))
   pendingFiles.value = []
   if (fileInput.value) {
     fileInput.value.value = ""
@@ -1102,7 +1159,7 @@ const validateForm = (): boolean => {
 const CONCURRENCY = 3
 
 const uploadSingleFile = async (item: PendingFile): Promise<boolean> => {
-  item.status = 'uploading'
+  item.status = "uploading"
   item.progress = 0
 
   try {
@@ -1122,23 +1179,23 @@ const uploadSingleFile = async (item: PendingFile): Promise<boolean> => {
     )
 
     if ((response as { success?: boolean }).success) {
-      item.status = 'done'
+      item.status = "done"
       item.progress = 100
       return true
     } else {
-      throw new Error((response as { message?: string }).message || '上传失败')
+      throw new Error((response as { message?: string }).message || "上传失败")
     }
   } catch (error: unknown) {
     const err = error as Error & { message?: string }
-    item.status = 'error'
-    item.errorMsg = err.message || '上传失败'
+    item.status = "error"
+    item.errorMsg = err.message || "上传失败"
     item.progress = 0
     return false
   }
 }
 
 const batchUpload = async () => {
-  const queue = [...pendingFiles.value.filter(f => f.status === 'pending')]
+  const queue = [...pendingFiles.value.filter((f) => f.status === "pending")]
   uploadedCount.value = 0
   let successCount = 0
   let failedCount = 0
@@ -1173,9 +1230,9 @@ const handleSubmit = async () => {
   uploadResult.value = null
 
   // 重置所有pending文件状态
-  pendingFiles.value.forEach(f => {
-    if (f.status !== 'done') {
-      f.status = 'pending'
+  pendingFiles.value.forEach((f) => {
+    if (f.status !== "done") {
+      f.status = "pending"
       f.progress = 0
       f.errorMsg = undefined
     }
@@ -1192,7 +1249,10 @@ const handleSubmit = async () => {
     if (result.failed === 0) {
       uploadStatus.value = { type: "success", message: `全部 ${result.success} 张壁纸上传成功！` }
     } else if (result.success > 0) {
-      uploadStatus.value = { type: "info", message: `成功 ${result.success} 张，失败 ${result.failed} 张` }
+      uploadStatus.value = {
+        type: "info",
+        message: `成功 ${result.success} 张，失败 ${result.failed} 张`,
+      }
     } else {
       uploadStatus.value = { type: "error", message: `全部 ${result.failed} 张上传失败` }
     }

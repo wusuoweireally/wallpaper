@@ -16,6 +16,7 @@ import { RolesGuard } from "../../guards/roles.guard";
 import { Roles } from "../../decorators/roles.decorator";
 import { UserRole } from "../../entities/user.entity";
 import { WallpaperService } from "../../services/wallpaper.service";
+import { UploadService } from "../../services/upload.service";
 import {
   AdminUpdateWallpaperDto,
   AdminWallpaperQueryDto,
@@ -26,7 +27,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminWallpaperController {
-  constructor(private readonly wallpaperService: WallpaperService) {}
+  constructor(
+    private readonly wallpaperService: WallpaperService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   @Get()
   async list(@Query() query: AdminWallpaperQueryDto) {
@@ -96,7 +100,12 @@ export class AdminWallpaperController {
 
   @Delete(":id")
   async remove(@Param("id", ParseIntPipe) id: number) {
+    const wallpaper = await this.wallpaperService.findById(id);
     await this.wallpaperService.delete(id);
+    await this.uploadService.deleteUploadedFiles(
+      wallpaper.fileUrl,
+      wallpaper.thumbnailUrl,
+    );
     return {
       success: true,
       message: "壁纸已删除",
@@ -115,6 +124,14 @@ export class AdminWallpaperController {
     }
 
     const result = await this.wallpaperService.batchDelete(body.ids);
+    await Promise.all(
+      result.deletedFiles.map((file) =>
+        this.uploadService.deleteUploadedFiles(
+          file.fileUrl,
+          file.thumbnailUrl || "",
+        ),
+      ),
+    );
     return {
       success: true,
       message: `成功删除 ${result.deletedCount} 个壁纸`,

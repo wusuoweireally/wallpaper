@@ -24,10 +24,10 @@ export class DemoSeedService implements OnApplicationBootstrap {
   ];
 
   private readonly tagTemplates: DemoTagTemplate[] = [
-    { name: "演示", slug: "demo" },
-    { name: "精选", slug: "featured" },
-    { name: "高清", slug: "hd" },
-    { name: "答辩展示", slug: "presentation" },
+    { name: "演示", slug: "演示" },
+    { name: "精选", slug: "精选" },
+    { name: "高清", slug: "高清" },
+    { name: "答辩展示", slug: "答辩展示" },
   ];
 
   constructor(

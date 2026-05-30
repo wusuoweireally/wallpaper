@@ -57,10 +57,6 @@ export class UploadService {
       await fs.mkdir(thumbnailsDir, { recursive: true });
       await fs.mkdir(fileDir, { recursive: true });
 
-      // 保存原始文件
-      const filePath = path.join(fileDir, fileName);
-      await fs.writeFile(filePath, file.buffer);
-
       // 使用 Sharp 获取图片信息
       const image = sharp(file.buffer);
       const metadata = await image.metadata();
@@ -78,6 +74,10 @@ export class UploadService {
         .toBuffer();
 
       const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
+      const filePath = path.join(fileDir, fileName);
+
+      // 图片解析和缩略图生成成功后再落盘，避免非法/损坏图片留下原始文件
+      await fs.writeFile(filePath, file.buffer);
       await fs.writeFile(thumbnailPath, thumbnailBuffer);
 
       return {

@@ -433,6 +433,7 @@
                         <li>
                           <a
                             class="rounded-xl text-white/90 transition-colors hover:bg-blue-500/20 hover:text-white"
+                            @click.prevent="viewUser(user)"
                           >
                             <iconify-icon icon="mdi:eye"></iconify-icon>
                             查看详情
@@ -441,6 +442,7 @@
                         <li>
                           <a
                             class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
+                            @click.prevent="editUser(user)"
                           >
                             <iconify-icon icon="mdi:pencil"></iconify-icon>
                             编辑用户
@@ -449,6 +451,7 @@
                         <li>
                           <a
                             class="rounded-xl text-orange-400 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
+                            @click.prevent="changePassword(user)"
                           >
                             <iconify-icon icon="mdi:pencil-lock"></iconify-icon>
                             修改密码
@@ -458,6 +461,7 @@
                         <li>
                           <a
                             class="rounded-xl text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-200"
+                            @click.prevent="deleteUser(user)"
                           >
                             <iconify-icon icon="mdi:delete"></iconify-icon>
                             删除用户
@@ -480,14 +484,14 @@
             当前显示
             <span class="font-semibold text-white">{{ pageRange.start }}-{{ pageRange.end }}</span>
             ，共
-            <span class="font-semibold text-white">{{ pagination.value.total }}</span>
+            <span class="font-semibold text-white">{{ pagination.total }}</span>
             名用户
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button
               class="btn btn-sm rounded-xl border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
-              :disabled="pagination.value.page === 1"
-              @click="changePage(pagination.value.page - 1)"
+              :disabled="pagination.page === 1"
+              @click="changePage(pagination.page - 1)"
             >
               上一页
             </button>
@@ -496,7 +500,7 @@
               :key="page"
               class="btn btn-sm rounded-xl"
               :class="
-                page === pagination.value.page
+                page === pagination.page
                   ? 'border-white bg-white text-slate-900'
                   : 'border-white/30 bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
               "
@@ -506,8 +510,8 @@
             </button>
             <button
               class="btn btn-sm rounded-xl border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
-              :disabled="pagination.value.page === pagination.value.pages"
-              @click="changePage(pagination.value.page + 1)"
+              :disabled="pagination.page === pagination.pages"
+              @click="changePage(pagination.page + 1)"
             >
               下一页
             </button>
@@ -742,7 +746,9 @@ const formatDate = (date: string) => {
 
 const totalUsers = computed(() => pagination.value.total || 0)
 const activeUsers = computed(() => users.value.filter((user) => user.status === 1).length)
-const adminUsers = computed(() => users.value.filter((user) => user.role === "admin" || user.role === "super_admin").length)
+const adminUsers = computed(
+  () => users.value.filter((user) => user.role === "admin" || user.role === "super_admin").length,
+)
 const activeRate = computed(() => {
   const total = users.value.length
   if (!total) return 0
@@ -946,6 +952,107 @@ const clearKeyword = () => {
   if (!filters.keyword) return
   filters.keyword = ""
   refreshList()
+}
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const err = error as {
+    message?: string
+    userMessage?: string
+    response?: { data?: { message?: string } }
+  }
+  return err.response?.data?.message || err.userMessage || err.message || fallback
+}
+
+const viewUser = async (user: AdminUser) => {
+  try {
+    const response = await adminService.adminGetUserById(user.id)
+    const detail = response.data || user
+    window.alert(
+      [
+        `用户ID：${detail.id}`,
+        `用户名：${detail.username}`,
+        `邮箱：${detail.email || "未设置"}`,
+        `角色：${detail.role}`,
+        `状态：${detail.status === 1 ? "启用" : "禁用"}`,
+        `创建时间：${formatDate(detail.createdAt)}`,
+        `简介：${detail.bio || "无"}`,
+      ].join("\n"),
+    )
+  } catch (error) {
+    console.error("获取用户详情失败:", error)
+    showToast(getErrorMessage(error, "获取用户详情失败"), "error")
+  }
+}
+
+const editUser = async (user: AdminUser) => {
+  const username = window.prompt("用户名", user.username)
+  if (username === null) return
+
+  const email = window.prompt("邮箱（留空表示不设置）", user.email || "")
+  if (email === null) return
+
+  const bio = window.prompt("个人简介（留空表示不设置）", user.bio || "")
+  if (bio === null) return
+
+  const role = window.prompt("角色：user 或 admin", user.role)
+  if (role === null) return
+  if (![UserRole.USER, UserRole.ADMIN].includes(role as UserRole)) {
+    showToast("角色只能设置为 user 或 admin", "error")
+    return
+  }
+
+  const status = window.prompt("状态：1 启用，0 禁用", String(user.status))
+  if (status === null) return
+  if (!["0", "1"].includes(status)) {
+    showToast("状态只能是 1 或 0", "error")
+    return
+  }
+
+  try {
+    await adminService.adminUpdateUser(user.id, {
+      username: username.trim(),
+      email: email.trim() || null,
+      bio: bio.trim() || null,
+      role: role as UserRole,
+      status: Number(status),
+    })
+    showToast("用户信息已更新")
+    refreshList()
+  } catch (error) {
+    console.error("更新用户失败:", error)
+    showToast(getErrorMessage(error, "更新用户失败"), "error")
+  }
+}
+
+const changePassword = async (user: AdminUser) => {
+  const password = window.prompt(`为用户 ${user.username} 设置新密码`)
+  if (password === null) return
+  if (password.length < 6) {
+    showToast("密码至少6位", "error")
+    return
+  }
+
+  try {
+    await adminService.adminUpdateUser(user.id, { password })
+    showToast("密码已更新")
+  } catch (error) {
+    console.error("修改密码失败:", error)
+    showToast(getErrorMessage(error, "修改密码失败"), "error")
+  }
+}
+
+const deleteUser = async (user: AdminUser) => {
+  const confirmed = window.confirm(`确认删除用户 ${user.username}（ID: ${user.id}）？`)
+  if (!confirmed) return
+
+  try {
+    await adminService.adminDeleteUser(user.id)
+    showToast("用户已删除")
+    refreshList()
+  } catch (error) {
+    console.error("删除用户失败:", error)
+    showToast(getErrorMessage(error, "删除用户失败"), "error")
+  }
 }
 
 onMounted(() => {

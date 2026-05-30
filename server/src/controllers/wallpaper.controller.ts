@@ -35,6 +35,16 @@ import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
 import { sanitizeUser } from "../utils/sanitize";
 
+const sanitizeWallpaperListItem = <T extends { uploader?: unknown }>(
+  wallpaper: T,
+) => {
+  const uploader = wallpaper.uploader as Record<string, unknown> | undefined;
+  return {
+    ...wallpaper,
+    uploader: sanitizeUser(uploader) ?? uploader,
+  };
+};
+
 interface CreateWallpaperData extends CreateWallpaperDto {
   fileUrl: string;
   thumbnailUrl?: string;
@@ -97,6 +107,8 @@ export class WallpaperController {
     // 第二步：数据库操作
     // 注意：当前未包裹事务（标签处理在上传成功后执行）。
     // 如需强一致性，可在 Service 层支持事务 EntityManager 后改造。
+    let createdWallpaperId: number | null = null;
+
     try {
       const createData: CreateWallpaperData = {
         ...createWallpaperDto,
@@ -107,6 +119,7 @@ export class WallpaperController {
         createData,
         user.userId,
       );
+      createdWallpaperId = wallpaper.id;
 
       // 仅管理员可在上传时创建新标签，普通用户只能关联已存在标签
       if (createWallpaperDto.tags && createWallpaperDto.tags.length > 0) {
@@ -117,11 +130,24 @@ export class WallpaperController {
         );
       }
 
+      const uploadedWallpaper = await this.wallpaperService.findById(
+        wallpaper.id,
+      );
+
       return {
         success: true,
         message: "壁纸上传成功",
+        data: uploadedWallpaper,
       };
     } catch (error) {
+      if (createdWallpaperId) {
+        try {
+          await this.wallpaperService.delete(createdWallpaperId);
+        } catch (cleanupErr) {
+          console.error("壁纸记录清理失败:", cleanupErr);
+        }
+      }
+
       // 如果数据库操作失败，删除已上传的文件
       try {
         await this.uploadService.deleteUploadedFiles(
@@ -187,7 +213,7 @@ export class WallpaperController {
 
     return {
       success: true,
-      data: result.data,
+      data: result.data.map((wallpaper) => sanitizeWallpaperListItem(wallpaper)),
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -418,7 +444,6 @@ export class WallpaperController {
    * 记录下载
    */
   @Post(":id/download")
-  @UseGuards(JwtAuthGuard)
   async recordDownload(@Param("id") id: string) {
     const wallpaperId = Number(id);
     if (isNaN(wallpaperId)) {
@@ -437,13 +462,29 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    const result = await this.wallpaperService.toggleLike(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleLike(
+      user.userId,
+      Number(id),
+    );
 
     return {
       success: true,
       message: result.isLiked ? "点赞成功" : "取消点赞成功",
       data: result,
     };
+  }
+
+  /**
+   * 强制取消点赞（幂等操作）
+   */
+  @Delete(":id/like")
+  @UseGuards(JwtAuthGuard)
+  async unlikeWallpaper(
+    @Param("id") id: string,
+    @CurrentUser() user: { userId: number; username: string },
+  ) {
+    await this.wallpaperService.removeLike(user.userId, Number(id));
+    return { success: true, message: "已取消点赞" };
   }
 
   /**
@@ -455,7 +496,10 @@ export class WallpaperController {
     @Param("id") id: string,
     @CurrentUser() user: { userId: number; username: string },
   ) {
-    const result = await this.wallpaperService.toggleFavorite(user.userId, Number(id));
+    const result = await this.wallpaperService.toggleFavorite(
+      user.userId,
+      Number(id),
+    );
 
     return {
       success: true,

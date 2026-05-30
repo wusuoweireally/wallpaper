@@ -350,7 +350,7 @@ const pendingReportsCount = ref(0)
 const loadPendingReportsCount = async () => {
   try {
     const response = await adminService.getReportStats()
-    pendingReportsCount.value = response.data?.pendingReports || 0
+    pendingReportsCount.value = response.data?.pendingReports ?? response.data?.pending ?? 0
   } catch (error) {
     console.error("获取待处理举报数量失败:", error)
     pendingReportsCount.value = 0

@@ -1,0 +1,6 @@
+# 线上部署专用 override
+# 使用方式：docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file server/.env.production up -d --build
+services:
+  server:
+    env_file:
+      - server/.env.production

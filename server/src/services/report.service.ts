@@ -17,6 +17,8 @@ import {
   ReportStatus,
   ReportTargetType,
 } from "../entities/report.entity";
+import { Post } from "../entities/post.entity";
+import { Comment } from "../entities/comment.entity";
 
 // TypeORM 查询结果类型
 
@@ -35,7 +37,25 @@ export class ReportService {
   constructor(
     @InjectRepository(Report)
     private reportRepository: Repository<Report>,
+    @InjectRepository(Post)
+    private postRepository: Repository<Post>,
+    @InjectRepository(Comment)
+    private commentRepository: Repository<Comment>,
   ) {}
+
+  private async ensureTargetExists(
+    targetType: ReportTargetType,
+    targetId: number,
+  ): Promise<void> {
+    const target =
+      targetType === ReportTargetType.POST
+        ? await this.postRepository.findOne({ where: { id: targetId } })
+        : await this.commentRepository.findOne({ where: { id: targetId } });
+
+    if (!target) {
+      throw new NotFoundException("举报目标不存在或已被删除");
+    }
+  }
 
   /**
    * 创建举报
@@ -44,6 +64,11 @@ export class ReportService {
     createReportDto: CreateReportDto,
     userId: number,
   ): Promise<Report> {
+    await this.ensureTargetExists(
+      createReportDto.targetType,
+      createReportDto.targetId,
+    );
+
     // 检查是否已经举报过
     const existingReport = await this.reportRepository.findOne({
       where: {
@@ -204,6 +229,11 @@ export class ReportService {
     reviewing: number;
     resolved: number;
     dismissed: number;
+    totalReports: number;
+    pendingReports: number;
+    processingReports: number;
+    resolvedReports: number;
+    rejectedReports: number;
     statsByReason: Array<{ reason: string; count: number }>;
     statsByType: Array<{ targetType: string; count: number }>;
   }> {
@@ -241,6 +271,11 @@ export class ReportService {
       reviewing,
       resolved,
       dismissed,
+      totalReports: total,
+      pendingReports: pending,
+      processingReports: reviewing,
+      resolvedReports: resolved,
+      rejectedReports: dismissed,
       statsByReason,
       statsByType,
     };
@@ -273,6 +308,15 @@ export class ReportService {
     targetType: ReportTargetType,
     targetId: number,
   ): Promise<{ canReport: boolean; reason?: string }> {
+    try {
+      await this.ensureTargetExists(targetType, targetId);
+    } catch {
+      return {
+        canReport: false,
+        reason: "举报目标不存在或已被删除",
+      };
+    }
+
     const canReport = await this.canReport(userId, targetType, targetId);
     return {
       canReport,

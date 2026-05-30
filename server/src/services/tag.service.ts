@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Tag } from "../entities/tag.entity";
@@ -205,6 +209,17 @@ export class TagService {
       where: slugs.map((s) => ({ slug: s })),
     });
     const existingBySlug = new Map(existingTags.map((t) => [t.slug, t]));
+
+    if (!allowCreate) {
+      const missingTags = normalizedNames.filter(
+        (name) => !existingBySlug.has(this.generateSlug(name)),
+      );
+      if (missingTags.length > 0) {
+        throw new BadRequestException(
+          `标签不存在或不可用：${missingTags.join("、")}`,
+        );
+      }
+    }
 
     const tags: Tag[] = [];
     for (const name of normalizedNames) {

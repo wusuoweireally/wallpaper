@@ -28,6 +28,7 @@ export interface WallpaperQueryParams {
 export interface UploadWallpaperParams {
   file: File
   category: string
+  subCategory?: string
   tags: string[]
   title?: string
   description?: string
@@ -67,9 +68,14 @@ export interface Wallpaper {
   isLiked?: boolean
   isFavorited?: boolean
   uploader?: {
-    id: number; username: string; email: string
-    avatarUrl?: string; bio?: string; status: number
-    createdAt: string; updatedAt: string
+    id: number
+    username: string
+    email: string
+    avatarUrl?: string
+    bio?: string
+    status: number
+    createdAt: string
+    updatedAt: string
   }
 }
 
@@ -90,6 +96,7 @@ class WallpaperService {
     const formData = new FormData()
     formData.append("file", params.file)
     formData.append("category", params.category)
+    if (params.subCategory) formData.append("subCategory", params.subCategory)
     if (params.title) formData.append("title", params.title)
     if (params.description) formData.append("description", params.description)
     params.tags?.forEach((tag) => formData.append("tags", tag))
@@ -106,23 +113,39 @@ class WallpaperService {
       const queryParams = buildQuery({
         page: Math.max(1, params.page ?? 1),
         limit: Math.max(1, Math.min(100, params.limit ?? 20)),
-        search: params.search, sortBy: params.sortBy, sortOrder: params.sortOrder,
-        category: params.category, orientation: params.orientation,
-        minWidth: params.minWidth, maxWidth: params.maxWidth,
-        minHeight: params.minHeight, maxHeight: params.maxHeight,
-        aspectRatio: params.aspectRatio, format: params.format,
-        minFileSize: params.minFileSize, maxFileSize: params.maxFileSize,
-        tags: params.tags, tagKeyword: params.tagKeyword,
+        search: params.search,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
+        category: params.category,
+        orientation: params.orientation,
+        minWidth: params.minWidth,
+        maxWidth: params.maxWidth,
+        minHeight: params.minHeight,
+        maxHeight: params.maxHeight,
+        aspectRatio: params.aspectRatio,
+        format: params.format,
+        subCategory: params.subCategory,
+        minFileSize: params.minFileSize,
+        maxFileSize: params.maxFileSize,
+        tags: params.tags,
+        tagKeyword: params.tagKeyword,
       })
       return await api.get<Wallpaper[]>("/wallpapers", { params: queryParams, timeout: 10000 })
     } catch (error: unknown) {
       const err = error as Error & Record<string, unknown>
       if (err.name === "REQUEST_CANCELLED" || (err as { isCancelled?: boolean }).isCancelled) {
-        return { success: false, message: "请求已取消", data: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } }
+        return {
+          success: false,
+          message: "请求已取消",
+          data: [],
+          pagination: { page: 1, limit: 20, total: 0, pages: 0 },
+        }
       }
-      const status = (err as { response?: { status: number; data?: { message?: string } } }).response?.status
+      const status = (err as { response?: { status: number; data?: { message?: string } } })
+        .response?.status
       if (err.code === "ECONNABORTED") throw new Error("请求超时，请检查网络连接或稍后重试")
-      if (err.code === "NETWORK_ERROR" || (err.message || "").includes("Network Error")) throw new Error("网络连接失败，请检查网络设置")
+      if (err.code === "NETWORK_ERROR" || (err.message || "").includes("Network Error"))
+        throw new Error("网络连接失败，请检查网络设置")
       if (status === 400) throw new Error("请求参数错误，请检查筛选条件")
       if (status === 404) throw new Error("未找到相关壁纸，请尝试其他筛选条件")
       if (status === 401) throw new Error("身份验证失败，请重新登录")
@@ -175,7 +198,9 @@ class WallpaperService {
   }
 
   async getWallpapersByUploader(uploaderId: number, page = 1, limit = 20) {
-    return await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, { params: { page, limit } })
+    return await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, {
+      params: { page, limit },
+    })
   }
 
   async recordDownload(id: number) {

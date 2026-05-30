@@ -54,7 +54,15 @@
             取消推荐
           </button>
           <button
-            class="btn btn-sm btn-ghost rounded-xl text-white/60 hover:text-white"
+            class="btn btn-sm gap-1 rounded-xl border-none bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600"
+            :disabled="batchLoading"
+            @click="batchDeleteSelected"
+          >
+            <iconify-icon icon="mdi:delete"></iconify-icon>
+            批量删除
+          </button>
+          <button
+            class="btn btn-ghost btn-sm rounded-xl text-white/60 hover:text-white"
             @click="selectedIds.clear()"
           >
             取消选择
@@ -199,9 +207,11 @@
           <div class="mb-4 flex items-center gap-3">
             <button
               class="flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
-              :class="isAllSelected
-                ? 'border-purple-400 bg-purple-500 text-white'
-                : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'"
+              :class="
+                isAllSelected
+                  ? 'border-purple-400 bg-purple-500 text-white'
+                  : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'
+              "
               @click="toggleSelectAll"
             >
               <iconify-icon v-if="isAllSelected" icon="mdi:check" class="text-sm"></iconify-icon>
@@ -218,12 +228,18 @@
               <!-- 选择复选框 -->
               <button
                 class="absolute left-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
-                :class="isSelected(wallpaper.id)
-                  ? 'border-purple-400 bg-purple-500 text-white'
-                  : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'"
+                :class="
+                  isSelected(wallpaper.id)
+                    ? 'border-purple-400 bg-purple-500 text-white'
+                    : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'
+                "
                 @click.stop="toggleSelect(wallpaper.id)"
               >
-                <iconify-icon v-if="isSelected(wallpaper.id)" icon="mdi:check" class="text-sm"></iconify-icon>
+                <iconify-icon
+                  v-if="isSelected(wallpaper.id)"
+                  icon="mdi:check"
+                  class="text-sm"
+                ></iconify-icon>
               </button>
               <div class="relative overflow-hidden rounded-2xl">
                 <img
@@ -246,12 +262,13 @@
                     <p class="text-xs uppercase tracking-[0.3em] text-white/40">
                       {{ getCategoryLabel(wallpaper.category) }}
                     </p>
-                    <h3
-                      class="mt-1 line-clamp-1 text-lg font-semibold text-white"
-                    >
+                    <h3 class="mt-1 line-clamp-1 text-lg font-semibold text-white">
                       {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
                     </h3>
-                    <p v-if="wallpaper.description" class="mt-0.5 line-clamp-1 text-xs text-white/50">
+                    <p
+                      v-if="wallpaper.description"
+                      class="mt-0.5 line-clamp-1 text-xs text-white/50"
+                    >
                       {{ wallpaper.description }}
                     </p>
                   </div>
@@ -640,7 +657,9 @@
             </button>
             <div class="space-y-6 p-6">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/70">Edit Wallpaper</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/70">
+                  Edit Wallpaper
+                </p>
                 <h3 class="mt-2 text-xl font-semibold">编辑壁纸 #{{ editWallpaper.id }}</h3>
               </div>
 
@@ -657,7 +676,9 @@
                 <div class="form-control">
                   <label class="label">
                     <span class="label-text font-semibold text-white/80">标题</span>
-                    <span class="label-text-alt text-white/40">{{ editForm.title.length }}/200</span>
+                    <span class="label-text-alt text-white/40"
+                      >{{ editForm.title.length }}/200</span
+                    >
                   </label>
                   <input
                     v-model="editForm.title"
@@ -672,7 +693,9 @@
                 <div class="form-control">
                   <label class="label">
                     <span class="label-text font-semibold text-white/80">描述</span>
-                    <span class="label-text-alt text-white/40">{{ editForm.description.length }}/2000</span>
+                    <span class="label-text-alt text-white/40"
+                      >{{ editForm.description.length }}/2000</span
+                    >
                   </label>
                   <textarea
                     v-model="editForm.description"
@@ -682,6 +705,20 @@
                     class="textarea w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
                     :disabled="editLoading"
                   ></textarea>
+                </div>
+
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-semibold text-white/80">标签</span>
+                    <span class="label-text-alt text-white/40">逗号分隔</span>
+                  </label>
+                  <input
+                    v-model="editForm.tagsInput"
+                    type="text"
+                    placeholder="例如：4K, 星空, 极简"
+                    class="input w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
+                    :disabled="editLoading"
+                  />
                 </div>
               </div>
 
@@ -850,7 +887,7 @@ const loading = ref(true)
 const wallpapers = ref<AdminWallpaper[]>([])
 const previewWallpaper = ref<AdminWallpaper | null>(null)
 const editWallpaper = ref<AdminWallpaper | null>(null)
-const editForm = reactive({ title: '', description: '' })
+const editForm = reactive({ title: "", description: "", tagsInput: "" })
 const editLoading = ref(false)
 const actionLoadingId = ref<number | null>(null)
 const selectedIds = ref<Set<number>>(new Set())
@@ -1307,19 +1344,21 @@ const toggleSelectAll = () => {
   if (selectedIds.value.size === wallpapers.value.length) {
     selectedIds.value.clear()
   } else {
-    wallpapers.value.forEach(w => selectedIds.value.add(w.id))
+    wallpapers.value.forEach((w) => selectedIds.value.add(w.id))
   }
 }
 
 const isSelected = (id: number) => selectedIds.value.has(id)
 
 const hasSelection = computed(() => selectedIds.value.size > 0)
-const isAllSelected = computed(() => wallpapers.value.length > 0 && selectedIds.value.size === wallpapers.value.length)
+const isAllSelected = computed(
+  () => wallpapers.value.length > 0 && selectedIds.value.size === wallpapers.value.length,
+)
 
 // 批量设置推荐
 const batchSetFeatured = async (isFeatured: boolean) => {
   if (!selectedIds.value.size) return
-  const action = isFeatured ? '设为推荐' : '取消推荐'
+  const action = isFeatured ? "设为推荐" : "取消推荐"
   const confirmed = window.confirm(`确认将 ${selectedIds.value.size} 个壁纸${action}？`)
   if (!confirmed) return
 
@@ -1332,7 +1371,27 @@ const batchSetFeatured = async (isFeatured: boolean) => {
     await loadWallpapers()
   } catch (error) {
     console.error(`批量${action}失败:`, error)
-    showNotification(`批量${action}失败`, 'error')
+    showNotification(`批量${action}失败`, "error")
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+const batchDeleteSelected = async () => {
+  if (!selectedIds.value.size) return
+  const confirmed = window.confirm(`确认删除 ${selectedIds.value.size} 个壁纸？删除后不可恢复。`)
+  if (!confirmed) return
+
+  try {
+    batchLoading.value = true
+    const ids = Array.from(selectedIds.value)
+    await adminService.adminBatchDeleteWallpapers(ids)
+    showNotification(`已删除 ${ids.length} 个壁纸`)
+    selectedIds.value.clear()
+    await loadWallpapers()
+  } catch (error) {
+    console.error("批量删除壁纸失败:", error)
+    showNotification("批量删除失败", "error")
   } finally {
     batchLoading.value = false
   }
@@ -1341,14 +1400,19 @@ const batchSetFeatured = async (isFeatured: boolean) => {
 // 编辑壁纸标题/描述
 const openEditModal = (wallpaper: AdminWallpaper) => {
   editWallpaper.value = wallpaper
-  editForm.title = wallpaper.title || ''
-  editForm.description = wallpaper.description || ''
+  editForm.title = wallpaper.title || ""
+  editForm.description = wallpaper.description || ""
+  editForm.tagsInput = (wallpaper.tags || [])
+    .map((tag) => getTagLabel(tag))
+    .filter(Boolean)
+    .join(", ")
 }
 
 const closeEditModal = () => {
   editWallpaper.value = null
-  editForm.title = ''
-  editForm.description = ''
+  editForm.title = ""
+  editForm.description = ""
+  editForm.tagsInput = ""
 }
 
 const submitEdit = async () => {
@@ -1359,12 +1423,17 @@ const submitEdit = async () => {
       title: editForm.title,
       description: editForm.description,
     })
-    showNotification('壁纸信息已更新')
+    const tags = editForm.tagsInput
+      .split(/[,，]/)
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    await adminService.adminUpdateWallpaperTags(editWallpaper.value.id, { tags })
+    showNotification("壁纸信息已更新")
     closeEditModal()
     await loadWallpapers()
   } catch (error) {
-    console.error('更新壁纸信息失败:', error)
-    showNotification('更新失败，请稍后重试', 'error')
+    console.error("更新壁纸信息失败:", error)
+    showNotification("更新失败，请稍后重试", "error")
   } finally {
     editLoading.value = false
   }

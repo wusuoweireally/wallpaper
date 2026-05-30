@@ -11,6 +11,8 @@ export class AddSuperAdminRole1717000000000 implements MigrationInterface {
   name = "AddSuperAdminRole1717000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (!(await queryRunner.hasTable("users"))) return;
+
     await queryRunner.query(`
       ALTER TABLE users
       MODIFY COLUMN role ENUM('user', 'admin', 'super_admin')
@@ -19,6 +21,8 @@ export class AddSuperAdminRole1717000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    if (!(await queryRunner.hasTable("users"))) return;
+
     // 回滚前先将 super_admin 降级为 admin，避免被收缩的枚举拒绝
     await queryRunner.query(`
       UPDATE users SET role = 'admin' WHERE role = 'super_admin'

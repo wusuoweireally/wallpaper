@@ -4,12 +4,34 @@
  */
 export function sanitizeUser<T extends Record<string, unknown>>(
   user: T | null | undefined,
-): Omit<T, "passwordHash" | "password_hash"> | null {
+): Omit<
+  T,
+  | "passwordHash"
+  | "password_hash"
+  | "email"
+  | "githubId"
+  | "githubLogin"
+  | "githubAvatarUrl"
+  | "githubBio"
+> | null {
   if (!user) return null;
 
-  // 兼容两种可能的字段名，删除敏感字段后返回
   const copy = { ...(user as Record<string, unknown>) };
   delete copy.passwordHash;
   delete copy.password_hash;
-  return copy as Omit<T, "passwordHash" | "password_hash">;
+  delete copy.email;
+  delete copy.githubId;
+  delete copy.githubLogin;
+  delete copy.githubAvatarUrl;
+  delete copy.githubBio;
+  return copy as Omit<
+    T,
+    | "passwordHash"
+    | "password_hash"
+    | "email"
+    | "githubId"
+    | "githubLogin"
+    | "githubAvatarUrl"
+    | "githubBio"
+  >;
 }
