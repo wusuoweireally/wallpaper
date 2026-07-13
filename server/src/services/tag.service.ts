@@ -58,8 +58,14 @@ export class TagService {
   ): Promise<Tag> {
     const normalizedName = name.trim();
     const slug = this.generateSlug(normalizedName);
-    const existing = await repository.findOne({ where: { slug } });
-    if (existing) return existing;
+
+    // 先按 slug 加锁，避免并发创建同一标签时 RR 快照读不到对方已提交行
+    const locked = await repository
+      .createQueryBuilder("tag")
+      .setLock("pessimistic_write")
+      .where("tag.slug = :slug", { slug })
+      .getOne();
+    if (locked) return locked;
 
     await repository
       .createQueryBuilder()
@@ -69,7 +75,29 @@ export class TagService {
       .orIgnore()
       .execute();
 
+    const created = await repository
+      .createQueryBuilder("tag")
+      .setLock("pessimistic_write")
+      .where("tag.slug = :slug", { slug })
+      .getOne();
+    if (created) return created;
+
     return repository.findOneOrFail({ where: { slug } });
+  }
+
+  /** 按 id 升序锁标签行，保证并发挂标签/改 usageCount 时加锁顺序一致，避免死锁 */
+  private async lockTagsByIds(
+    tagRepo: Repository<Tag>,
+    tagIds: number[],
+  ): Promise<void> {
+    if (tagIds.length === 0) return;
+    const ids = [...new Set(tagIds.map(Number))].sort((a, b) => a - b);
+    await tagRepo
+      .createQueryBuilder("tag")
+      .setLock("pessimistic_write")
+      .where("tag.id IN (:...ids)", { ids })
+      .orderBy("tag.id", "ASC")
+      .getMany();
   }
 
   /**
@@ -272,8 +300,16 @@ export class TagService {
     const associatedTagIds = new Set(
       existingAssociations.map((association) => association.tagId),
     );
-    const newTags = tags.filter((tag) => !associatedTagIds.has(tag.id));
+    const newTags = tags
+      .filter((tag) => !associatedTagIds.has(tag.id))
+      .sort((a, b) => a.id - b.id);
     if (newTags.length === 0) return;
+
+    // 先锁标签再写关联/计数，避免并发管理员上传对同一 tag 死锁
+    await this.lockTagsByIds(
+      tagRepo,
+      newTags.map((tag) => tag.id),
+    );
 
     await wallpaperTagRepo.insert(
       newTags.map((tag) => ({ wallpaperId, tagId: tag.id })),
@@ -337,8 +373,17 @@ export class TagService {
         currentTags.map((relation) => relation.tagId),
       );
       const nextTagIds = new Set(tags.map((tag) => tag.id));
-      const removedIds = [...currentTagIds].filter((id) => !nextTagIds.has(id));
-      const addedTags = tags.filter((tag) => !currentTagIds.has(tag.id));
+      const removedIds = [...currentTagIds]
+        .filter((id) => !nextTagIds.has(id))
+        .sort((a, b) => a - b);
+      const addedTags = tags
+        .filter((tag) => !currentTagIds.has(tag.id))
+        .sort((a, b) => a.id - b.id);
+
+      await this.lockTagsByIds(tagRepo, [
+        ...removedIds,
+        ...addedTags.map((tag) => tag.id),
+      ]);
 
       if (removedIds.length > 0) {
         await wallpaperTagRepo.delete({

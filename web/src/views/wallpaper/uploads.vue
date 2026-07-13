@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-    <div class="mx-auto max-w-2xl px-4 py-8 sm:py-10">
+    <div
+      class="mx-auto px-4 py-8 sm:py-10"
+      :class="pendingFiles.length ? 'max-w-4xl' : 'max-w-2xl'"
+    >
       <!-- 页头 -->
       <header class="mb-6 flex flex-wrap items-center gap-3 sm:gap-4">
         <div
@@ -107,12 +110,14 @@
           </div>
 
           <div
-            class="relative cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200"
+            class="relative cursor-pointer rounded-2xl border-2 border-dashed text-center transition-all duration-200"
             :class="{
               'border-primary bg-primary/5 shadow-[0_0_0_4px] shadow-primary/10': isDragging,
               'border-error bg-error/5': errors.image && !isDragging,
               'border-slate-200 bg-slate-50/80 hover:border-primary/50 hover:bg-primary/[0.03] dark:border-slate-600 dark:bg-slate-900/40 dark:hover:border-primary/40':
                 !isDragging && !errors.image,
+              'p-8': !pendingFiles.length,
+              'p-3 sm:p-4': pendingFiles.length,
             }"
             @click="fileInput?.click()"
             @dragover.prevent="isDragging = true"
@@ -161,14 +166,23 @@
             </div>
 
             <div v-else class="space-y-3 text-left" @click.stop>
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center justify-between gap-2 px-0.5">
                 <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   已选 <span class="text-primary">{{ pendingFiles.length }}</span> 张
+                  <span
+                    v-if="doneCount || errorCount || uploadingCount"
+                    class="ml-1.5 text-xs font-normal text-slate-400"
+                  >
+                    <template v-if="doneCount">· 完成 {{ doneCount }}</template>
+                    <template v-if="uploadingCount"> · 上传中 {{ uploadingCount }}</template>
+                    <template v-if="errorCount"> · 失败 {{ errorCount }}</template>
+                  </span>
                 </p>
                 <div class="flex gap-1">
                   <button
                     type="button"
                     class="btn btn-ghost btn-xs rounded-full"
+                    :disabled="isUploading"
                     @click="fileInput?.click()"
                   >
                     + 继续添加
@@ -176,48 +190,102 @@
                   <button
                     type="button"
                     class="btn btn-ghost btn-xs rounded-full text-error"
+                    :disabled="isUploading"
                     @click="clearAllFiles"
                   >
                     清空
                   </button>
                 </div>
               </div>
-              <ul class="max-h-56 space-y-2 overflow-y-auto">
+
+              <!-- 网格卡片：多图时更省空间 -->
+              <ul
+                class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+              >
                 <li
                   v-for="(item, index) in pendingFiles"
                   :key="item.id"
-                  class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-600 dark:bg-slate-900/50"
+                  class="group relative overflow-hidden rounded-xl border bg-white shadow-sm transition dark:bg-slate-900/60"
+                  :class="{
+                    'border-emerald-300 dark:border-emerald-700': item.status === 'done',
+                    'border-red-300 dark:border-red-800': item.status === 'error',
+                    'border-primary/50': item.status === 'uploading',
+                    'border-slate-200 dark:border-slate-600': item.status === 'pending',
+                  }"
                 >
-                  <img
-                    :src="item.previewUrl"
-                    :alt="item.file.name"
-                    class="h-14 w-14 shrink-0 rounded-lg object-cover"
-                  />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium">{{ item.file.name }}</p>
-                    <p class="text-xs text-slate-400">{{ formatFileSize(item.file.size) }}</p>
+                  <div class="relative aspect-[4/3] bg-slate-100 dark:bg-slate-800">
+                    <img
+                      :src="item.previewUrl"
+                      :alt="item.file.name"
+                      class="h-full w-full object-cover"
+                    />
+                    <!-- 上传进度遮罩 -->
                     <div
                       v-if="item.status === 'uploading'"
-                      class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                      class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 px-2"
                     >
                       <div
-                        class="h-full rounded-full bg-primary transition-all"
-                        :style="{ width: item.progress + '%' }"
-                      ></div>
+                        class="h-1.5 w-full max-w-[80%] overflow-hidden rounded-full bg-white/25"
+                      >
+                        <div
+                          class="h-full rounded-full bg-white transition-all"
+                          :style="{ width: item.progress + '%' }"
+                        ></div>
+                      </div>
+                      <span class="text-[11px] font-semibold text-white tabular-nums"
+                        >{{ item.progress }}%</span
+                      >
                     </div>
-                    <p v-if="item.status === 'done'" class="mt-0.5 text-xs text-success">已完成</p>
-                    <p v-if="item.status === 'error'" class="mt-0.5 text-xs text-error">
-                      {{ item.errorMsg || "失败" }}
+                    <!-- 完成/失败角标 -->
+                    <span
+                      v-if="item.status === 'done'"
+                      class="absolute left-1.5 top-1.5 rounded-md bg-emerald-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow"
+                    >
+                      完成
+                    </span>
+                    <span
+                      v-else-if="item.status === 'error'"
+                      class="absolute left-1.5 top-1.5 max-w-[calc(100%-2rem)] truncate rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow"
+                      :title="item.errorMsg || '失败'"
+                    >
+                      失败
+                    </span>
+                    <button
+                      v-if="
+                        !isUploading && (item.status === 'pending' || item.status === 'error')
+                      "
+                      type="button"
+                      class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-xs text-white opacity-0 transition hover:bg-black/70 group-hover:opacity-100"
+                      title="移除"
+                      @click="removePendingFile(index)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div class="space-y-0.5 px-2 py-1.5">
+                    <p class="truncate text-xs font-medium text-slate-700 dark:text-slate-200">
+                      {{ item.file.name }}
+                    </p>
+                    <p class="text-[11px] text-slate-400">{{ formatFileSize(item.file.size) }}</p>
+                    <p
+                      v-if="item.status === 'error'"
+                      class="truncate text-[11px] text-error"
+                      :title="item.errorMsg"
+                    >
+                      {{ item.errorMsg || "上传失败" }}
                     </p>
                   </div>
+                </li>
+
+                <!-- 末尾快捷添加格 -->
+                <li v-if="!isUploading">
                   <button
-                    v-if="item.status === 'pending'"
                     type="button"
-                    class="btn btn-ghost btn-xs btn-circle"
-                    title="移除"
-                    @click="removePendingFile(index)"
+                    class="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 text-slate-400 transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary dark:border-slate-600 dark:bg-slate-900/40"
+                    @click="fileInput?.click()"
                   >
-                    ✕
+                    <span class="text-xl leading-none">+</span>
+                    <span class="text-[11px] font-medium">添加</span>
                   </button>
                 </li>
               </ul>
@@ -435,15 +503,15 @@
             type="button"
             class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition"
             :class="
-              loading || !pendingFiles.length
+              !canStartUpload
                 ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
                 : 'bg-primary text-primary-content shadow-lg shadow-primary/30 hover:brightness-110 active:scale-[0.99]'
             "
-            :disabled="loading || !pendingFiles.length"
+            :disabled="!canStartUpload"
             @click="handleSubmit"
           >
             <svg
-              v-if="!loading && pendingFiles.length"
+              v-if="canStartUpload"
               class="h-4 w-4"
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -454,15 +522,17 @@
               />
             </svg>
             <span
-              v-if="loading"
+              v-if="loading || isUploading"
               class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
             ></span>
             {{
-              loading
-                ? `上传中 (${uploadedCount}/${pendingFiles.length})`
-                : pendingFiles.length
-                  ? `上传 ${pendingFiles.length} 张壁纸`
-                  : "选择图片后上传"
+              loading || isUploading
+                ? `上传中 (${uploadedCount}/${pendingCount || pendingFiles.length})`
+                : pendingCount
+                  ? `上传 ${pendingCount} 张壁纸`
+                  : pendingFiles.length
+                    ? "没有待上传的文件"
+                    : "选择图片后上传"
             }}
           </button>
         </div>
@@ -489,6 +559,16 @@ const overallProgress = computed(() => {
   const total = pendingFiles.value.reduce((sum, f) => sum + f.progress, 0)
   return Math.round(total / pendingFiles.value.length)
 })
+
+const doneCount = computed(() => pendingFiles.value.filter((f) => f.status === "done").length)
+const errorCount = computed(() => pendingFiles.value.filter((f) => f.status === "error").length)
+const uploadingCount = computed(
+  () => pendingFiles.value.filter((f) => f.status === "uploading").length,
+)
+const pendingCount = computed(
+  () => pendingFiles.value.filter((f) => f.status === "pending").length,
+)
+const canStartUpload = computed(() => pendingCount.value > 0 && !loading.value && !isUploading.value)
 
 const currentUserId = computed(() => userStore.user?.id || 0)
 
@@ -659,6 +739,7 @@ const handleDrop = (event: DragEvent) => {
 }
 
 const addFiles = (files: File[]) => {
+  if (isUploading.value) return
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue
     if (file.size > 50 * 1024 * 1024) continue
@@ -678,12 +759,14 @@ const addFiles = (files: File[]) => {
 }
 
 const removePendingFile = (index: number) => {
+  if (isUploading.value) return
   const item = pendingFiles.value[index]
   if (item) URL.revokeObjectURL(item.previewUrl)
   pendingFiles.value.splice(index, 1)
 }
 
 const clearAllFiles = () => {
+  if (isUploading.value) return
   pendingFiles.value.forEach((item) => URL.revokeObjectURL(item.previewUrl))
   pendingFiles.value = []
   if (fileInput.value) fileInput.value.value = ""
@@ -702,8 +785,8 @@ const validateForm = (): boolean => {
   errors.tags = ""
   errors.category = ""
   let isValid = true
-  if (!pendingFiles.value.length) {
-    errors.image = "请选择图片"
+  if (!pendingFiles.value.some((f) => f.status === "pending")) {
+    errors.image = "请选择待上传的图片"
     isValid = false
   }
   if (selectedTags.value.length === 0) {
@@ -747,14 +830,19 @@ const uploadSingleFile = async (item: PendingFile): Promise<boolean> => {
 }
 
 const batchUpload = async () => {
-  const queue = [...pendingFiles.value.filter((f) => f.status === "pending")]
+  // 用稳定 id 排队；每轮从 pendingFiles 取活项，已移除的跳过
+  const queueIds = pendingFiles.value
+    .filter((f) => f.status === "pending")
+    .map((f) => f.id)
   uploadedCount.value = 0
   let successCount = 0
   let failedCount = 0
 
   const runNext = async () => {
-    while (queue.length > 0) {
-      const item = queue.shift()!
+    while (queueIds.length > 0) {
+      const id = queueIds.shift()!
+      const item = pendingFiles.value.find((f) => f.id === id)
+      if (!item || item.status !== "pending") continue
       const ok = await uploadSingleFile(item)
       uploadedCount.value++
       if (ok) successCount++
@@ -762,7 +850,9 @@ const batchUpload = async () => {
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, () => runNext()))
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, Math.max(queueIds.length, 1)) }, () => runNext()),
+  )
   return { success: successCount, failed: failedCount }
 }
 

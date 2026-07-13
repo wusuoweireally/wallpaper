@@ -231,6 +231,10 @@ const props = withDefaults(defineProps<Props>(), {
   showActions: true,
 })
 
+const emit = defineEmits<{
+  click: []
+}>()
+
 const router = useRouter()
 const userStore = useUserStore()
 const toast = useGlobalToast()
@@ -253,7 +257,8 @@ const favoriting = ref(false)
 const downloading = ref(false)
 
 const handleCardClick = () => {
-  router.push(`/wallpaper/${props.wallpaper.id}`)
+  // 导航由父级统一处理，避免 Card 与 Grid 双重 router.push
+  emit("click")
 }
 
 const syncState = (wallpaper: Wallpaper) => {

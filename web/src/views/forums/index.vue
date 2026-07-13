@@ -516,23 +516,9 @@ const handleCreatePost = () => {
   router.push("/forums/new")
 }
 
-const handleLike = async (post: Post) => {
-  if (!userStore.isLoggedIn) {
-    router.push("/auth/login")
-    return
-  }
-  try {
-    const hasLiked = post.isLiked
-    if (hasLiked) {
-      await forumService.unlikePost(post.id)
-      forumStore.togglePostLike(post.id, false)
-    } else {
-      await forumService.likePost(post.id)
-      forumStore.togglePostLike(post.id, true)
-    }
-  } catch (error) {
-    console.error("点赞操作失败:", error)
-  }
+/** PostCard 内已完成 like API 与 store 更新，此处不再重复请求 */
+const handleLike = (_post: Post) => {
+  // no-op：保留事件位以兼容模板 @like
 }
 
 const handleComment = (post: Post) => {

@@ -30,11 +30,21 @@
             <span class="loading loading-spinner loading-sm"></span>
             加载中...
           </div>
-          <div v-else-if="noMore" class="flex items-center gap-2 text-sm text-base-content/40">
-            <div class="h-px w-16 bg-base-content/15"></div>
-            <span>没有更多了 ({{ totalCount }} 张壁纸)</span>
-            <div class="h-px w-16 bg-base-content/15"></div>
-          </div>
+          <template v-else-if="noMore">
+            <div class="flex items-center gap-2 text-sm text-base-content/40">
+              <div class="h-px w-16 bg-base-content/15"></div>
+              <span>没有更多了 ({{ totalCount }} 张壁纸)</span>
+              <div class="h-px w-16 bg-base-content/15"></div>
+            </div>
+          </template>
+          <button
+            v-else
+            type="button"
+            class="btn btn-outline btn-sm"
+            @click="loadMore"
+          >
+            加载更多
+          </button>
         </div>
       </div>
     </div>
@@ -66,6 +76,7 @@ import { useRoute, useRouter } from "vue-router"
 import { wallpaperService, type Wallpaper } from "@/services/wallpaper"
 import WallpaperFilter from "@/components/WallpaperFilter.vue"
 import WallpaperGrid from "@/components/WallpaperGrid.vue"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 
 interface ApiWallpaperResponse {
   success: boolean
@@ -103,10 +114,13 @@ const totalPages = ref(0)
 const error = ref<string | null>(null)
 const retryCount = ref(0)
 const maxRetries = 3
-const fetchTimeoutId = ref<NodeJS.Timeout | null>(null)
+const fetchTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null)
+const filterDebounceId = ref<ReturnType<typeof setTimeout> | null>(null)
 const noMore = ref(false)
 const showBackToTop = ref(false)
 const sentinelRef = ref<HTMLElement | null>(null)
+const listFetchGeneration = createFetchGeneration()
+const FILTER_DEBOUNCE_MS = 400
 
 // 筛选条件
 const filters = ref<Filters>({
@@ -129,11 +143,17 @@ const sortMapping = {
   random: { sortBy: "random", sortOrder: "DESC" },
 } as const
 
-// IntersectionObserver
+// IntersectionObserver：在 sentinel 挂载后再绑定
 let observer: IntersectionObserver | null = null
 
 const setupObserver = () => {
-  if (observer) observer.disconnect()
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
+
+  const el = sentinelRef.value
+  if (!el) return
 
   observer = new IntersectionObserver(
     (entries) => {
@@ -142,41 +162,51 @@ const setupObserver = () => {
         loadMore()
       }
     },
-    { rootMargin: "300px" } // 提前 300px 触发
+    { rootMargin: "300px" },
   )
-
-  nextTick(() => {
-    if (sentinelRef.value && observer) {
-      observer.observe(sentinelRef.value)
-    }
-  })
+  observer.observe(el)
 }
 
-// 初始化
-onMounted(() => {
-  initFiltersFromRoute()
-  fetchWallpapers(false)
+const bindObserverAfterRender = async () => {
+  await nextTick()
   setupObserver()
-  window.addEventListener("scroll", handleScroll, { passive: true })
-})
+}
 
-// 监听筛选条件变化（不含 currentPage，因为无限滚动是追加模式）
-watch(filters, () => {
-  // 筛选条件变化时重置
-  wallpapers.value = []
-  currentPage.value = 1
-  noMore.value = false
-  error.value = null
-  fetchWallpapers(false)
-}, { deep: true })
-
-// 从路由查询参数初始化筛选条件
+// 从路由查询参数初始化筛选条件（须在 watch filters 之前）
 const initFiltersFromRoute = () => {
   const sortParam = route.query.sort as string
   if (sortParam && ["latest", "popular", "random", "likes", "downloads"].includes(sortParam)) {
     filters.value.sortBy = sortParam as "latest" | "popular" | "random" | "likes" | "downloads"
   }
 }
+initFiltersFromRoute()
+
+// 初始化
+onMounted(() => {
+  fetchWallpapers(false)
+  window.addEventListener("scroll", handleScroll, { passive: true })
+})
+
+// sentinel 出现/替换时重新观察
+watch(sentinelRef, (el) => {
+  if (el) setupObserver()
+})
+
+// 筛选条件变化：debounce，避免搜索每个字符打一次接口
+watch(
+  filters,
+  () => {
+    if (filterDebounceId.value) clearTimeout(filterDebounceId.value)
+    filterDebounceId.value = setTimeout(() => {
+      wallpapers.value = []
+      currentPage.value = 1
+      noMore.value = false
+      error.value = null
+      fetchWallpapers(false)
+    }, FILTER_DEBOUNCE_MS)
+  },
+  { deep: true },
+)
 
 // 构建查询参数
 const buildQueryParams = () => {
@@ -233,13 +263,16 @@ const buildQueryParams = () => {
   }
 }
 
-// 获取壁纸列表
+// 获取壁纸列表：首屏/筛选递增代数；追加沿用代数；乱序旧响应丢弃
 const fetchWallpapers = async (append: boolean) => {
+  const gen = append ? listFetchGeneration.current : listFetchGeneration.next()
   loading.value = true
-  error.value = null
+  if (!append) error.value = null
 
   try {
     const response = await wallpaperService.getWallpapers(buildQueryParams())
+    if (!listFetchGeneration.isCurrent(gen)) return
+
     const apiResponse = response as unknown as ApiWallpaperResponse
 
     if (apiResponse.success && apiResponse.data) {
@@ -252,10 +285,13 @@ const fetchWallpapers = async (append: boolean) => {
       totalPages.value = apiResponse.pagination.pages
       noMore.value = currentPage.value >= apiResponse.pagination.pages
       retryCount.value = 0
+      await bindObserverAfterRender()
     } else if (apiResponse.message === "请求已取消") {
       return
     }
   } catch (err: unknown) {
+    if (!listFetchGeneration.isCurrent(gen)) return
+
     const errObj = err as Error & { message?: string; code?: string }
     console.error("获取壁纸失败:", errObj)
 
@@ -278,7 +314,9 @@ const fetchWallpapers = async (append: boolean) => {
     }
     error.value = errObj.message || "获取壁纸失败，请稍后重试"
   } finally {
-    loading.value = false
+    if (listFetchGeneration.isCurrent(gen)) {
+      loading.value = false
+    }
   }
 }
 
@@ -333,6 +371,7 @@ const scrollToTop = () => {
 onUnmounted(() => {
   if (observer) observer.disconnect()
   if (fetchTimeoutId.value) clearTimeout(fetchTimeoutId.value)
+  if (filterDebounceId.value) clearTimeout(filterDebounceId.value)
   window.removeEventListener("scroll", handleScroll)
   loading.value = false
 })

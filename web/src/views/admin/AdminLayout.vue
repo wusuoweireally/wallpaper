@@ -21,6 +21,13 @@
     >
       <div class="flex-1">
         <div class="flex items-center gap-3 px-4">
+          <label
+            for="admin-drawer"
+            class="btn btn-ghost btn-square text-white lg:hidden"
+            aria-label="打开侧边栏"
+          >
+            <iconify-icon icon="mdi:menu" class="text-2xl"></iconify-icon>
+          </label>
           <div
             class="animate-pulse-slow flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/30"
           >

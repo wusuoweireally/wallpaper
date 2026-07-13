@@ -21,6 +21,20 @@ export interface WallpaperViewer {
   role?: UserRole;
 }
 
+function isMysqlDeadlock(error: unknown): boolean {
+  const err = error as {
+    code?: string;
+    errno?: number;
+    driverError?: { code?: string; errno?: number };
+  };
+  return (
+    err?.code === "ER_LOCK_DEADLOCK" ||
+    err?.errno === 1213 ||
+    err?.driverError?.code === "ER_LOCK_DEADLOCK" ||
+    err?.driverError?.errno === 1213
+  );
+}
+
 @Injectable()
 export class WallpaperService {
   // 壁纸热门评分公式：浏览x1 + 点赞x5 + 收藏x8 + 下载x3
@@ -79,19 +93,33 @@ export class WallpaperService {
     allowCreateTags = false,
   ): Promise<Wallpaper> {
     const { tags = [], ...wallpaperData } = createWallpaperDto;
-    return this.dataSource.transaction(async (manager) => {
-      const repository = manager.getRepository(Wallpaper);
-      const wallpaper = await repository.save(
-        repository.create({ ...wallpaperData, uploaderId }),
-      );
-      await this.tagService.attachWallpaperTags(
-        manager,
-        wallpaper.id,
-        tags,
-        allowCreateTags,
-      );
-      return wallpaper;
-    });
+    const maxAttempts = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await this.dataSource.transaction(async (manager) => {
+          const repository = manager.getRepository(Wallpaper);
+          const wallpaper = await repository.save(
+            repository.create({ ...wallpaperData, uploaderId }),
+          );
+          await this.tagService.attachWallpaperTags(
+            manager,
+            wallpaper.id,
+            tags,
+            allowCreateTags,
+          );
+          return wallpaper;
+        });
+      } catch (error) {
+        lastError = error;
+        if (!isMysqlDeadlock(error) || attempt === maxAttempts) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   /**
@@ -311,6 +339,10 @@ export class WallpaperService {
       // 常规字段排序
       const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
       queryBuilder.orderBy(`wallpaper.${sortField}`, sortOrder);
+      // 同秒写入时保证顺序稳定，避免分页抖动
+      if (sortField !== "id") {
+        queryBuilder.addOrderBy("wallpaper.id", sortOrder);
+      }
     }
 
     // 执行完整的分页查询 - 修复：单次查询获取所有数据，保持排序

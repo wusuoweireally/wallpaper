@@ -217,7 +217,7 @@ const handleLike = async () => {
       await forumService.likePost(postId)
       forumStore.togglePostLike(postId, true)
     }
-
+    // 仅通知父级刷新本地展示；父级不得再次请求 like API
     emit("like", props.post)
   } catch (error) {
     console.error("点赞操作失败:", error)

@@ -20,6 +20,25 @@
 
       <!-- 密码输入区域 -->
       <div class="mb-8 grid gap-6 md:grid-cols-2">
+        <div class="space-y-2 md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700"> 当前密码 </label>
+          <div class="relative">
+            <input
+              :type="showCurrentPassword ? 'text' : 'password'"
+              v-model="passwordForm.currentPassword"
+              placeholder="请输入当前密码"
+              autocomplete="current-password"
+              class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              @click="showCurrentPassword = !showCurrentPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+            >
+              <i :class="showCurrentPassword ? 'i-[mdi--eye-off]' : 'i-[mdi--eye]'"></i>
+            </button>
+          </div>
+        </div>
         <div class="space-y-2">
           <label class="block text-sm font-medium text-gray-700"> 新密码 </label>
           <div class="relative">
@@ -27,6 +46,7 @@
               :type="showNewPassword ? 'text' : 'password'"
               v-model="passwordForm.newPassword"
               placeholder="请输入新密码"
+              autocomplete="new-password"
               class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             />
             <button
@@ -211,6 +231,12 @@
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue"
 import { useUserStore } from "@/stores/user"
+import {
+  buildChangePasswordPayload,
+  isPasswordLengthValid,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+} from "@/utils/authPayload"
 
 const userStore = useUserStore()
 
@@ -244,11 +270,13 @@ onUnmounted(() => {
 
 // 密码表单
 const passwordForm = reactive({
+  currentPassword: "",
   newPassword: "",
   confirmPassword: "",
 })
 
 // 密码显示状态
+const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
@@ -313,23 +341,33 @@ const passwordChecks = computed(() => {
 // 是否可以提交
 const canSubmit = computed(() => {
   const checks = passwordChecks.value
-  return checks.length && checks.uppercase && checks.lowercase && checks.number && checks.match
+  return (
+    !!passwordForm.currentPassword &&
+    checks.length &&
+    checks.uppercase &&
+    checks.lowercase &&
+    checks.number &&
+    checks.match
+  )
 })
 
 // 验证密码表单
 const validatePasswordForm = (): boolean => {
-  // 验证新密码
+  if (!passwordForm.currentPassword) {
+    error.value = "请输入当前密码"
+    return false
+  }
+
   if (!passwordForm.newPassword) {
     error.value = "请输入新密码"
     return false
   }
 
-  if (passwordForm.newPassword.length < 8) {
-    error.value = "新密码长度至少8位"
+  if (!isPasswordLengthValid(passwordForm.newPassword)) {
+    error.value = `新密码长度须为 ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} 位`
     return false
   }
 
-  // 验证确认密码
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     error.value = "两次输入的密码不一致"
     return false
@@ -338,9 +376,8 @@ const validatePasswordForm = (): boolean => {
   return true
 }
 
-// 更新密码
+// 更新密码（对齐 PATCH /users/password）
 const updatePassword = async () => {
-  // 防御性检查，确保组件仍然挂载
   if (!isMounted.value) {
     return
   }
@@ -350,7 +387,6 @@ const updatePassword = async () => {
   success.value = ""
 
   try {
-    // 表单验证
     if (!validatePasswordForm()) {
       if (isMounted.value) {
         loading.value = false
@@ -358,20 +394,19 @@ const updatePassword = async () => {
       return
     }
 
-    // 这里需要调用后端的密码更新接口
-    // 由于后端目前没有专门的密码更新接口，暂时使用通用的更新接口
-    await userStore.updateUserInfo({
-      password: passwordForm.newPassword,
-    })
+    const payload = buildChangePasswordPayload(
+      passwordForm.currentPassword,
+      passwordForm.newPassword,
+    )
+    await userStore.changePassword(payload.currentPassword, payload.newPassword)
 
     if (isMounted.value) {
       success.value = "密码修改成功"
 
-      // 清空密码表单
+      passwordForm.currentPassword = ""
       passwordForm.newPassword = ""
       passwordForm.confirmPassword = ""
 
-      // 3秒后清除成功提示
       setTimeout(() => {
         if (isMounted.value) {
           success.value = ""

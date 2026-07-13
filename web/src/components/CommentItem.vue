@@ -193,8 +193,8 @@ const handleReply = () => {
     router.push("/auth/login")
     return
   }
+  // 仅展开/收起回复框，不 emit（避免父级误以为已回复而整表刷新）
   showReplyForm.value = !showReplyForm.value
-  if (showReplyForm.value) emit("reply", props.comment)
 }
 
 const handleLike = async () => {

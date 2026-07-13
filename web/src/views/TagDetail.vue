@@ -238,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue"
+import { ref, reactive, onMounted, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import tagService, { type Tag } from "@/services/tag"
 import wallpaperService from "@/services/wallpaper"
@@ -339,11 +339,25 @@ const goToWallpaperDetail = (id: number) => {
 
 const getUsageCount = (tag?: TagUsage | null) => tag?.usageCount ?? tag?.useCount ?? 0
 
-onMounted(async () => {
+const reloadForRoute = async () => {
+  pagination.value.page = 1
+  wallpapers.value = []
   await loadTag()
   if (tag.value) {
     await loadWallpapers()
     await loadRelatedTags()
   }
+}
+
+onMounted(() => {
+  void reloadForRoute()
 })
+
+// 同组件切换标签 id 时重新加载，避免残留旧数据
+watch(
+  () => route.params.id,
+  (id, prev) => {
+    if (id !== prev) void reloadForRoute()
+  },
+)
 </script>

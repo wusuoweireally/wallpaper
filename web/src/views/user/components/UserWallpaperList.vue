@@ -72,6 +72,7 @@
         :wallpaper="wallpaper"
         :show-uploader="showUploader"
         :show-actions="showActions"
+        @click="goToWallpaper(wallpaper.id)"
       />
     </div>
 
@@ -116,8 +117,15 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from "vue"
+import { useRouter } from "vue-router"
 import WallpaperCard from "@/components/WallpaperCard.vue"
 import type { Wallpaper } from "@/services/wallpaper"
+
+const router = useRouter()
+
+const goToWallpaper = (id: number) => {
+  router.push(`/wallpaper/${id}`)
+}
 
 interface WallpaperItem {
   id: number

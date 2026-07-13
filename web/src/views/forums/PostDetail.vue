@@ -726,18 +726,12 @@ const submitComment = async () => {
   }
 }
 
-const handleCommentLike = async (comment: Comment) => {
-  try {
-    const result = await forumService.toggleCommentLike(comment.id)
-    updateCommentTree(comments.value, comment.id, (target) => {
-      target.likeCount = result.likeCount
-      target.isLiked = result.isLiked
-    })
-  } catch (err: unknown) {
-    const errObj = err as Error & { message?: string }
-    console.error("评论点赞失败:", errObj)
-    toast.error(errObj.message || "操作失败")
-  }
+/** CommentItem 内已 toggle API，此处只合并结果到树 */
+const handleCommentLike = (comment: Comment) => {
+  updateCommentTree(comments.value, comment.id, (target) => {
+    if (typeof comment.likeCount === "number") target.likeCount = comment.likeCount
+    if (typeof comment.isLiked === "boolean") target.isLiked = comment.isLiked
+  })
 }
 
 const handleCommentEdit = (updatedComment: Comment) => {
@@ -754,7 +748,7 @@ const handleCommentDelete = (comment: Comment) => {
 }
 
 const handleCommentReply = (_comment?: Comment) => {
-  // 回复后刷新评论列表
+  // 仅在回复提交成功后由子组件 emit；此处刷新列表
   loadComments()
 }
 

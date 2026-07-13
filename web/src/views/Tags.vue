@@ -231,9 +231,30 @@ const clearFilters = () => {
   loadTags(true)
 }
 
-const changePage = (page: number) => {
+const changePage = async (page: number) => {
+  if (page < 1 || page === currentPage.value) return
   currentPage.value = page
-  loadTags()
+  try {
+    loading.value = true
+    const response = await tagService.getTags({
+      keyword: searchQuery.value || undefined,
+      sortBy: sortBy.value,
+      sortOrder: sortOrder.value,
+      page,
+      limit: pageSize,
+    })
+    // 分页替换，禁止 push 追加
+    tags.value = response.data
+    if (response.pagination) {
+      hasMore.value = response.pagination.page < response.pagination.pages
+    } else {
+      hasMore.value = response.data.length === pageSize
+    }
+  } catch (error) {
+    console.error("加载标签列表失败:", error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const goToTagDetail = (tag: Tag) => {
