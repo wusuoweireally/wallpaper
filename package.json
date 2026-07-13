@@ -9,32 +9,26 @@
   ],
   "scripts": {
     "dev": "pnpm -r run dev",
-    "dev:server": "pnpm -C server dev",
-    "dev:web": "pnpm -C web dev",
     "build": "pnpm -r run build",
-    "build:server": "pnpm -C server build",
-    "build:web": "pnpm -C web build",
     "lint": "pnpm -r run lint",
-    "lint:fix": "pnpm -r run lint:fix",
     "type-check": "pnpm -r run type-check",
-    "format": "pnpm -r run format",
     "test": "pnpm -r run test",
-    "start": "pnpm -C server start:prod",
-    "preview": "pnpm -C web preview",
-    "docker:prod": "docker compose --env-file server/.env.production up -d --build",
-    "docker:prod:down": "docker compose --env-file server/.env.production down",
-    "docker:prod:logs": "docker compose --env-file server/.env.production logs -f"
+    "docker:prod": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml down",
+    "docker:prod:logs": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml logs -f"
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp"]
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+    "onlyBuiltDependencies": ["esbuild", "sharp"],
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "typescript": "7"
+      }
+    }
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": "^20.19.0 || >=22.12.0",
+    "pnpm": ">=10.0.0"
   },
   "keywords": [
     "wallpaper",

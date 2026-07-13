@@ -31,8 +31,18 @@ export enum ReportStatus {
   DISMISSED = "dismissed",
 }
 
+export interface ReportTargetSnapshot {
+  title: string | null;
+  content: string;
+  authorId: number;
+  postId: number;
+}
+
 @Entity("reports")
 @Index(["status", "createdAt"]) // 复合索引：状态 + 创建时间
+@Index("uk_reports_user_target", ["userId", "targetType", "targetId"], {
+  unique: true,
+})
 export class Report {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "举报记录ID" })
   id: number;
@@ -52,6 +62,14 @@ export class Report {
   targetId: number;
 
   @Column({
+    name: "target_snapshot",
+    type: "json",
+    nullable: true,
+    comment: "举报创建时的目标内容快照",
+  })
+  targetSnapshot: ReportTargetSnapshot | null;
+
+  @Column({
     name: "reason",
     type: "enum",
     enum: ReportReason,
@@ -65,7 +83,7 @@ export class Report {
     nullable: true,
     comment: "举报描述",
   })
-  description: string;
+  description: string | null;
 
   @Column({
     name: "status",
@@ -82,7 +100,7 @@ export class Report {
     nullable: true,
     comment: "处理人ID",
   })
-  reviewedBy: number;
+  reviewedBy: number | null;
 
   @Column({
     name: "review_note",
@@ -90,7 +108,7 @@ export class Report {
     nullable: true,
     comment: "处理说明",
   })
-  reviewNote: string;
+  reviewNote: string | null;
 
   @CreateDateColumn({
     name: "created_at",
@@ -118,5 +136,5 @@ export class Report {
 
   @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: "reviewed_by" })
-  reviewer: User;
+  reviewer: User | null;
 }

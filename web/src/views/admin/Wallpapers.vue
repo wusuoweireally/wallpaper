@@ -263,14 +263,8 @@
                       {{ getCategoryLabel(wallpaper.category) }}
                     </p>
                     <h3 class="mt-1 line-clamp-1 text-lg font-semibold text-white">
-                      {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
+                      壁纸 #{{ wallpaper.id }}
                     </h3>
-                    <p
-                      v-if="wallpaper.description"
-                      class="mt-0.5 line-clamp-1 text-xs text-white/50"
-                    >
-                      {{ wallpaper.description }}
-                    </p>
                   </div>
                   <div class="flex flex-col items-end gap-1">
                     <div
@@ -675,40 +669,6 @@
               <div class="space-y-4">
                 <div class="form-control">
                   <label class="label">
-                    <span class="label-text font-semibold text-white/80">标题</span>
-                    <span class="label-text-alt text-white/40"
-                      >{{ editForm.title.length }}/200</span
-                    >
-                  </label>
-                  <input
-                    v-model="editForm.title"
-                    type="text"
-                    maxlength="200"
-                    placeholder="为壁纸起个名字..."
-                    class="input w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="editLoading"
-                  />
-                </div>
-
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-semibold text-white/80">描述</span>
-                    <span class="label-text-alt text-white/40"
-                      >{{ editForm.description.length }}/2000</span
-                    >
-                  </label>
-                  <textarea
-                    v-model="editForm.description"
-                    maxlength="2000"
-                    rows="4"
-                    placeholder="描述一下这张壁纸..."
-                    class="textarea w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="editLoading"
-                  ></textarea>
-                </div>
-
-                <div class="form-control">
-                  <label class="label">
                     <span class="label-text font-semibold text-white/80">标签</span>
                     <span class="label-text-alt text-white/40">逗号分隔</span>
                   </label>
@@ -887,7 +847,7 @@ const loading = ref(true)
 const wallpapers = ref<AdminWallpaper[]>([])
 const previewWallpaper = ref<AdminWallpaper | null>(null)
 const editWallpaper = ref<AdminWallpaper | null>(null)
-const editForm = reactive({ title: "", description: "", tagsInput: "" })
+const editForm = reactive({ tagsInput: "" })
 const editLoading = ref(false)
 const actionLoadingId = ref<number | null>(null)
 const selectedIds = ref<Set<number>>(new Set())
@@ -1397,11 +1357,9 @@ const batchDeleteSelected = async () => {
   }
 }
 
-// 编辑壁纸标题/描述
+// 编辑壁纸标签
 const openEditModal = (wallpaper: AdminWallpaper) => {
   editWallpaper.value = wallpaper
-  editForm.title = wallpaper.title || ""
-  editForm.description = wallpaper.description || ""
   editForm.tagsInput = (wallpaper.tags || [])
     .map((tag) => getTagLabel(tag))
     .filter(Boolean)
@@ -1410,8 +1368,6 @@ const openEditModal = (wallpaper: AdminWallpaper) => {
 
 const closeEditModal = () => {
   editWallpaper.value = null
-  editForm.title = ""
-  editForm.description = ""
   editForm.tagsInput = ""
 }
 
@@ -1419,10 +1375,6 @@ const submitEdit = async () => {
   if (!editWallpaper.value) return
   try {
     editLoading.value = true
-    await adminService.adminUpdateWallpaper(editWallpaper.value.id, {
-      title: editForm.title,
-      description: editForm.description,
-    })
     const tags = editForm.tagsInput
       .split(/[,，]/)
       .map((tag) => tag.trim())

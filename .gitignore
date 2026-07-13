@@ -8,6 +8,9 @@
 node_modules/
 .pnp
 .pnp.js
+# monorepo 只使用根目录锁文件
+web/pnpm-lock.yaml
+server/pnpm-lock.yaml
 
 # ---------------
 # 构建输出
@@ -39,10 +42,17 @@ yarn-error.log*
 lerna-debug.log*
 
 # ---------------
-# 注意：server/uploads/ 目录未被忽略
-# 因为项目使用本地存储，未配置 OSS 对象存储
-# 开发者需要注意提交必要的示例图片
+# 上传目录：忽略运行时文件，仅跟踪占位与静态/seed 资源
+# 本地开发：壁纸原图/缩略图写在本机 uploads，不进 git
+# Docker MySQL 数据在容器卷中，与此无关
 # ---------------
+server/uploads/**
+!server/uploads/**/
+!server/uploads/**/.gitkeep
+!server/uploads/profile-pictures/defaultAvatar.png
+# demo-seed 源图目录（可选 seed，非运行时上传）
+!server/uploads/壁纸/
+!server/uploads/壁纸/**
 
 # ---------------
 # SSL 证书（私钥敏感，不提交）
@@ -100,10 +110,12 @@ coverage/
 *.lcov
 .nyc_output/
 test-results/
+.api-smoke-out/
 
 # ---------------
 # 临时文件和缓存
 # ---------------
+.tmp/
 *.tmp
 *.temp
 .cache/
@@ -159,3 +171,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# 本机 AI 工具配置（可能包含访问令牌）
+.claude/settings.json

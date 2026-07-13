@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -15,22 +14,72 @@ import {
   Report,
   ReportReason,
   ReportStatus,
+  ReportTargetSnapshot,
   ReportTargetType,
 } from "../entities/report.entity";
-import { Post } from "../entities/post.entity";
+import { Post, PostStatus } from "../entities/post.entity";
 import { Comment } from "../entities/comment.entity";
+import { User } from "../entities/user.entity";
+import { normalizePagination } from "../common/pagination";
 
 // TypeORM 查询结果类型
 
 interface ReportStatsByReason {
   reason: string;
-  count: number;
+  count: number | string;
 }
 
 interface ReportStatsByType {
   targetType: string;
-  count: number;
+  count: number | string;
 }
+
+interface ReportUserSummary {
+  id: number;
+  username: string;
+  avatarUrl: string | null;
+}
+
+interface ReportTargetSummary {
+  id: number;
+  type: ReportTargetType;
+  title: string | null;
+  content: string;
+  authorId: number;
+  postId: number;
+}
+
+export type SafeReport = Omit<
+  Report,
+  "user" | "reviewer" | "targetSnapshot"
+> & {
+  user: ReportUserSummary | null;
+  reviewer: ReportUserSummary | null;
+  target: ReportTargetSummary | null;
+};
+
+export interface UserReportSummary {
+  id: number;
+  targetType: ReportTargetType;
+  targetId: number;
+  reason: ReportReason;
+  description: string | null;
+  status: ReportStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  resolution: { status: ReportStatus.RESOLVED | ReportStatus.DISMISSED } | null;
+}
+
+const ALLOWED_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
+  [ReportStatus.PENDING]: [
+    ReportStatus.REVIEWING,
+    ReportStatus.RESOLVED,
+    ReportStatus.DISMISSED,
+  ],
+  [ReportStatus.REVIEWING]: [ReportStatus.RESOLVED, ReportStatus.DISMISSED],
+  [ReportStatus.RESOLVED]: [],
+  [ReportStatus.DISMISSED]: [],
+};
 
 @Injectable()
 export class ReportService {
@@ -43,18 +92,77 @@ export class ReportService {
     private commentRepository: Repository<Comment>,
   ) {}
 
-  private async ensureTargetExists(
+  private toUserSummary(user?: User | null): ReportUserSummary | null {
+    if (!user) return null;
+    return {
+      id: Number(user.id),
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+    };
+  }
+
+  private toSafeReports(reports: Report[]): SafeReport[] {
+    return reports.map((report) => {
+      const { user, reviewer, targetSnapshot, ...data } = report;
+      return {
+        ...data,
+        user: this.toUserSummary(user),
+        reviewer: this.toUserSummary(reviewer),
+        target: targetSnapshot
+          ? {
+              id: Number(report.targetId),
+              type: report.targetType,
+              ...targetSnapshot,
+            }
+          : null,
+      };
+    });
+  }
+
+  private async findReportEntityById(id: number): Promise<Report> {
+    const report = await this.reportRepository.findOne({
+      where: { id },
+      relations: ["user", "reviewer"],
+    });
+
+    if (!report) {
+      throw new NotFoundException("举报记录不存在");
+    }
+
+    return report;
+  }
+
+  private async getPublicTargetSnapshot(
     targetType: ReportTargetType,
     targetId: number,
-  ): Promise<void> {
-    const target =
-      targetType === ReportTargetType.POST
-        ? await this.postRepository.findOne({ where: { id: targetId } })
-        : await this.commentRepository.findOne({ where: { id: targetId } });
-
-    if (!target) {
-      throw new NotFoundException("举报目标不存在或已被删除");
+  ): Promise<ReportTargetSnapshot> {
+    if (targetType === ReportTargetType.POST) {
+      const post = await this.postRepository.findOne({
+        where: { id: targetId, status: PostStatus.PUBLISHED },
+        select: ["id", "title", "content", "authorId"],
+      });
+      if (!post) throw new NotFoundException("举报目标不存在或不可见");
+      return {
+        title: post.title,
+        content: post.content,
+        authorId: Number(post.authorId),
+        postId: Number(post.id),
+      };
     }
+
+    const comment = await this.commentRepository
+      .createQueryBuilder("comment")
+      .innerJoinAndSelect("comment.post", "post")
+      .where("comment.id = :targetId", { targetId })
+      .andWhere("post.status = :status", { status: PostStatus.PUBLISHED })
+      .getOne();
+    if (!comment) throw new NotFoundException("举报目标不存在或不可见");
+    return {
+      title: comment.post.title,
+      content: comment.content,
+      authorId: Number(comment.authorId),
+      postId: Number(comment.postId),
+    };
   }
 
   /**
@@ -64,7 +172,7 @@ export class ReportService {
     createReportDto: CreateReportDto,
     userId: number,
   ): Promise<Report> {
-    await this.ensureTargetExists(
+    const targetSnapshot = await this.getPublicTargetSnapshot(
       createReportDto.targetType,
       createReportDto.targetId,
     );
@@ -85,33 +193,68 @@ export class ReportService {
     const report = this.reportRepository.create({
       userId,
       ...createReportDto,
+      targetSnapshot,
     });
 
-    return await this.reportRepository.save(report);
+    try {
+      return await this.reportRepository.save(report);
+    } catch (error: unknown) {
+      const databaseError = error as { code?: string; errno?: number };
+      if (
+        databaseError.code === "ER_DUP_ENTRY" ||
+        databaseError.errno === 1062
+      ) {
+        throw new ConflictException("您已经举报过此内容");
+      }
+      throw error;
+    }
   }
 
   /**
    * 获取举报列表（管理员功能）
    */
-  async getReports(
-    getReportsDto: GetReportsDto,
-  ): Promise<{ data: Report[]; total: number; page: number; limit: number }> {
+  async getReports(getReportsDto: GetReportsDto): Promise<{
+    data: SafeReport[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const {
-      page = 1,
-      limit = 20,
+      page: requestedPage = 1,
+      limit: requestedLimit = 20,
       targetType,
       reason,
       status,
       userId,
       keyword,
     } = getReportsDto;
+    const { page, limit } = normalizePagination(requestedPage, requestedLimit);
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reportRepository
       .createQueryBuilder("report")
       .leftJoinAndSelect("report.user", "user")
       .leftJoinAndSelect("report.reviewer", "reviewer")
+      .select([
+        "report.id",
+        "report.userId",
+        "report.targetType",
+        "report.targetId",
+        "report.reason",
+        "report.description",
+        "report.status",
+        "report.reviewedBy",
+        "report.createdAt",
+        "report.updatedAt",
+        "user.id",
+        "user.username",
+        "user.avatarUrl",
+        "reviewer.id",
+        "reviewer.username",
+        "reviewer.avatarUrl",
+      ])
       .orderBy("report.createdAt", "DESC")
+      .addOrderBy("report.id", "DESC")
       .skip(skip)
       .take(limit);
 
@@ -138,7 +281,8 @@ export class ReportService {
       );
     }
 
-    const [data, total] = await queryBuilder.getManyAndCount();
+    const [reports, total] = await queryBuilder.getManyAndCount();
+    const data = this.toSafeReports(reports);
 
     return {
       data,
@@ -151,17 +295,9 @@ export class ReportService {
   /**
    * 获取单个举报详情
    */
-  async getReportById(id: number): Promise<Report> {
-    const report = await this.reportRepository.findOne({
-      where: { id },
-      relations: ["user", "reviewer"],
-    });
-
-    if (!report) {
-      throw new NotFoundException("举报记录不存在");
-    }
-
-    return report;
+  async getReportById(id: number): Promise<SafeReport> {
+    const report = await this.findReportEntityById(id);
+    return this.toSafeReports([report])[0];
   }
 
   /**
@@ -171,30 +307,25 @@ export class ReportService {
     id: number,
     updateReportDto: UpdateReportDto,
     adminId: number,
-  ): Promise<Report> {
-    const report = await this.getReportById(id);
+  ): Promise<SafeReport> {
+    const report = await this.findReportEntityById(id);
 
-    // 检查是否已经是最终状态
-    if (
-      report.status === ReportStatus.RESOLVED ||
-      report.status === ReportStatus.DISMISSED
-    ) {
-      throw new ForbiddenException("该举报已经处理完成");
+    if (!ALLOWED_TRANSITIONS[report.status].includes(updateReportDto.status)) {
+      throw new ConflictException("举报状态已变更或不允许执行该操作");
     }
 
-    // 更新状态
-    const status =
-      updateReportDto.status ??
-      (updateReportDto.reviewNote
-        ? ReportStatus.RESOLVED
-        : ReportStatus.REVIEWING);
-
-    await this.reportRepository.update(id, {
-      status,
-      reviewedBy: adminId,
-      reviewNote: updateReportDto.reviewNote,
-      updatedAt: new Date(),
-    });
+    const result = await this.reportRepository.update(
+      { id, status: report.status },
+      {
+        status: updateReportDto.status,
+        reviewedBy: adminId,
+        reviewNote: updateReportDto.reviewNote,
+        updatedAt: new Date(),
+      },
+    );
+    if (result.affected !== 1) {
+      throw new ConflictException("举报已被其他管理员处理，请刷新后重试");
+    }
 
     return await this.getReportById(id);
   }
@@ -206,18 +337,49 @@ export class ReportService {
     userId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ data: Report[]; total: number }> {
+  ): Promise<{
+    data: UserReportSummary[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    ({ page, limit } = normalizePagination(page, limit));
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.reportRepository.findAndCount({
+    const [reports, total] = await this.reportRepository.findAndCount({
       where: { userId },
-      relations: [],
-      order: { createdAt: "DESC" },
+      select: [
+        "id",
+        "targetType",
+        "targetId",
+        "reason",
+        "description",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ],
+      order: { createdAt: "DESC", id: "DESC" },
       skip,
       take: limit,
     });
 
-    return { data, total };
+    const data = reports.map((report) => ({
+      id: Number(report.id),
+      targetType: report.targetType,
+      targetId: Number(report.targetId),
+      reason: report.reason,
+      description: report.description,
+      status: report.status,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+      resolution:
+        report.status === ReportStatus.RESOLVED ||
+        report.status === ReportStatus.DISMISSED
+          ? { status: report.status }
+          : null,
+    }));
+
+    return { data, total, page, limit };
   }
 
   /**
@@ -250,7 +412,7 @@ export class ReportService {
     ]);
 
     // 按原因统计
-    const statsByReason = await this.reportRepository
+    const rawStatsByReason = await this.reportRepository
       .createQueryBuilder("report")
       .select("report.reason", "reason")
       .addSelect("COUNT(*)", "count")
@@ -258,7 +420,7 @@ export class ReportService {
       .getRawMany<ReportStatsByReason>();
 
     // 按类型统计
-    const statsByType = await this.reportRepository
+    const rawStatsByType = await this.reportRepository
       .createQueryBuilder("report")
       .select("report.targetType", "targetType")
       .addSelect("COUNT(*)", "count")
@@ -276,8 +438,14 @@ export class ReportService {
       processingReports: reviewing,
       resolvedReports: resolved,
       rejectedReports: dismissed,
-      statsByReason,
-      statsByType,
+      statsByReason: rawStatsByReason.map(({ reason, count }) => ({
+        reason,
+        count: Number(count),
+      })),
+      statsByType: rawStatsByType.map(({ targetType, count }) => ({
+        targetType,
+        count: Number(count),
+      })),
     };
   }
 
@@ -309,11 +477,12 @@ export class ReportService {
     targetId: number,
   ): Promise<{ canReport: boolean; reason?: string }> {
     try {
-      await this.ensureTargetExists(targetType, targetId);
-    } catch {
+      await this.getPublicTargetSnapshot(targetType, targetId);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
       return {
         canReport: false,
-        reason: "举报目标不存在或已被删除",
+        reason: "举报目标不存在或不可见",
       };
     }
 

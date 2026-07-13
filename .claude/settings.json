@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoiMTgxNzQxOTkyMCIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2ODEwOTQyOCwiZXhwIjoxNzgzNjYxNDI4fQ.Vf_bPxld6sg2f7mjnZGogfMS6zLU3gyaBQQAqvamcWY\")"
-    ]
-  }
-}

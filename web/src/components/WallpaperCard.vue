@@ -21,17 +21,11 @@
               :src="`${wallpaper.fileUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
               class="h-48 w-full object-cover"
               loading="lazy"
-              :alt="wallpaper.title || `壁纸 ${wallpaper.id}`"
+              :alt="`壁纸 ${wallpaper.id}`"
             />
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
           </div>
           <div class="space-y-3 p-4">
-            <h3 v-if="wallpaper.title" class="line-clamp-1 text-sm font-bold text-slate-800 dark:text-slate-100">
-              {{ wallpaper.title }}
-            </h3>
-            <p v-if="wallpaper.description" class="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-              {{ wallpaper.description }}
-            </p>
             <div v-if="wallpaper.tags?.length" class="flex flex-wrap gap-1">
               <span
                 v-for="tag in wallpaper.tags.slice(0, 4)"
@@ -103,7 +97,7 @@
         v-if="imageError"
         class="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-900"
       >
-        <i class="i-mdi-image-off text-4xl text-slate-400 dark:text-slate-500"></i>
+        <i class="i-[mdi--image-off] text-4xl text-slate-400 dark:text-slate-500"></i>
       </div>
       <div
         class="absolute inset-0 bg-gradient-to-t from-emerald-500/30 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"
@@ -364,8 +358,7 @@ const handleDownload = async () => {
       console.warn('下载计数失败:', e)
     }
     const ext = props.wallpaper.format?.toLowerCase() || props.wallpaper.fileUrl.split('.').pop() || 'jpg'
-    const titlePart = props.wallpaper.title ? `-${props.wallpaper.title.replace(/[^\w一-龥]/g, '_').slice(0, 50)}` : ''
-    const fileName = `wallpaper-${props.wallpaper.id}${titlePart}.${ext}`
+    const fileName = `wallpaper-${props.wallpaper.id}.${ext}`
     const link = document.createElement('a')
     link.href = props.wallpaper.fileUrl
     link.download = fileName

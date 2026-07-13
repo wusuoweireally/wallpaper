@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { HttpModule } from "@nestjs/axios";
 
 import { WallpaperController } from "../controllers/wallpaper.controller";
+import { UploadAssetController } from "../controllers/upload-asset.controller";
 import { WallpaperService } from "../services/wallpaper.service";
 import { UploadService } from "../services/upload.service";
 import { ViewHistoryService } from "../services/view-history.service";
@@ -19,7 +19,6 @@ import { DemoSeedService } from "../services/demo-seed.service";
 
 @Module({
   imports: [
-    HttpModule,
     TypeOrmModule.forFeature([
       Wallpaper,
       WallpaperTag,
@@ -31,7 +30,7 @@ import { DemoSeedService } from "../services/demo-seed.service";
     ]),
     TagModule,
   ],
-  controllers: [WallpaperController],
+  controllers: [WallpaperController, UploadAssetController],
   providers: [
     WallpaperService,
     UploadService,

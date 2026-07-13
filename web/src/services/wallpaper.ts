@@ -27,11 +27,9 @@ export interface WallpaperQueryParams {
 
 export interface UploadWallpaperParams {
   file: File
-  category: string
+  category: "general" | "anime" | "people"
   subCategory?: string
   tags: string[]
-  title?: string
-  description?: string
 }
 
 export interface Tag {
@@ -59,9 +57,8 @@ export interface Wallpaper {
   favoriteCount: number
   downloadCount: number
   status: number
+  reviewNote?: string | null
   isFeatured: boolean
-  title?: string
-  description?: string
   createdAt: string
   updatedAt: string
   tags?: Tag[]
@@ -92,20 +89,23 @@ class WallpaperService {
   async uploadWallpaper(
     params: UploadWallpaperParams,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
+    signal?: AbortSignal,
   ) {
     const formData = new FormData()
     formData.append("file", params.file)
     formData.append("category", params.category)
     if (params.subCategory) formData.append("subCategory", params.subCategory)
-    if (params.title) formData.append("title", params.title)
-    if (params.description) formData.append("description", params.description)
     params.tags?.forEach((tag) => formData.append("tags", tag))
 
-    const response = await api.post("/wallpapers/upload", formData, {
+    const response = await api.post<Wallpaper>("/wallpapers/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress,
+      signal,
+      skipDuplicateRequestCancellation: true,
+      skipGlobalErrorToast: true,
+      timeout: 0,
     })
-    return { response, requestId: `upload_${Date.now()}` }
+    return { response }
   }
 
   async getWallpapers(params: WallpaperQueryParams = {}) {
@@ -170,19 +170,27 @@ class WallpaperService {
   }
 
   async likeWallpaper(id: number) {
-    return await api.post(`/wallpapers/${id}/like`)
+    return await api.post(`/wallpapers/${id}/like`, undefined, {
+      skipGlobalErrorToast: true,
+    })
   }
 
   async unlikeWallpaper(id: number) {
-    return await api.delete(`/wallpapers/${id}/like`)
+    return await api.delete(`/wallpapers/${id}/like`, {
+      skipGlobalErrorToast: true,
+    })
   }
 
   async favoriteWallpaper(id: number) {
-    return await api.post(`/wallpapers/${id}/favorite`)
+    return await api.post(`/wallpapers/${id}/favorite`, undefined, {
+      skipGlobalErrorToast: true,
+    })
   }
 
   async unfavoriteWallpaper(id: number) {
-    return await api.delete(`/wallpapers/${id}/favorite`)
+    return await api.delete(`/wallpapers/${id}/favorite`, {
+      skipGlobalErrorToast: true,
+    })
   }
 
   async getRelatedWallpapers(id: number, limit = 8) {

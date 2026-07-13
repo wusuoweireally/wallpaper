@@ -32,7 +32,7 @@ export type User = {
  * 登录DTO接口
  */
 export interface LoginDto {
-  id: number
+  account: string
   password: string
 }
 
@@ -40,9 +40,9 @@ export interface LoginDto {
  * 注册DTO接口
  */
 export interface RegisterDto {
-  id: number
   username: string
   password: string
+  email?: string
 }
 
 /**
@@ -52,25 +52,17 @@ export interface UpdateUserDto {
   username?: string
   email?: string
   bio?: string
-  password?: string
 }
 
-/**
- * 分页响应接口
- */
-export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
+/** 修改密码：对齐 PATCH /users/password */
+export interface ChangePasswordDto {
+  currentPassword: string
+  newPassword: string
 }
 
+/** 登录成功体：token 在 HttpOnly Cookie，响应里只有 user */
 export interface LoginResponse {
   user: User
-  token: string
 }
 
 /**
@@ -83,9 +75,9 @@ class UserService {
   async register(registerDto: RegisterDto) {
     try {
       const response = await api.post("/users/register", {
-        id: registerDto.id,
         username: registerDto.username,
         password: registerDto.password,
+        email: registerDto.email,
       })
       return response as unknown as ApiResponse<User>
     } catch (error) {
@@ -154,7 +146,7 @@ class UserService {
   }
 
   /**
-   * 更新用户信息
+   * 更新用户信息（不含密码）
    */
   async updateUser(id: number, updateData: UpdateUserDto): Promise<ApiResponse<User>> {
     try {
@@ -162,6 +154,18 @@ class UserService {
       return response as ApiResponse<User>
     } catch (error) {
       console.error("更新用户信息失败:", error)
+      throw error
+    }
+  }
+
+  /**
+   * 修改当前登录用户密码
+   */
+  async changePassword(dto: ChangePasswordDto): Promise<ApiResponse> {
+    try {
+      return (await api.patch("/users/password", dto)) as ApiResponse
+    } catch (error) {
+      console.error("修改密码失败:", error)
       throw error
     }
   }
@@ -192,12 +196,12 @@ class UserService {
   /**
    * 获取用户点赞的壁纸列表
    */
+  /** 后端信封：{ success, data: Wallpaper[], pagination } */
   async getUserLikes(page: number = 1, limit: number = 20) {
     try {
-      const response = await api.get("/users/likes", {
+      return (await api.get<Wallpaper[]>("/users/likes", {
         params: { page, limit },
-      })
-      return response as unknown as ApiResponse<PaginatedResponse<Wallpaper>>
+      })) as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取用户点赞列表失败:", error)
       throw error
@@ -210,12 +214,11 @@ class UserService {
   async getUserFavorites(
     page: number = 1,
     limit: number = 20,
-  ): Promise<ApiResponse<PaginatedResponse<Wallpaper>>> {
+  ): Promise<ApiResponse<Wallpaper[]>> {
     try {
-      const response = await api.get("/users/favorites", {
+      return (await api.get<Wallpaper[]>("/users/favorites", {
         params: { page, limit },
-      })
-      return response as ApiResponse<PaginatedResponse<Wallpaper>>
+      })) as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取用户收藏列表失败:", error)
       throw error
@@ -228,12 +231,11 @@ class UserService {
   async getUserWallpapers(
     page: number = 1,
     limit: number = 20,
-  ): Promise<ApiResponse<PaginatedResponse<Wallpaper>>> {
+  ): Promise<ApiResponse<Wallpaper[]>> {
     try {
-      const response = await api.get("/users/wallpapers", {
+      return (await api.get<Wallpaper[]>("/users/wallpapers", {
         params: { page, limit },
-      })
-      return response as ApiResponse<PaginatedResponse<Wallpaper>>
+      })) as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取用户上传壁纸列表失败:", error)
       throw error

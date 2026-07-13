@@ -16,14 +16,14 @@
             v-if="post.isPinned"
             class="border-warning/40 bg-warning/10 badge badge-sm text-warning"
           >
-            <i class="i-mdi-pin mr-1 text-xs"></i>
+            <i class="i-[mdi--pin] mr-1 text-xs"></i>
             置顶
           </span>
           <span
             v-if="post.isFeatured"
             class="border-primary/50 bg-primary/10 badge badge-sm text-primary"
           >
-            <i class="i-mdi-star mr-1 text-xs"></i>
+            <i class="i-[mdi--star] mr-1 text-xs"></i>
             精华
           </span>
           <span class="ml-auto text-xs text-slate-500 dark:text-slate-400">
@@ -81,7 +81,7 @@
                 v-if="post.lastCommentAt"
                 class="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"
               >
-                <i class="i-mdi-clock-outline text-xs"></i>
+                <i class="i-[mdi--clock-outline] text-xs"></i>
                 最后回复 {{ formatTime(post.lastCommentAt) }}
               </p>
             </div>
@@ -97,28 +97,28 @@
               @click.stop="handleLike"
               :disabled="loading"
             >
-              <i class="i-mdi-heart text-sm"></i>
+              <i class="i-[mdi--heart] text-sm"></i>
               <span>{{ formatNumber(post.likeCount) }}</span>
             </button>
             <button
               class="flex items-center gap-1 text-xs text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
               @click.stop="handleComment"
             >
-              <i class="i-mdi-comment-outline text-sm"></i>
+              <i class="i-[mdi--comment-outline] text-sm"></i>
               <span>{{ formatNumber(post.commentCount) }}</span>
             </button>
             <button
               class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               @click.stop="handleShare"
             >
-              <i class="i-mdi-share-variant text-sm"></i>
+              <i class="i-[mdi--share-variant] text-sm"></i>
             </button>
             <div v-if="isAuthor" class="dropdown dropdown-end" @click.stop>
               <label
                 tabindex="0"
                 class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               >
-                <i class="i-mdi-dots-horizontal text-sm"></i>
+                <i class="i-[mdi--dots-horizontal] text-sm"></i>
               </label>
               <ul
                 tabindex="0"
@@ -126,13 +126,13 @@
               >
                 <li>
                   <a class="text-sm" @click="handleEdit">
-                    <i class="i-mdi-pencil-outline"></i>
+                    <i class="i-[mdi--pencil-outline]"></i>
                     编辑
                   </a>
                 </li>
                 <li>
                   <a class="text-sm text-error" @click="handleDelete">
-                    <i class="i-mdi-delete-outline"></i>
+                    <i class="i-[mdi--delete-outline]"></i>
                     删除
                   </a>
                 </li>

@@ -14,6 +14,12 @@ import {
 import { User } from "./user.entity";
 import { Tag } from "./tag.entity";
 
+export enum WallpaperStatus {
+  PENDING = 0,
+  APPROVED = 1,
+  REJECTED = 2,
+}
+
 @Entity("wallpapers")
 export class Wallpaper {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "壁纸ID" })
@@ -21,12 +27,6 @@ export class Wallpaper {
 
   @Column({ name: "file_url", length: 500, comment: "壁纸文件URL" })
   fileUrl: string;
-
-  @Column({ length: 200, nullable: true, comment: "壁纸标题" })
-  title: string;
-
-  @Column({ type: "text", nullable: true, comment: "壁纸描述" })
-  description: string;
 
   @Column({
     type: "enum",
@@ -41,12 +41,11 @@ export class Wallpaper {
     name: "sub_category",
     length: 50,
     nullable: true,
-    comment: "子分类: nature-自然, city-城市, abstract-抽象, cyberpunk-赛博朋克, minimal-极简, dark-暗黑, cute-可爱, game-游戏, movie-影视, other-其他",
+    comment:
+      "子分类: nature-自然, city-城市, abstract-抽象, cyberpunk-赛博朋克, minimal-极简, dark-暗黑, cute-可爱, game-游戏, movie-影视, other-其他",
   })
   @Index("idx_sub_category")
   subCategory: string;
-
-
 
   @Column({
     name: "thumbnail_url",
@@ -111,9 +110,38 @@ export class Wallpaper {
   })
   downloadCount: number;
 
-  @Column({ type: "tinyint", default: 1, comment: "状态 0:未审核 1:已审核" })
+  @Column({
+    type: "tinyint",
+    default: WallpaperStatus.PENDING,
+    comment: "状态 0:待审核 1:已通过 2:已驳回",
+  })
   @Index("idx_status")
-  status: number;
+  status: WallpaperStatus;
+
+  @Column({
+    name: "review_note",
+    type: "varchar",
+    length: 500,
+    nullable: true,
+    comment: "审核说明",
+  })
+  reviewNote: string | null;
+
+  @Column({
+    name: "reviewed_by",
+    type: "bigint",
+    nullable: true,
+    comment: "审核管理员ID",
+  })
+  reviewedBy: number | null;
+
+  @Column({
+    name: "reviewed_at",
+    type: "datetime",
+    nullable: true,
+    comment: "审核时间",
+  })
+  reviewedAt: Date | null;
 
   @Column({
     name: "is_featured",

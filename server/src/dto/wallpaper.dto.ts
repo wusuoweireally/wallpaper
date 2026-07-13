@@ -1,12 +1,20 @@
 import {
-  IsString,
-  IsOptional,
+  ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsEnum,
+  IsIn,
+  IsInt,
   IsNumberString,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
   Length,
 } from "class-validator";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
+import type { TransformFnParams } from "class-transformer";
 
 /**
  * 将 FormData/multipart 中的单值或数组值归一化为 string[]。
@@ -15,11 +23,14 @@ import { Transform } from "class-transformer";
  * 会拼成数组，但仅一个值时直接返回字符串，导致 @IsArray() 验证失败。
  * readAsArray 统一处理三种情况：undefined | string | string[]
  */
-const readAsArray = ({ value }: { value: unknown }): string[] | undefined => {
-  if (value === undefined || value === null) return undefined;
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
-  if (typeof value === "string") return [value];
-  return undefined;
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value);
+
+const readAsArray = ({ value }: TransformFnParams): unknown[] | undefined => {
+  const input: unknown = value;
+  if (input === undefined || input === null) return undefined;
+  if (isUnknownArray(input)) return input;
+  return [input];
 };
 
 export class CreateWallpaperDto {
@@ -28,20 +39,35 @@ export class CreateWallpaperDto {
   category?: "general" | "anime" | "people";
 
   @IsString()
+  @IsIn([
+    "nature",
+    "city",
+    "abstract",
+    "minimal",
+    "dark",
+    "landscape",
+    "character",
+    "cute",
+    "cyberpunk",
+    "game",
+    "portrait",
+    "fashion",
+    "movie",
+    "other",
+  ])
   @IsOptional()
   subCategory?: string;
 
-  @IsString()
-  @IsOptional()
-  @Length(0, 200)
-  title?: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @Transform(readAsArray)
+  @Transform((params: TransformFnParams) =>
+    readAsArray(params)?.map((value) =>
+      typeof value === "string" ? value.replace(/\s+/g, " ").trim() : value,
+    ),
+  )
   @IsArray()
+  @ArrayMaxSize(5)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @Length(1, 30, { each: true })
   @IsOptional()
   tags?: string[];
 }
@@ -52,27 +78,39 @@ export class UpdateWallpaperDto {
   category?: "general" | "anime" | "people";
 
   @IsString()
+  @IsIn([
+    "nature",
+    "city",
+    "abstract",
+    "minimal",
+    "dark",
+    "landscape",
+    "character",
+    "cute",
+    "cyberpunk",
+    "game",
+    "portrait",
+    "fashion",
+    "movie",
+    "other",
+  ])
   @IsOptional()
   subCategory?: string;
-
-  @IsString()
-  @IsOptional()
-  @Length(0, 200)
-  title?: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
 }
 
 export class WallpaperQueryDto {
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  page?: string = "1";
+  page?: number = 1;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
   @IsOptional()
-  limit?: string = "20";
+  limit?: number = 20;
 
   @IsString()
   @IsOptional()
@@ -82,12 +120,14 @@ export class WallpaperQueryDto {
   @IsOptional()
   sortBy?: string = "createdAt";
 
-  @IsString()
+  @IsIn(["ASC", "DESC"])
   @IsOptional()
   sortOrder?: "ASC" | "DESC" = "DESC";
 
   @Transform(readAsArray)
   @IsArray()
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
   @IsOptional()
   tags?: string[];
 

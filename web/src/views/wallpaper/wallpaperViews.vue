@@ -1,41 +1,40 @@
 <template>
   <div class="min-h-screen bg-base-200">
-    <!-- 筛选组件 -->
-    <WallpaperFilter v-model="filters" @filter-change="handleFilterChange" />
+    <!-- 筛选 + 网格同一内容栏，宽度对齐 -->
+    <div class="mx-auto w-full max-w-7xl px-3 py-4 sm:px-5 lg:px-8">
+      <WallpaperFilter v-model="filters" @filter-change="handleFilterChange" />
 
-    <!-- 壁纸网格 -->
-    <div class="mx-auto w-full px-3 py-6 sm:px-5 lg:px-8">
-      <!-- 错误提示 -->
-      <div v-if="error" class="alert alert-error mb-6">
-        <i class="i-mdi-alert-circle text-lg"></i>
-        <span>{{ error }}</span>
-        <button class="btn btn-ghost btn-sm" @click="() => loadFirst()">重试</button>
-      </div>
-
-      <WallpaperGrid
-        :wallpapers="wallpapers"
-        :loading="loading && wallpapers.length === 0"
-        :show-pagination="false"
-        :show-reset="true"
-        :pagination="{ currentPage: 1, totalPages: 1, totalCount: totalCount }"
-        @wallpaper-click="handleWallpaperClick"
-        @reset-filters="resetFilters"
-      />
-
-      <!-- 无限滚动加载状态 -->
-      <div
-        v-if="wallpapers.length > 0"
-        ref="sentinelRef"
-        class="flex flex-col items-center gap-3 py-10"
-      >
-        <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500">
-          <span class="loading loading-spinner loading-sm"></span>
-          加载中...
+      <div class="mt-4">
+        <div v-if="error" class="alert alert-error mb-6">
+          <i class="i-[mdi--alert-circle] text-lg"></i>
+          <span>{{ error }}</span>
+          <button class="btn btn-ghost btn-sm" @click="() => loadFirst()">重试</button>
         </div>
-        <div v-else-if="noMore" class="flex items-center gap-2 text-sm text-slate-400">
-          <div class="h-px w-16 bg-slate-300"></div>
-          <span>没有更多了 ({{ totalCount }} 张壁纸)</span>
-          <div class="h-px w-16 bg-slate-300"></div>
+
+        <WallpaperGrid
+          :wallpapers="wallpapers"
+          :loading="loading && wallpapers.length === 0"
+          :show-pagination="false"
+          :show-reset="true"
+          :pagination="{ currentPage: 1, totalPages: 1, totalCount: totalCount }"
+          @wallpaper-click="handleWallpaperClick"
+          @reset-filters="resetFilters"
+        />
+
+        <div
+          v-if="wallpapers.length > 0"
+          ref="sentinelRef"
+          class="flex flex-col items-center gap-3 py-10"
+        >
+          <div v-if="loading" class="flex items-center gap-2 text-sm text-base-content/55">
+            <span class="loading loading-spinner loading-sm"></span>
+            加载中...
+          </div>
+          <div v-else-if="noMore" class="flex items-center gap-2 text-sm text-base-content/40">
+            <div class="h-px w-16 bg-base-content/15"></div>
+            <span>没有更多了 ({{ totalCount }} 张壁纸)</span>
+            <div class="h-px w-16 bg-base-content/15"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -62,7 +61,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue"
+import { ref, onMounted, onUnmounted, watch, nextTick } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { wallpaperService, type Wallpaper } from "@/services/wallpaper"
 import WallpaperFilter from "@/components/WallpaperFilter.vue"

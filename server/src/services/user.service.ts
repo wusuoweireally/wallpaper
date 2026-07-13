@@ -1,15 +1,23 @@
 import {
   Injectable,
+  BadRequestException,
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Like, In, Not } from "typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { DataSource, Repository, Like, IsNull } from "typeorm";
 import { User, UserRole, isAdminRole } from "../entities/user.entity";
-import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  UpdateUserDto,
+} from "../dto/user.dto";
 import { AdminUpdateUserDto, AdminUserQueryDto } from "../dto/admin.dto";
 import * as bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
+import { UploadService } from "./upload.service";
 
 /** 执行敏感操作的请求者上下文（来自 @CurrentUser），用于权限护栏判断 */
 export interface ActorContext {
@@ -22,27 +30,10 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private readonly uploadService: UploadService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
-
-  // 生成随机用户名
-  private generateRandomUsername(): string {
-    const adjectives = [
-      "快乐的",
-      "聪明的",
-      "勇敢的",
-      "优雅的",
-      "神秘的",
-      "活泼的",
-      "温柔的",
-      "可爱的",
-    ];
-    const nouns = ["用户", "朋友", "探索者", "旅行者", "梦想家", "创造者"];
-    const randomAdjective =
-      adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    const randomNumber = Math.floor(Math.random() * 10000);
-    return `${randomAdjective}${randomNoun}${randomNumber}`;
-  }
 
   // 创建用户
   // actor: 发起创建的管理员上下文（注册等公开流程不传，由 roleOverride 默认 USER 保证安全）
@@ -51,6 +42,7 @@ export class UserService {
     roleOverride: UserRole = UserRole.USER,
     actor?: ActorContext,
   ): Promise<User> {
+    const normalizedEmail = createUserDto.email?.trim().toLowerCase() || null;
     // 仅允许 USER / ADMIN / SUPER_ADMIN 三种合法值，非法值统一降级为 USER
     const requestedRole = [
       UserRole.USER,
@@ -74,48 +66,22 @@ export class UserService {
       // actor 为空 = 系统初始化(seed)，允许创建特权账号以完成引导
     }
 
-    // 检查用户ID是否已存在
-    const existingUser = await this.userRepository.findOne({
-      where: { id: createUserDto.id },
-    });
-    if (existingUser) {
-      throw new ConflictException("用户ID已存在");
-    }
-
     // 检查邮箱是否已存在
-    if (createUserDto.email) {
+    if (normalizedEmail) {
       const existingEmail = await this.userRepository.findOne({
-        where: { email: createUserDto.email },
+        where: { email: normalizedEmail },
       });
       if (existingEmail) {
         throw new ConflictException("邮箱已被使用");
       }
     }
 
-    // 生成用户名（如果没有提供）
-    let username = createUserDto.username;
-    if (!username) {
-      username = this.generateRandomUsername();
-      // 确保生成的用户名是唯一的
-      let isUnique = false;
-      while (!isUnique) {
-        const existingUsername = await this.userRepository.findOne({
-          where: { username },
-        });
-        if (!existingUsername) {
-          isUnique = true;
-        } else {
-          username = this.generateRandomUsername();
-        }
-      }
-    } else {
-      // 检查用户名是否已存在
-      const existingUsername = await this.userRepository.findOne({
-        where: { username },
-      });
-      if (existingUsername) {
-        throw new ConflictException("用户名已存在");
-      }
+    const username = createUserDto.username.trim();
+    const existingUsername = await this.userRepository.findOne({
+      where: { username },
+    });
+    if (existingUsername) {
+      throw new ConflictException("用户名已存在");
     }
 
     // 加密密码
@@ -124,27 +90,39 @@ export class UserService {
     const userRole = requestedRole;
 
     const user = this.userRepository.create({
-      id: createUserDto.id,
       username,
-      email: createUserDto.email,
+      email: normalizedEmail,
       passwordHash: hashedPassword,
       avatarUrl: "defaultAvatar.png", // 默认头像
       bio: createUserDto.bio || "",
       role: userRole,
     });
 
-    return await this.userRepository.save(user);
+    try {
+      return await this.userRepository.save(user);
+    } catch (error: unknown) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "ER_DUP_ENTRY"
+      ) {
+        throw new ConflictException("用户名或邮箱已被使用");
+      }
+      throw error;
+    }
   }
 
   // 验证用户登录
-  async validateUser(id: number, password: string): Promise<User | null> {
-    // 验证ID的有效性
-    if (!id || isNaN(id) || id <= 0) {
-      return null;
-    }
+  async validateUser(account: string, password: string): Promise<User | null> {
+    const normalized = account.trim();
+    if (!normalized) return null;
 
     const user = await this.userRepository.findOne({
-      where: { id, status: 1 },
+      where: [
+        { username: normalized, status: 1, deletedAt: IsNull() },
+        { email: normalized.toLowerCase(), status: 1, deletedAt: IsNull() },
+      ],
     });
 
     if (user && (await bcrypt.compare(password, user.passwordHash))) {
@@ -162,7 +140,7 @@ export class UserService {
     }
 
     const user = await this.userRepository.findOne({
-      where: { id },
+      where: { id, deletedAt: IsNull() },
     });
 
     if (!user) {
@@ -178,6 +156,7 @@ export class UserService {
     limit = 10,
   ): Promise<{ users: User[]; total: number }> {
     const [users, total] = await this.userRepository.findAndCount({
+      where: { deletedAt: IsNull() },
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: "DESC" },
@@ -193,7 +172,7 @@ export class UserService {
     limit = 10,
   ): Promise<{ users: User[]; total: number }> {
     const [users, total] = await this.userRepository.findAndCount({
-      where: { username: Like(`%${username}%`) },
+      where: { username: Like(`%${username}%`), deletedAt: IsNull() },
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: "DESC" },
@@ -203,13 +182,32 @@ export class UserService {
   }
 
   // 更新用户信息
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    actor: ActorContext,
+  ): Promise<User> {
     const user = await this.findById(id);
 
+    if (actor.userId !== id) {
+      if (!isAdminRole(actor.role)) {
+        throw new ForbiddenException("无权修改该用户信息");
+      }
+      if (isAdminRole(user.role) && actor.role !== UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException("只有超级管理员可以修改管理员信息");
+      }
+    }
+
     // 检查用户名是否已存在（如果要更新用户名）
-    if (updateUserDto.username && updateUserDto.username !== user.username) {
+    const username = updateUserDto.username?.trim();
+    const email =
+      typeof updateUserDto.email === "string"
+        ? updateUserDto.email.trim().toLowerCase()
+        : updateUserDto.email;
+
+    if (username && username !== user.username) {
       const existingUsername = await this.userRepository.findOne({
-        where: { username: updateUserDto.username },
+        where: { username },
       });
       if (existingUsername) {
         throw new ConflictException("用户名已存在");
@@ -217,30 +215,23 @@ export class UserService {
     }
 
     // 检查邮箱是否已存在（如果要更新邮箱）
-    if (
-      updateUserDto.email !== undefined &&
-      updateUserDto.email !== user.email
-    ) {
-      const existingEmail = await this.userRepository.findOne({
-        where: { email: updateUserDto.email },
-      });
-      if (existingEmail) {
-        throw new ConflictException("邮箱已被使用");
+    if (email !== undefined && email !== user.email) {
+      if (email) {
+        const existingEmail = await this.userRepository.findOne({
+          where: { email },
+        });
+        if (existingEmail) {
+          throw new ConflictException("邮箱已被使用");
+        }
       }
     }
 
     // 更新字段
-    if (updateUserDto.username) {
-      user.username = updateUserDto.username;
+    if (username) {
+      user.username = username;
     }
-    if (updateUserDto.email !== undefined) {
-      user.email = updateUserDto.email;
-    }
-    if (updateUserDto.password) {
-      user.passwordHash = await bcrypt.hash(updateUserDto.password, 10);
-    }
-    if (updateUserDto.avatarUrl) {
-      user.avatarUrl = updateUserDto.avatarUrl;
+    if (email !== undefined) {
+      user.email = email;
     }
     if (updateUserDto.bio !== undefined) {
       user.bio = updateUserDto.bio;
@@ -249,46 +240,120 @@ export class UserService {
     return await this.userRepository.save(user);
   }
 
-  /** 统计除指定用户外，仍处于启用状态的管理员（含超管）数量 */
-  private async countOtherActiveAdmins(excludeId: number): Promise<number> {
-    return this.userRepository.count({
-      where: {
-        id: Not(excludeId),
-        role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
-        status: 1,
-      },
-    });
+  async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.findById(id);
+    const passwordMatches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException("当前密码错误");
+    }
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException("新密码不能与当前密码相同");
+    }
+
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.save(user);
+  }
+
+  private async lockActiveAdmins(
+    repository: Repository<User>,
+  ): Promise<User[]> {
+    return repository
+      .createQueryBuilder("user")
+      .setLock("pessimistic_write")
+      .where("user.role IN (:...roles)", {
+        roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+      })
+      .andWhere("user.status = 1")
+      .andWhere("user.deletedAt IS NULL")
+      .orderBy("user.id", "ASC")
+      .getMany();
+  }
+
+  private async findByIdForUpdate(
+    repository: Repository<User>,
+    id: number,
+  ): Promise<User> {
+    const user = await repository
+      .createQueryBuilder("user")
+      .setLock("pessimistic_write")
+      .where("user.id = :id", { id })
+      .andWhere("user.deletedAt IS NULL")
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException("用户不存在");
+    }
+    return user;
+  }
+
+  private assertHasAnotherActiveAdmin(
+    activeAdmins: User[],
+    excludedId: number,
+    message: string,
+  ): void {
+    const hasAnother = activeAdmins.some(
+      (admin) => String(admin.id) !== String(excludedId),
+    );
+    if (!hasAnother) {
+      throw new ForbiddenException(message);
+    }
   }
 
   // 删除用户
   // 普通用户注销自己的账号是合法的；但管理员不得删除自己（防锁死），
   // 删除他人的管理员账号需要超级管理员权限。
   async remove(id: number, actor?: ActorContext): Promise<void> {
-    const user = await this.findById(id);
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
+    let previousAvatar: string | null = null;
 
-    if (actor) {
-      if (actor.userId === id) {
-        // 管理员不能删除自己，避免误删导致管理能力丢失
-        if (isAdminRole(user.role)) {
+    await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(User);
+      const activeAdmins = await this.lockActiveAdmins(repository);
+      const user = await this.findByIdForUpdate(repository, id);
+
+      if (actor) {
+        if (actor.userId === id && isAdminRole(user.role)) {
           throw new ForbiddenException("管理员不能删除自己的账号");
         }
-      } else {
-        // 删除他人：仅超级管理员可删除管理员/超管账号
-        if (isAdminRole(user.role) && actor.role !== UserRole.SUPER_ADMIN) {
+        if (
+          actor.userId !== id &&
+          isAdminRole(user.role) &&
+          actor.role !== UserRole.SUPER_ADMIN
+        ) {
           throw new ForbiddenException("只有超级管理员可以删除管理员账号");
         }
       }
-    }
 
-    // 禁止删除最后一个管理员，避免系统永久失去管理能力
-    if (isAdminRole(user.role)) {
-      const others = await this.countOtherActiveAdmins(id);
-      if (others === 0) {
-        throw new ForbiddenException("不能删除最后一个管理员账号");
+      if (isAdminRole(user.role) && user.status === 1) {
+        this.assertHasAnotherActiveAdmin(
+          activeAdmins,
+          id,
+          "不能删除最后一个管理员账号",
+        );
       }
-    }
 
-    await this.userRepository.remove(user);
+      previousAvatar = user.avatarUrl;
+      user.username = `deleted_${id}_${randomBytes(6).toString("hex")}`;
+      user.email = null;
+      user.passwordHash = passwordHash;
+      user.avatarUrl = "defaultAvatar.png";
+      user.bio = null;
+      user.status = 0;
+      user.role = UserRole.USER;
+      user.githubId = null;
+      user.githubLogin = null;
+      user.githubAvatarUrl = null;
+      user.githubBio = null;
+      user.deletedAt = new Date();
+
+      await repository.save(user);
+    });
+
+    await this.uploadService.deleteAvatar(previousAvatar);
   }
 
   // 禁用/启用用户（翻转当前状态）
@@ -303,31 +368,35 @@ export class UserService {
     status: number,
     actor?: ActorContext,
   ): Promise<User> {
-    const user = await this.findById(id);
     const nextStatus = status === 1 ? 1 : 0;
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(User);
+      const activeAdmins = await this.lockActiveAdmins(repository);
+      const user = await this.findByIdForUpdate(repository, id);
 
-    if (nextStatus === 0) {
-      if (actor) {
-        // 禁止禁用自己
-        if (actor.userId === id) {
+      if (nextStatus === 0 && user.status === 1) {
+        if (actor?.userId === id) {
           throw new ForbiddenException("不能禁用自己的账号");
         }
-        // 仅超级管理员可禁用管理员/超管账号
-        if (isAdminRole(user.role) && actor.role !== UserRole.SUPER_ADMIN) {
+        if (
+          actor &&
+          isAdminRole(user.role) &&
+          actor.role !== UserRole.SUPER_ADMIN
+        ) {
           throw new ForbiddenException("只有超级管理员可以禁用管理员账号");
         }
-      }
-      // 禁止禁用最后一个管理员
-      if (isAdminRole(user.role)) {
-        const others = await this.countOtherActiveAdmins(id);
-        if (others === 0) {
-          throw new ForbiddenException("不能禁用最后一个管理员账号");
+        if (isAdminRole(user.role)) {
+          this.assertHasAnotherActiveAdmin(
+            activeAdmins,
+            id,
+            "不能禁用最后一个管理员账号",
+          );
         }
       }
-    }
 
-    user.status = nextStatus;
-    return await this.userRepository.save(user);
+      user.status = nextStatus;
+      return repository.save(user);
+    });
   }
 
   // 更新用户头像
@@ -341,7 +410,9 @@ export class UserService {
     query: AdminUserQueryDto,
   ): Promise<{ data: User[]; total: number }> {
     const { page = 1, limit = 20, keyword, status, role } = query;
-    const qb = this.userRepository.createQueryBuilder("user");
+    const qb = this.userRepository
+      .createQueryBuilder("user")
+      .where("user.deletedAt IS NULL");
 
     if (keyword) {
       qb.andWhere("(user.username LIKE :keyword OR user.email LIKE :keyword)", {
@@ -369,77 +440,93 @@ export class UserService {
   async adminUpdateUser(
     id: number,
     updateDto: AdminUpdateUserDto,
-    actor?: ActorContext,
+    actor: ActorContext,
   ): Promise<User> {
-    const baseFields: UpdateUserDto = {
-      username: updateDto.username,
-      email: updateDto.email,
-      password: updateDto.password,
-      avatarUrl: updateDto.avatarUrl,
-      bio: updateDto.bio,
-    };
+    const passwordHash = updateDto.password
+      ? await bcrypt.hash(updateDto.password, 10)
+      : undefined;
 
-    const updated = await this.update(id, baseFields);
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(User);
+      const activeAdmins = await this.lockActiveAdmins(repository);
+      const user = await this.findByIdForUpdate(repository, id);
 
-    let shouldSave = false;
-
-    // —— 状态变更护栏 ——
-    if (updateDto.status !== undefined && updateDto.status !== updated.status) {
-      const nextStatus = updateDto.status === 1 ? 1 : 0;
-      if (nextStatus === 0) {
-        if (actor) {
-          if (actor.userId === id) {
-            throw new ForbiddenException("不能禁用自己的账号");
-          }
-          if (
-            isAdminRole(updated.role) &&
-            actor.role !== UserRole.SUPER_ADMIN
-          ) {
-            throw new ForbiddenException("只有超级管理员可以禁用管理员账号");
-          }
-        }
-        if (isAdminRole(updated.role)) {
-          const others = await this.countOtherActiveAdmins(id);
-          if (others === 0) {
-            throw new ForbiddenException("不能禁用最后一个管理员账号");
-          }
-        }
+      if (actor.role !== UserRole.SUPER_ADMIN && isAdminRole(user.role)) {
+        throw new ForbiddenException("只有超级管理员可以修改管理员信息");
       }
-      updated.status = nextStatus;
-      shouldSave = true;
-    }
+      if (actor.userId === id && updateDto.password) {
+        throw new ForbiddenException("请通过本人密码修改接口更新密码");
+      }
 
-    // —— 角色变更护栏 ——
-    if (updateDto.role && updateDto.role !== updated.role) {
-      if (actor) {
-        // 仅超级管理员可变更角色
+      const disablesActiveAdmin =
+        isAdminRole(user.role) &&
+        user.status === 1 &&
+        updateDto.status !== undefined &&
+        updateDto.status !== 1;
+      const demotesActiveAdmin =
+        isAdminRole(user.role) &&
+        user.status === 1 &&
+        updateDto.role !== undefined &&
+        !isAdminRole(updateDto.role);
+
+      if (disablesActiveAdmin || demotesActiveAdmin) {
+        this.assertHasAnotherActiveAdmin(
+          activeAdmins,
+          id,
+          disablesActiveAdmin
+            ? "不能禁用最后一个管理员账号"
+            : "不能降级最后一个管理员账号",
+        );
+      }
+
+      if (updateDto.status !== undefined && updateDto.status !== user.status) {
+        if (updateDto.status === 0 && actor.userId === id) {
+          throw new ForbiddenException("不能禁用自己的账号");
+        }
+        user.status = updateDto.status === 1 ? 1 : 0;
+      }
+
+      if (updateDto.role && updateDto.role !== user.role) {
         if (actor.role !== UserRole.SUPER_ADMIN) {
           throw new ForbiddenException("只有超级管理员可以变更用户角色");
         }
-        // 禁止修改自己的角色，防止自我降级导致权限锁死
         if (actor.userId === id) {
           throw new ForbiddenException("不能修改自己的角色");
         }
-        // 禁止通过接口将他人提升为超级管理员
         if (updateDto.role === UserRole.SUPER_ADMIN) {
           throw new ForbiddenException("不允许通过接口设置超级管理员");
         }
+        user.role = updateDto.role;
       }
-      // 将管理员降级为普通用户时，确保不是最后一个管理员
-      if (isAdminRole(updated.role) && !isAdminRole(updateDto.role)) {
-        const others = await this.countOtherActiveAdmins(id);
-        if (others === 0) {
-          throw new ForbiddenException("不能降级最后一个管理员账号");
+
+      if (updateDto.username && updateDto.username !== user.username) {
+        const existingUsername = await repository.findOne({
+          where: { username: updateDto.username },
+        });
+        if (existingUsername) {
+          throw new ConflictException("用户名已存在");
         }
+        user.username = updateDto.username;
       }
-      updated.role = updateDto.role;
-      shouldSave = true;
-    }
+      if (updateDto.email !== undefined && updateDto.email !== user.email) {
+        if (updateDto.email) {
+          const existingEmail = await repository.findOne({
+            where: { email: updateDto.email },
+          });
+          if (existingEmail) {
+            throw new ConflictException("邮箱已被使用");
+          }
+        }
+        user.email = updateDto.email;
+      }
+      if (updateDto.bio !== undefined) {
+        user.bio = updateDto.bio;
+      }
+      if (passwordHash) {
+        user.passwordHash = passwordHash;
+      }
 
-    if (shouldSave) {
-      await this.userRepository.save(updated);
-    }
-
-    return updated;
+      return repository.save(user);
+    });
   }
 }

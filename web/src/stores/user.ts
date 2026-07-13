@@ -286,6 +286,26 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
+  /** 修改密码：PATCH /users/password */
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      loading.value = true
+      clearError()
+      if (!user.value) {
+        throw new Error("用户未登录")
+      }
+      const response = await userService.changePassword({ currentPassword, newPassword })
+      if (!response.success) {
+        throw new Error(response.message || "密码修改失败")
+      }
+      return response
+    } catch (err: unknown) {
+      return handleError(err as ServiceError, "密码修改失败")
+    } finally {
+      loading.value = false
+    }
+  }
+
   /**
    * 上传用户头像
    */
@@ -516,6 +536,7 @@ export const useUserStore = defineStore("user", () => {
     initializeAuth,
 
     // 用户信息相关
+    changePassword,
     fetchCurrentUser,
     updateUserInfo,
     uploadAvatar,

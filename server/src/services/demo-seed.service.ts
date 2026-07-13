@@ -88,9 +88,15 @@ export class DemoSeedService implements OnApplicationBootstrap {
         continue;
       }
 
+      const extension = this.getImageExtension(metadata.format);
+      if (!extension) {
+        this.logger.warn(`跳过不支持的图片格式: ${fileName}`);
+        continue;
+      }
+
       // 生成唯一的文件名（时间戳+索引）
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const newFileName = `demo_${timestamp}_${index}.jpg`;
+      const newFileName = `demo_${timestamp}_${index}.${extension}`;
       const thumbnailName = `demo_${timestamp}_${index}_thumbnail.webp`;
 
       // 复制原图到 wallpapers 目录
@@ -153,6 +159,12 @@ export class DemoSeedService implements OnApplicationBootstrap {
       return Math.min(8, maxAvailable);
     }
     return Math.min(rawLimit, maxAvailable);
+  }
+
+  private getImageExtension(format?: string): "jpg" | "png" | "webp" | null {
+    if (format === "jpeg") return "jpg";
+    if (format === "png" || format === "webp") return format;
+    return null;
   }
 
   private async loadWallpaperFiles(wallpapersDir: string): Promise<string[]> {

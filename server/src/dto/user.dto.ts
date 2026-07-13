@@ -2,20 +2,19 @@ import {
   IsString,
   IsOptional,
   IsNotEmpty,
-  IsNumber,
   IsEmail,
   Length,
 } from "class-validator";
+import { Transform } from "class-transformer";
 
 export class CreateUserDto {
-  @IsNumber({}, { message: "用户ID必须是数字" })
-  @IsNotEmpty({ message: "用户ID不能为空" })
-  id: number;
-
-  @IsOptional()
   @IsString()
-  @Length(1, 50, { message: "用户名长度必须在1-50个字符之间" })
-  username?: string;
+  @IsNotEmpty({ message: "用户名不能为空" })
+  @Length(2, 50, { message: "用户名长度必须在2-50个字符之间" })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  username: string;
 
   @IsOptional()
   @IsEmail({}, { message: "邮箱格式不正确" })
@@ -23,7 +22,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty({ message: "密码不能为空" })
-  @Length(6, 64, { message: "密码长度必须在6-64个字符之间" })
+  @Length(8, 64, { message: "密码长度必须在8-64个字符之间" })
   password: string;
 
   @IsOptional()
@@ -36,20 +35,17 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @Length(1, 50, { message: "用户名长度必须在1-50个字符之间" })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
   username?: string;
 
   @IsOptional()
   @IsEmail({}, { message: "邮箱格式不正确" })
-  email?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(6, 64, { message: "密码长度必须在6-64个字符之间" })
-  password?: string;
-
-  @IsOptional()
-  @IsString()
-  avatarUrl?: string;
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim().toLowerCase() : value,
+  )
+  email?: string | null;
 
   @IsOptional()
   @IsString()
@@ -57,10 +53,25 @@ export class UpdateUserDto {
   bio?: string;
 }
 
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty({ message: "当前密码不能为空" })
+  currentPassword: string;
+
+  @IsString()
+  @IsNotEmpty({ message: "新密码不能为空" })
+  @Length(8, 64, { message: "新密码长度必须在8-64个字符之间" })
+  newPassword: string;
+}
+
 export class LoginDto {
-  @IsNumber({}, { message: "用户ID必须是数字" })
-  @IsNotEmpty({ message: "用户ID不能为空" })
-  id: number;
+  @IsString()
+  @IsNotEmpty({ message: "请输入用户名或邮箱" })
+  @Length(2, 100)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  account: string;
 
   @IsString()
   @IsNotEmpty({ message: "密码不能为空" })

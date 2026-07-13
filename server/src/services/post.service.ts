@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
+import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
 import { PaginatedResult } from "../common/pagination";
 import {
   CreatePostDto,
@@ -14,6 +14,8 @@ import {
 import { Post, PostStatus } from "../entities/post.entity";
 import { PostLike } from "../entities/post-like.entity";
 import { PostBookmark } from "../entities/post-bookmark.entity";
+import { sanitizeUser } from "../utils/sanitize";
+import { normalizeLimit, normalizePagination } from "../common/pagination";
 
 /**
  * 帖子服务
@@ -44,14 +46,59 @@ export class PostService {
       .leftJoinAndSelect("post.author", "author");
   }
 
-  private serializeTags(tags?: string[]): string | undefined {
+  private sanitizePostAuthor(post: Post): Post {
+    if (!post.author) return post;
+
+    return {
+      ...post,
+      author: sanitizeUser(
+        post.author as unknown as Record<string, unknown>,
+      ) as unknown as Post["author"],
+    };
+  }
+
+  private sanitizePostAuthors(posts: Post[]): Post[] {
+    return posts.map((post) => this.sanitizePostAuthor(post));
+  }
+
+  private async assertPublishedPost(postId: number): Promise<void> {
+    const exists = await this.postRepository.exists({
+      where: { id: postId, status: PostStatus.PUBLISHED },
+    });
+
+    if (!exists) {
+      throw new NotFoundException(`帖子 ID ${postId} 不存在或未发布`);
+    }
+  }
+
+  private async attachLikeStatus(
+    posts: Post[],
+    userId?: number,
+  ): Promise<Array<Post & { isLiked: boolean }>> {
+    const sanitizedPosts = this.sanitizePostAuthors(posts);
+    if (!userId || posts.length === 0) {
+      return sanitizedPosts.map((post) => ({ ...post, isLiked: false }));
+    }
+
+    const likes = await this.postLikeRepository.find({
+      where: { userId, postId: In(posts.map((post) => post.id)) },
+      select: { postId: true },
+    });
+    const likedPostIds = new Set(likes.map((like) => like.postId));
+    return sanitizedPosts.map((post) => ({
+      ...post,
+      isLiked: likedPostIds.has(post.id),
+    }));
+  }
+
+  private serializeTags(tags?: string[]): string | null {
     if (!tags || tags.length === 0) {
-      return undefined;
+      return null;
     }
 
     const normalized = tags.map((tag) => tag.trim()).filter(Boolean);
 
-    return normalized.length > 0 ? normalized.join(",") : undefined;
+    return normalized.length > 0 ? normalized.join(",") : null;
   }
 
   /**
@@ -96,7 +143,7 @@ export class PostService {
       await this.incrementViewCount(id);
     }
 
-    return post;
+    return this.sanitizePostAuthor(post);
   }
 
   /**
@@ -105,10 +152,13 @@ export class PostService {
    * @param params 查询参数
    * @returns 分页结果
    */
-  async findAll(params: PostListQueryDto): Promise<PaginatedResult<Post>> {
+  async findAll(
+    params: PostListQueryDto,
+    userId?: number,
+  ): Promise<PaginatedResult<Post & { isLiked: boolean }>> {
     const {
-      page = 1,
-      limit = 20,
+      page: requestedPage = 1,
+      limit: requestedLimit = 20,
       sortBy = "createdAt",
       sortOrder = "DESC",
       category,
@@ -117,6 +167,7 @@ export class PostService {
       tags,
     } = params;
 
+    const { page, limit } = normalizePagination(requestedPage, requestedLimit);
     const skip = (page - 1) * limit;
     const tagsFilter = tags ?? [];
 
@@ -178,7 +229,12 @@ export class PostService {
       .take(limit)
       .getManyAndCount();
 
-    return { data: posts, total, page, limit };
+    return {
+      data: await this.attachLikeStatus(posts, userId),
+      total,
+      page,
+      limit,
+    };
   }
 
   /**
@@ -208,7 +264,7 @@ export class PostService {
 
     await this.postRepository.update(id, {
       ...rest,
-      ...(tags ? { tags: this.serializeTags(tags) } : {}),
+      ...(tags !== undefined ? { tags: this.serializeTags(tags) } : {}),
     });
     return await this.findById(id, false);
   }
@@ -230,15 +286,10 @@ export class PostService {
       throw new ForbiddenException("只能删除自己的帖子");
     }
 
-    // 事务内删除（PostLike/Comment 有 ON DELETE CASCADE，无需手动删关联）
-    await this.dataSource.transaction(async (manager) => {
-      const postRepo = manager.getRepository(Post);
-      // TODO: Post 实体有 @DeleteDateColumn，应改用 softDelete 实现软删除
-      const result = await postRepo.delete(id);
-      if (result.affected === 0) {
-        throw new NotFoundException(`帖子 ID ${id} 删除失败`);
-      }
-    });
+    const result = await this.postRepository.softDelete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`帖子 ID ${id} 删除失败`);
+    }
   }
 
   /**
@@ -256,7 +307,14 @@ export class PostService {
    * @param id 帖子ID
    */
   async incrementShareCount(id: number): Promise<void> {
-    await this.postRepository.increment({ id }, "shareCount", 1);
+    const result = await this.postRepository.increment(
+      { id, status: PostStatus.PUBLISHED },
+      "shareCount",
+      1,
+    );
+    if (result.affected === 0) {
+      throw new NotFoundException(`帖子 ID ${id} 不存在或未发布`);
+    }
   }
 
   /**
@@ -267,63 +325,83 @@ export class PostService {
    * @returns 是否已点赞
    */
   async hasLiked(postId: number, userId: number): Promise<boolean> {
+    await this.assertPublishedPost(postId);
     const like = await this.postLikeRepository.findOne({
       where: { postId, userId },
     });
     return !!like;
   }
 
-  /**
-   * 增加点赞次数（同时创建用户点赞记录）
-   *
-   * @param postId 帖子ID
-   * @param userId 用户ID
-   */
-  /**
-   * 切换点赞状态（用于点赞按钮）
-   */
-  async toggleLike(postId: number, userId: number): Promise<boolean> {
+  /** 确保点赞存在（幂等 force-like），返回数据库最终状态。 */
+  async addLike(
+    postId: number,
+    userId: number,
+  ): Promise<{ isLiked: true; likeCount: number }> {
     return await this.dataSource.transaction(async (manager) => {
       const postLikeRepo = manager.getRepository(PostLike);
       const postRepo = manager.getRepository(Post);
+
+      const post = await postRepo
+        .createQueryBuilder("post")
+        .setLock("pessimistic_write")
+        .where("post.id = :postId AND post.status = :status", {
+          postId,
+          status: PostStatus.PUBLISHED,
+        })
+        .getOne();
+      if (!post) {
+        throw new NotFoundException(`帖子 ID ${postId} 不存在或未发布`);
+      }
 
       const existingLike = await postLikeRepo.findOne({
         where: { postId, userId },
       });
 
       if (existingLike) {
-        await postLikeRepo.delete({ postId, userId });
-        await postRepo.decrement({ id: postId }, "likeCount", 1);
-        return false;
+        return { isLiked: true, likeCount: post.likeCount };
       }
 
-      // 并发保护：捕获 UNIQUE 约束冲突
-      try {
-        const postLike = postLikeRepo.create({ postId, userId });
-        await postLikeRepo.save(postLike);
-        await postRepo.increment({ id: postId }, "likeCount", 1);
-        return true;
-      } catch (error: any) {
-        if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) {
-          // 并发请求已插入成功，视为已点赞
-          return true;
-        }
-        throw error;
-      }
+      const postLike = postLikeRepo.create({ postId, userId });
+      await postLikeRepo.save(postLike);
+      await postRepo.increment({ id: postId }, "likeCount", 1);
+      return { isLiked: true, likeCount: post.likeCount + 1 };
     });
   }
 
   /**
    * 强制取消点赞（幂等）
    */
-  async removeLike(postId: number, userId: number): Promise<void> {
-    const existing = await this.postLikeRepository.findOne({
-      where: { postId, userId },
+  async removeLike(
+    postId: number,
+    userId: number,
+  ): Promise<{ isLiked: false; likeCount: number }> {
+    return await this.dataSource.transaction(async (manager) => {
+      const postRepo = manager.getRepository(Post);
+      const post = await postRepo
+        .createQueryBuilder("post")
+        .setLock("pessimistic_write")
+        .where("post.id = :postId", { postId })
+        .getOne();
+      if (!post) {
+        throw new NotFoundException(`帖子 ID ${postId} 不存在`);
+      }
+
+      const result = await manager.delete(PostLike, { postId, userId });
+      if (result.affected) {
+        await postRepo
+          .createQueryBuilder()
+          .update(Post)
+          .set({ likeCount: () => "GREATEST(like_count - 1, 0)" })
+          .where("id = :postId", { postId })
+          .execute();
+      }
+      return {
+        isLiked: false,
+        likeCount: result.affected
+          ? Math.max(0, post.likeCount - 1)
+          : post.likeCount,
+      };
     });
-    if (existing) {
-      await this.postLikeRepository.delete({ postId, userId });
-      await this.postRepository.decrement({ id: postId }, "likeCount", 1);
-    }
   }
 
   /**
@@ -333,11 +411,13 @@ export class PostService {
    * @returns 热门帖子列表
    */
   async getPopularPosts(limit: number = 10): Promise<Post[]> {
-    return await this.buildPublishedPostQuery()
+    limit = normalizeLimit(limit, 10, 50);
+    const posts = await this.buildPublishedPostQuery()
       .orderBy("post.viewCount", "DESC")
       .addOrderBy("post.likeCount", "DESC")
       .take(limit)
       .getMany();
+    return this.sanitizePostAuthors(posts);
   }
 
   /**
@@ -347,10 +427,12 @@ export class PostService {
    * @returns 最新帖子列表
    */
   async getLatestPosts(limit: number = 10): Promise<Post[]> {
-    return await this.buildPublishedPostQuery()
+    limit = normalizeLimit(limit, 10, 50);
+    const posts = await this.buildPublishedPostQuery()
       .orderBy("post.createdAt", "DESC")
       .take(limit)
       .getMany();
+    return this.sanitizePostAuthors(posts);
   }
 
   /**
@@ -366,6 +448,7 @@ export class PostService {
     page: number = 1,
     limit: number = 20,
   ): Promise<PaginatedResult<Post>> {
+    ({ page, limit } = normalizePagination(page, limit));
     const skip = (page - 1) * limit;
 
     const [posts, total] = await this.postRepository.findAndCount({
@@ -376,7 +459,7 @@ export class PostService {
       take: limit,
     });
 
-    return { data: posts, total, page, limit };
+    return { data: this.sanitizePostAuthors(posts), total, page, limit };
   }
 
   /**
@@ -386,13 +469,14 @@ export class PostService {
    * @param userId 用户ID
    */
   async bookmarkPost(postId: number, userId: number): Promise<void> {
-    const existing = await this.postBookmarkRepository.findOne({
-      where: { postId, userId },
-    });
-    if (!existing) {
-      const bookmark = this.postBookmarkRepository.create({ postId, userId });
-      await this.postBookmarkRepository.save(bookmark);
-    }
+    await this.assertPublishedPost(postId);
+    await this.postBookmarkRepository
+      .createQueryBuilder()
+      .insert()
+      .into(PostBookmark)
+      .values({ postId, userId })
+      .orIgnore()
+      .execute();
   }
 
   /**
@@ -413,6 +497,7 @@ export class PostService {
    * @returns 是否已收藏
    */
   async hasBookmarked(postId: number, userId: number): Promise<boolean> {
+    await this.assertPublishedPost(postId);
     const bookmark = await this.postBookmarkRepository.findOne({
       where: { postId, userId },
     });
@@ -432,17 +517,25 @@ export class PostService {
     page: number = 1,
     limit: number = 20,
   ): Promise<PaginatedResult<Post>> {
+    ({ page, limit } = normalizePagination(page, limit));
     const skip = (page - 1) * limit;
 
-    const [bookmarks, total] = await this.postBookmarkRepository.findAndCount({
-      where: { userId },
-      relations: ["post", "post.author"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
+    const [bookmarks, total] = await this.postBookmarkRepository
+      .createQueryBuilder("bookmark")
+      .innerJoinAndSelect(
+        "bookmark.post",
+        "post",
+        "post.status = :status AND post.deletedAt IS NULL",
+        { status: PostStatus.PUBLISHED },
+      )
+      .leftJoinAndSelect("post.author", "author")
+      .where("bookmark.userId = :userId", { userId })
+      .orderBy("bookmark.createdAt", "DESC")
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
     const posts = bookmarks.map((b) => b.post);
-    return { data: posts, total, page, limit };
+    return { data: this.sanitizePostAuthors(posts), total, page, limit };
   }
 }

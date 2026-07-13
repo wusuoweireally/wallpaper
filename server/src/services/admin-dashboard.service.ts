@@ -50,16 +50,14 @@ export class AdminDashboardService {
     const { start, end } = this.getCurrentMonthRange();
 
     // 合并同类 Count 查询：相同表的多条件计数用 CASE WHEN 一次扫描完成
-    const [
-      usersRow,
-      wallpapersRow,
-      postsRow,
-      reportsRow,
-    ] = await Promise.all([
+    const [usersRow, wallpapersRow, postsRow, reportsRow] = await Promise.all([
       this.userRepository
         .createQueryBuilder("u")
         .select("COUNT(*)", "totalUsers")
-        .addSelect("SUM(CASE WHEN u.status = 1 THEN 1 ELSE 0 END)", "activeUsers")
+        .addSelect(
+          "SUM(CASE WHEN u.status = 1 THEN 1 ELSE 0 END)",
+          "activeUsers",
+        )
         .getRawOne<{ totalUsers: string; activeUsers: string }>(),
       this.wallpaperRepository
         .createQueryBuilder("w")
@@ -69,7 +67,10 @@ export class AdminDashboardService {
           "newWallpapersThisMonth",
         )
         .setParameters({ start, end })
-        .getRawOne<{ totalWallpapers: string; newWallpapersThisMonth: string }>(),
+        .getRawOne<{
+          totalWallpapers: string;
+          newWallpapersThisMonth: string;
+        }>(),
       this.postRepository
         .createQueryBuilder("p")
         .select("COUNT(*)", "totalPosts")
@@ -93,7 +94,9 @@ export class AdminDashboardService {
     const totalUsers = Number(usersRow?.totalUsers ?? 0);
     const activeUsers = Number(usersRow?.activeUsers ?? 0);
     const totalWallpapers = Number(wallpapersRow?.totalWallpapers ?? 0);
-    const newWallpapersThisMonth = Number(wallpapersRow?.newWallpapersThisMonth ?? 0);
+    const newWallpapersThisMonth = Number(
+      wallpapersRow?.newWallpapersThisMonth ?? 0,
+    );
     const totalPosts = Number(postsRow?.totalPosts ?? 0);
     const newPostsThisMonth = Number(postsRow?.newPostsThisMonth ?? 0);
     const totalReports = Number(reportsRow?.totalReports ?? 0);

@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
+import { MulterError } from "multer";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -15,11 +16,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const isHttpException = exception instanceof HttpException;
-    const status = isHttpException
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+    const isMulterError = exception instanceof MulterError;
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    if (isHttpException) {
+      status = exception.getStatus();
+    } else if (isMulterError) {
+      status =
+        exception.code === "LIMIT_FILE_SIZE"
+          ? HttpStatus.PAYLOAD_TOO_LARGE
+          : HttpStatus.BAD_REQUEST;
+    }
 
-    let message = "服务器错误，请稍后重试";
+    let message = isMulterError
+      ? exception.code === "LIMIT_FILE_SIZE"
+        ? "上传文件过大"
+        : "上传文件不符合要求"
+      : "服务器错误，请稍后重试";
 
     if (isHttpException) {
       const exceptionResponse = exception.getResponse();

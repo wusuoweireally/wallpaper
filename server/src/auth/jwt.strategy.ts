@@ -29,7 +29,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const secretOrKey = configService.get<string>("JWT_SECRET");
 
-    if (!secretOrKey || secretOrKey === "your-secret-key") {
+    if (
+      !secretOrKey ||
+      ["your-secret-key", "your_jwt_secret_here"].includes(
+        secretOrKey.toLowerCase(),
+      )
+    ) {
       throw new Error(
         "JWT_SECRET must be set in environment variables and cannot be the default value",
       );
@@ -56,7 +61,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const userId =
       typeof payload.sub === "string" ? Number(payload.sub) : payload.sub;
 
-    if (!Number.isInteger(userId) || userId <= 0) {
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
       throw new UnauthorizedException("用户ID无效");
     }
 

@@ -120,7 +120,7 @@ export class AdminUserController {
     await this.userService.remove(id, actor);
     return {
       success: true,
-      message: "用户已删除",
+      message: "用户已注销，历史内容已匿名保留",
     };
   }
 }

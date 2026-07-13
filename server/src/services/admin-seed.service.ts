@@ -24,6 +24,14 @@ export class AdminSeedService implements OnModuleInit {
       return;
     }
 
+    if (
+      ["your_admin_password", "change_me", "changeme", "replace_me"].includes(
+        adminPassword.trim().toLowerCase(),
+      )
+    ) {
+      throw new Error("ADMIN_USER_PASSWORD 不能使用示例占位值");
+    }
+
     const adminId = Number(adminIdRaw);
     if (!Number.isInteger(adminId) || adminId <= 0) {
       this.logger.warn("ADMIN_USER_ID 无效，跳过创建管理员。");

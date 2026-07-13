@@ -12,6 +12,9 @@ import { Wallpaper } from "./wallpaper.entity";
 
 @Entity("view_history")
 @Index(["userId", "viewedAt"]) // 复合索引：用户ID + 浏览时间
+@Index("uk_view_history_user_wallpaper", ["userId", "wallpaperId"], {
+  unique: true,
+})
 export class ViewHistory {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "浏览记录ID" })
   id: number;

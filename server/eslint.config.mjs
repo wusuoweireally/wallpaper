@@ -1,3 +1,8 @@
+/**
+ * 后端 ESLint（Flat Config）
+ * - TypeScript type-aware 规则 + Prettier 作为 ESLint 规则（与 .prettierrc 一致）
+ * - 格式冲突由 eslint-plugin-prettier/recommended 统一
+ */
 // @ts-check
 import eslint from "@eslint/js";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
@@ -8,13 +13,13 @@ export default tseslint.config(
   {
     ignores: [
       "eslint.config.mjs",
-      "eslint.config.mjs",
-      "dist/**/*", // 构建输出目录
-      "build/**/*", // 构建目录
-      "node_modules/**/*", // 依赖目录
-      "**/*.d.ts", // TypeScript 声明文件
-      "coverage/**/*", // 测试覆盖率目录
-      "*.log", // 日志文件
+      "dist/**",
+      "build/**",
+      "node_modules/**",
+      "coverage/**",
+      "uploads/**",
+      "**/*.d.ts",
+      "*.log",
       ".env*",
     ],
   },
@@ -27,18 +32,26 @@ export default tseslint.config(
         ...globals.node,
         ...globals.jest,
       },
-      sourceType: "commonjs",
+      sourceType: "module",
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
-  },
-  {
     rules: {
+      // 渐进收紧：历史代码里 unsafe 较多，先 warn 不挡提交
       "@typescript-eslint/no-unsafe-assignment": "warn",
       "@typescript-eslint/no-unsafe-member-access": "warn",
       "@typescript-eslint/no-unsafe-call": "warn",
+      "@typescript-eslint/no-unsafe-return": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 );

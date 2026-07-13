@@ -30,8 +30,11 @@ async function bootstrap() {
     // 配置静态文件服务
     app.use(express.static(join(__dirname, "..", "public")));
 
-    // 配置上传文件静态服务 - 统一管理
-    app.use("/uploads", express.static(join(__dirname, "..", "uploads")));
+    // 头像公开访问；壁纸原图和缩略图由 UploadAssetController 按审核状态鉴权。
+    app.use(
+      "/uploads/profile-pictures",
+      express.static(join(__dirname, "..", "uploads", "profile-pictures")),
+    );
 
     // 全局验证管道
     // 信任反向代理的 X-Forwarded-For 头（Docker Compose 架构: 宿主机 Nginx → web 容器 Nginx → server）

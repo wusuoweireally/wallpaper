@@ -1,10 +1,9 @@
 import {
   Entity,
   Column,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
 } from "typeorm";
 
 export enum UserRole {
@@ -26,29 +25,36 @@ export const isAdminRole = (role?: UserRole): boolean =>
 
 @Entity("users")
 export class User {
-  @PrimaryColumn("bigint", { comment: "用户ID" })
+  @PrimaryGeneratedColumn({ type: "bigint", comment: "用户ID" })
   id: number;
 
   @Column({ length: 50, unique: true, comment: "用户名" })
   username: string;
 
-  @Column({ length: 100, unique: true, nullable: true, comment: "邮箱地址" })
-  email: string;
+  @Column({
+    type: "varchar",
+    length: 100,
+    unique: true,
+    nullable: true,
+    comment: "邮箱地址",
+  })
+  email: string | null;
 
   @Column({ name: "password_hash", length: 255, comment: "密码哈希值" })
   passwordHash: string;
 
   @Column({
     name: "avatar_url",
+    type: "varchar",
     length: 500,
     nullable: true,
     default: "defaultAvatar.png",
     comment: "头像URL",
   })
-  avatarUrl: string;
+  avatarUrl: string | null;
 
   @Column({ type: "text", nullable: true, comment: "个人简介" })
-  bio: string;
+  bio: string | null;
 
   @CreateDateColumn({ name: "created_at", comment: "创建时间" })
   createdAt: Date;
@@ -74,23 +80,25 @@ export class User {
     unique: true,
     comment: "GitHub用户ID",
   })
-  githubId: number;
+  githubId: number | null;
 
   @Column({
     name: "github_login",
+    type: "varchar",
     length: 100,
     nullable: true,
     comment: "GitHub用户名",
   })
-  githubLogin: string;
+  githubLogin: string | null;
 
   @Column({
     name: "github_avatar_url",
+    type: "varchar",
     length: 500,
     nullable: true,
     comment: "GitHub头像URL",
   })
-  githubAvatarUrl: string;
+  githubAvatarUrl: string | null;
 
   @Column({
     name: "github_bio",
@@ -98,12 +106,13 @@ export class User {
     nullable: true,
     comment: "GitHub个人简介",
   })
-  githubBio: string;
+  githubBio: string | null;
 
-  @DeleteDateColumn({
+  @Column({
     name: "deleted_at",
+    type: "datetime",
     nullable: true,
     comment: "删除时间（软删除）",
   })
-  deletedAt: Date;
+  deletedAt: Date | null;
 }

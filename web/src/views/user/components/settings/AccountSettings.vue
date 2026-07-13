@@ -5,7 +5,7 @@
       <div class="mb-8 flex flex-col gap-4">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-            <i class="i-mdi-alert-circle text-xl text-red-500"></i>
+            <i class="i-[mdi--alert-circle] text-xl text-red-500"></i>
           </div>
           <div>
             <h3 class="text-xl font-semibold text-gray-900">注销账号</h3>
@@ -17,24 +17,24 @@
       <!-- 警告信息 -->
       <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-6">
         <h4 class="mb-4 flex items-center gap-2 font-medium text-red-900">
-          <i class="i-mdi-warning text-lg"></i>
+          <i class="i-[mdi--warning] text-lg"></i>
           注销账号将永久删除以下内容：
         </h4>
         <ul class="space-y-3 text-sm text-red-800">
           <li class="flex items-start gap-2">
-            <i class="i-mdi-close-circle mt-0.5 text-red-500"></i>
+            <i class="i-[mdi--close-circle] mt-0.5 text-red-500"></i>
             <span>所有上传的壁纸文件和相关数据</span>
           </li>
           <li class="flex items-start gap-2">
-            <i class="i-mdi-close-circle mt-0.5 text-red-500"></i>
+            <i class="i-[mdi--close-circle] mt-0.5 text-red-500"></i>
             <span>收藏、点赞、下载历史记录</span>
           </li>
           <li class="flex items-start gap-2">
-            <i class="i-mdi-close-circle mt-0.5 text-red-500"></i>
+            <i class="i-[mdi--close-circle] mt-0.5 text-red-500"></i>
             <span>个人资料、评论和通知信息</span>
           </li>
           <li class="flex items-start gap-2">
-            <i class="i-mdi-close-circle mt-0.5 text-red-500"></i>
+            <i class="i-[mdi--close-circle] mt-0.5 text-red-500"></i>
             <span>账号积分和所有相关权益</span>
           </li>
         </ul>
@@ -43,20 +43,20 @@
       <!-- 注意事项 -->
       <div class="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
         <h4 class="mb-3 flex items-center gap-2 font-medium text-gray-900">
-          <i class="i-mdi-information text-lg"></i>
+          <i class="i-[mdi--information] text-lg"></i>
           操作前请确认
         </h4>
         <ul class="space-y-2 text-sm text-gray-600">
           <li class="flex items-start gap-2">
-            <i class="i-mdi-check mt-0.5 text-green-500"></i>
+            <i class="i-[mdi--check] mt-0.5 text-green-500"></i>
             <span>已备份重要的个人数据和壁纸文件</span>
           </li>
           <li class="flex items-start gap-2">
-            <i class="i-mdi-check mt-0.5 text-green-500"></i>
+            <i class="i-[mdi--check] mt-0.5 text-green-500"></i>
             <span>了解所有数据将被永久删除且无法恢复</span>
           </li>
           <li class="flex items-start gap-2">
-            <i class="i-mdi-check mt-0.5 text-green-500"></i>
+            <i class="i-[mdi--check] mt-0.5 text-green-500"></i>
             <span>确认注销后需要重新注册新账号</span>
           </li>
         </ul>
@@ -65,7 +65,7 @@
       <!-- 替代方案提示 -->
       <div class="mb-8 rounded-xl border border-blue-200 bg-blue-50 p-4">
         <p class="text-sm text-blue-800">
-          <i class="i-mdi-lightbulb mr-2 text-blue-500"></i>
+          <i class="i-[mdi--lightbulb] mr-2 text-blue-500"></i>
           <strong>温馨提示：</strong
           >如果只是遇到账号安全问题，建议先修改密码或联系管理员协助处理，无需注销账号。
         </p>
@@ -78,7 +78,7 @@
           @click="showDeleteConfirm = true"
           class="rounded-lg bg-red-600 px-6 py-3 font-medium text-white shadow-sm transition-colors duration-200 hover:bg-red-700 hover:shadow-md"
         >
-          <i class="i-mdi-trash-can mr-2"></i>
+          <i class="i-[mdi--trash-can] mr-2"></i>
           确认注销账号
         </button>
       </div>
@@ -95,7 +95,7 @@
         <div class="w-full max-w-lg transform rounded-2xl bg-white p-6 shadow-xl transition-all">
           <div class="mb-6 flex items-center gap-3">
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <i class="i-mdi-alert text-2xl text-red-600"></i>
+              <i class="i-[mdi--alert] text-2xl text-red-600"></i>
             </div>
             <div>
               <h3 class="text-lg font-semibold text-gray-900">最终确认</h3>
@@ -107,15 +107,15 @@
             <p class="text-gray-700">您确定要注销账号吗？删除后：</p>
             <ul class="space-y-2 text-sm text-gray-600">
               <li class="flex items-start gap-2">
-                <i class="i-mdi-arrow-right mt-0.5 text-gray-400"></i>
+                <i class="i-[mdi--arrow-right] mt-0.5 text-gray-400"></i>
                 <span>所有数据将立即永久删除</span>
               </li>
               <li class="flex items-start gap-2">
-                <i class="i-mdi-arrow-right mt-0.5 text-gray-400"></i>
+                <i class="i-[mdi--arrow-right] mt-0.5 text-gray-400"></i>
                 <span>账号将无法恢复</span>
               </li>
               <li class="flex items-start gap-2">
-                <i class="i-mdi-arrow-right mt-0.5 text-gray-400"></i>
+                <i class="i-[mdi--arrow-right] mt-0.5 text-gray-400"></i>
                 <span>需要重新注册才能使用服务</span>
               </li>
             </ul>

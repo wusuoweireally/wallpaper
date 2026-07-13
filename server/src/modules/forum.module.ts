@@ -13,6 +13,7 @@ import { ReportController } from "../controllers/report.controller";
 import { PostService } from "../services/post.service";
 import { CommentService } from "../services/comment.service";
 import { ReportService } from "../services/report.service";
+import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 
 /**
  * 论坛模块
@@ -43,6 +44,7 @@ import { ReportService } from "../services/report.service";
     PostService, // 帖子服务
     CommentService, // 评论服务
     ReportService, // 举报服务
+    OptionalJwtAuthGuard,
   ],
   exports: [
     PostService, // 导出帖子服务，供其他模块使用

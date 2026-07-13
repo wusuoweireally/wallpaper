@@ -1,4 +1,5 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
+import type { TransformFnParams } from "class-transformer";
 import {
   IsIn,
   IsInt,
@@ -10,9 +11,16 @@ import {
 } from "class-validator";
 import { PaginationQueryDto } from "./pagination.dto";
 
+const trimString = ({ value }: TransformFnParams): unknown => {
+  const input: unknown = value;
+  return typeof input === "string" ? input.trim() : input;
+};
+
 export class CreateCommentDto {
+  @Transform(trimString)
   @IsString()
   @IsNotEmpty()
+  @MaxLength(2000)
   content: string;
 
   @Type(() => Number)
@@ -28,6 +36,7 @@ export class CreateCommentDto {
 }
 
 export class UpdateCommentDto {
+  @Transform(trimString)
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)

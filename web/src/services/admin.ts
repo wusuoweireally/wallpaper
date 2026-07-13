@@ -75,8 +75,6 @@ export interface AdminWallpaper {
   likeCount: number
   favoriteCount: number
   isFeatured?: boolean
-  title?: string
-  description?: string
   createdAt: string
   updatedAt?: string
   tags?: (string | AdminWallpaperTag)[]
@@ -98,8 +96,6 @@ export interface AdminWallpaperQuery {
 
 export interface UpdateAdminWallpaper {
   category?: "general" | "anime" | "people"
-  title?: string
-  description?: string
 }
 
 export interface UpdateWallpaperTags {

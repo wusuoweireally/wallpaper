@@ -13,13 +13,28 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "rootDir": "./src",
     "incremental": true,
     "skipLibCheck": true,
+    // 显式固定 TS 6/7 默认值，避免 strict-by-default 等突然收紧历史代码
+    "strict": false,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedSideEffectImports": false,
+    // 显式声明全局类型包（TS 6+ types 默认 []）
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node10",
+      "resolvePackageJsonExports": false,
+      "ignoreDeprecations": "6.0"
+    },
+    "transpileOnly": true
   }
 }

@@ -61,7 +61,12 @@ export interface CommentsQueryParams {
 }
 
 /** 将后端分页格式转为前端 PaginationData */
-const toPagination = (p?: { page?: number; limit?: number; total?: number; pages?: number }): PaginationData => ({
+const toPagination = (p?: {
+  page?: number
+  limit?: number
+  total?: number
+  pages?: number
+}): PaginationData => ({
   currentPage: p?.page || 1,
   totalPages: p?.pages || 0,
   totalCount: p?.total || 0,
@@ -73,6 +78,7 @@ const toPagination = (p?: { page?: number; limit?: number; total?: number; pages
  *
  * 注意：axios 响应拦截器已做 success:false→reject + response.data 解包，
  * 故本层无需再检查 response.success，直接返回 response.data 即可。
+ * 帖子详情的 isLiked / isBookmarked 由 GET /posts/:id 一次返回，无需再打状态接口。
  */
 export const forumService = {
   // ========== 帖子 ==========
@@ -80,10 +86,14 @@ export const forumService = {
   async getPosts(params: PostsQueryParams = {}) {
     const payload: any = await api.get("/posts", {
       params: {
-        page: params.page || 1, limit: params.limit || 20,
-        sortBy: params.sortBy || "createdAt", sortOrder: params.sortOrder || "DESC",
-        category: params.category, search: params.search,
-        authorId: params.authorId, tags: params.tags?.join(","),
+        page: params.page || 1,
+        limit: params.limit || 20,
+        sortBy: params.sortBy || "createdAt",
+        sortOrder: params.sortOrder || "DESC",
+        category: params.category,
+        search: params.search,
+        authorId: params.authorId,
+        tags: params.tags?.join(","),
       },
     })
     return { data: payload.data || [], pagination: toPagination(payload.pagination) }
@@ -105,19 +115,20 @@ export const forumService = {
   },
 
   async deletePost(id: number): Promise<void> {
-    await api.delete(`/posts/${id}`)
+    await api.delete(`/posts/${id}`, { skipGlobalErrorToast: true })
   },
 
-  async likePost(id: number): Promise<void> {
-    await api.post(`/posts/${id}/like`)
+  async likePost(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
+    const payload: any = await api.post(`/posts/${id}/like`, undefined, {
+      skipGlobalErrorToast: true,
+    })
+    return payload.data
   },
 
-  async unlikePost(id: number): Promise<void> {
-    await api.delete(`/posts/${id}/like`)
-  },
-
-  async checkLikeStatus(id: number): Promise<{ hasLiked: boolean }> {
-    const payload: any = await api.get(`/posts/${id}/like`)
+  async unlikePost(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
+    const payload: any = await api.delete(`/posts/${id}/like`, {
+      skipGlobalErrorToast: true,
+    })
     return payload.data
   },
 
@@ -126,16 +137,15 @@ export const forumService = {
   },
 
   async bookmarkPost(id: number): Promise<void> {
-    await api.post(`/posts/${id}/bookmark`)
+    await api.post(`/posts/${id}/bookmark`, undefined, {
+      skipGlobalErrorToast: true,
+    })
   },
 
   async unbookmarkPost(id: number): Promise<void> {
-    await api.delete(`/posts/${id}/bookmark`)
-  },
-
-  async checkBookmarkStatus(id: number): Promise<{ hasBookmarked: boolean }> {
-    const payload: any = await api.get(`/posts/${id}/bookmark`)
-    return payload.data
+    await api.delete(`/posts/${id}/bookmark`, {
+      skipGlobalErrorToast: true,
+    })
   },
 
   async getMyBookmarks(params: { page?: number; limit?: number } = {}) {
@@ -167,17 +177,14 @@ export const forumService = {
   async getPostComments(postId: number, params: CommentsQueryParams = {}) {
     const payload: any = await api.get(`/comments/post/${postId}`, {
       params: {
-        page: params.page || 1, limit: params.limit || 20,
-        sortBy: params.sortBy || "createdAt", sortOrder: params.sortOrder || "ASC",
+        page: params.page || 1,
+        limit: params.limit || 20,
+        sortBy: params.sortBy || "createdAt",
+        sortOrder: params.sortOrder || "ASC",
         parentId: params.parentId,
       },
     })
     return { data: payload.data || [], pagination: toPagination(payload.pagination) }
-  },
-
-  async getComment(id: number): Promise<Comment> {
-    const payload: any = await api.get(`/comments/${id}`)
-    return payload.data
   },
 
   async createComment(commentData: CreateCommentDto): Promise<Comment> {
@@ -194,16 +201,6 @@ export const forumService = {
     await api.delete(`/comments/${id}`)
   },
 
-  async getCommentReplies(parentCommentId: number): Promise<Comment[]> {
-    const payload: any = await api.get(`/comments/${parentCommentId}/replies`)
-    return payload.data
-  },
-
-  async getCommentStats(postId: number) {
-    const payload: any = await api.get(`/comments/stats/${postId}`)
-    return payload.data
-  },
-
   async getMyComments(params: { page?: number; limit?: number } = {}) {
     const payload: any = await api.get("/comments/user/my", {
       params: { page: params.page || 1, limit: params.limit || 20 },
@@ -216,20 +213,10 @@ export const forumService = {
     return payload.data
   },
 
-  async toggleCommentLike(id: number) {
-    const payload: any = await api.post(`/comments/${id}/like`)
-    return payload.data
-  },
-
-  async getCommentLikeStatus(id: number) {
-    const payload: any = await api.get(`/comments/${id}/like-status`)
-    return payload.data
-  },
-
-  async getMyLikedComments(params: { page?: number; limit?: number } = {}) {
-    const payload: any = await api.get("/comments/user/liked", {
-      params: { page: params.page || 1, limit: params.limit || 20 },
+  async toggleCommentLike(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
+    const payload: any = await api.post(`/comments/${id}/like`, undefined, {
+      skipGlobalErrorToast: true,
     })
-    return { data: payload.data || [], pagination: toPagination(payload.pagination) }
+    return payload.data
   },
 }

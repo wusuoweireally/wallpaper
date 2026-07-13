@@ -12,6 +12,9 @@ import { Wallpaper } from "./wallpaper.entity";
 
 @Entity("user_favorites")
 @Index(["userId", "createdAt"]) // 复合索引：用户ID + 创建时间
+@Index("uk_user_favorites_user_wallpaper", ["userId", "wallpaperId"], {
+  unique: true,
+})
 export class UserFavorite {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "收藏ID" })
   id: number;
@@ -32,7 +35,6 @@ export class UserFavorite {
   @JoinColumn({ name: "wallpaper_id" })
   wallpaper: Wallpaper;
 
-  @Index("uk_user_wallpaper", ["userId", "wallpaperId"], { unique: true })
   @CreateDateColumn({ name: "created_at", comment: "创建时间" })
   @Index("idx_created_at")
   createdAt: Date;

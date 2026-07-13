@@ -1,5 +1,5 @@
 <template>
-  <section class="space-y-6 px-2 sm:px-4">
+  <section class="space-y-6">
     <!-- 加载骨架 -->
     <div v-if="loading" class="auto-grid">
       <div
@@ -17,7 +17,7 @@
       <div
         class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900"
       >
-        <i class="i-mdi-image-off text-4xl text-slate-400 dark:text-slate-500"></i>
+        <i class="i-[mdi--image-off] text-4xl text-slate-400 dark:text-slate-500"></i>
       </div>
       <div>
         <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">暂无满足条件的壁纸</p>

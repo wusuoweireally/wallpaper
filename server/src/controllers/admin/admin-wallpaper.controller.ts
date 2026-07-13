@@ -9,7 +9,6 @@ import {
   Post,
   Query,
   UseGuards,
-  BadRequestException,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
 import { RolesGuard } from "../../guards/roles.guard";
@@ -21,7 +20,14 @@ import {
   AdminUpdateWallpaperDto,
   AdminWallpaperQueryDto,
   AdminUpdateWallpaperTagsDto,
+  AdminBatchFeaturedDto,
+  AdminBatchReviewWallpaperDto,
+  AdminReviewWallpaperDto,
+  AdminWallpaperIdsDto,
 } from "../../dto/admin.dto";
+import { CurrentUser } from "../../decorators/current-user.decorator";
+import type { CurrentUserType } from "../../decorators/current-user.decorator";
+import { WallpaperStatus } from "../../entities/wallpaper.entity";
 
 @Controller("admin/wallpapers")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -60,6 +66,14 @@ export class AdminWallpaperController {
     };
   }
 
+  @Get("stats")
+  async stats() {
+    return {
+      success: true,
+      data: await this.wallpaperService.getAdminStats(),
+    };
+  }
+
   @Get(":id")
   async detail(@Param("id", ParseIntPipe) id: number) {
     const wallpaper = await this.wallpaperService.findById(id);
@@ -78,6 +92,28 @@ export class AdminWallpaperController {
     return {
       success: true,
       message: "壁纸信息已更新",
+      data: wallpaper,
+    };
+  }
+
+  @Patch(":id/review")
+  async review(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: AdminReviewWallpaperDto,
+    @CurrentUser() admin: CurrentUserType,
+  ) {
+    const wallpaper = await this.wallpaperService.review(
+      id,
+      dto.status,
+      admin.userId,
+      dto.reviewNote,
+    );
+    return {
+      success: true,
+      message:
+        dto.status === WallpaperStatus.APPROVED
+          ? "壁纸已通过审核"
+          : "壁纸已驳回",
       data: wallpaper,
     };
   }
@@ -116,14 +152,8 @@ export class AdminWallpaperController {
    * 批量删除壁纸
    */
   @Post("batch-delete")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async batchRemove(@Body() body: { ids: number[] }) {
-    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
-      throw new BadRequestException("请提供要删除的壁纸ID列表");
-    }
-
-    const result = await this.wallpaperService.batchDelete(body.ids);
+  async batchRemove(@Body() dto: AdminWallpaperIdsDto) {
+    const result = await this.wallpaperService.batchDelete(dto.ids);
     await Promise.all(
       result.deletedFiles.map((file) =>
         this.uploadService.deleteUploadedFiles(
@@ -146,13 +176,7 @@ export class AdminWallpaperController {
    * 批量设置/取消推荐
    */
   @Post("batch-featured")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async batchFeatured(@Body() body: { ids: number[]; isFeatured: boolean }) {
-    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
-      throw new BadRequestException("请提供壁纸ID列表");
-    }
-
+  async batchFeatured(@Body() body: AdminBatchFeaturedDto) {
     const result = await this.wallpaperService.batchSetFeatured(
       body.ids,
       body.isFeatured,
@@ -162,6 +186,27 @@ export class AdminWallpaperController {
       message: body.isFeatured
         ? `已将 ${result.updatedCount} 个壁纸设为推荐`
         : `已取消 ${result.updatedCount} 个壁纸的推荐`,
+      data: result,
+    };
+  }
+
+  @Post("batch-review")
+  async batchReview(
+    @Body() dto: AdminBatchReviewWallpaperDto,
+    @CurrentUser() admin: CurrentUserType,
+  ) {
+    const result = await this.wallpaperService.batchReview(
+      dto.ids,
+      dto.status,
+      admin.userId,
+      dto.reviewNote,
+    );
+    return {
+      success: true,
+      message:
+        dto.status === WallpaperStatus.APPROVED
+          ? `已通过 ${result.updatedCount} 张壁纸`
+          : `已驳回 ${result.updatedCount} 张壁纸`,
       data: result,
     };
   }

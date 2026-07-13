@@ -17,7 +17,6 @@ export class Tag {
   name: string;
 
   @Column({ length: 50, unique: true, comment: "标签别名" })
-  @Index("uk_slug")
   slug: string;
 
   @Column({ name: "usage_count", type: "int", default: 0, comment: "使用次数" })

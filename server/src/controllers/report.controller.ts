@@ -14,7 +14,7 @@ import {
   CurrentUser,
   type CurrentUserType,
 } from "../decorators/current-user.decorator";
-import { CreateReportDto } from "../dto/report.dto";
+import { CreateReportDto, UserReportsQueryDto } from "../dto/report.dto";
 import { ReportTargetType } from "../entities/report.entity";
 import { ReportService } from "../services/report.service";
 
@@ -62,26 +62,22 @@ export class ReportController {
   @UseGuards(JwtAuthGuard)
   async getUserReports(
     @CurrentUser() user: CurrentUserType,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query() query: UserReportsQueryDto,
   ) {
-    const pageNum = parseInt(page || "1") || 1;
-    const limitNum = parseInt(limit || "20") || 20;
-
     const reports = await this.reportService.getUserReports(
       user.userId,
-      pageNum,
-      limitNum,
+      query.page,
+      query.limit,
     );
     return {
       success: true,
       message: "获取用户举报历史成功",
       data: reports.data,
       pagination: {
-        page: pageNum,
-        limit: limitNum,
+        page: reports.page,
+        limit: reports.limit,
         total: reports.total,
-        pages: Math.ceil(reports.total / limitNum),
+        pages: Math.ceil(reports.total / reports.limit),
       },
     };
   }

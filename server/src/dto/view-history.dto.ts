@@ -7,8 +7,3 @@ export class CreateViewHistoryDto {
   @IsNumber()
   userId: number;
 }
-
-export class ViewHistoryQueryDto {
-  @IsNumber()
-  userId: number;
-}

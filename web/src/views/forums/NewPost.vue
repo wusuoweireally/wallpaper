@@ -30,7 +30,7 @@
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <i class="i-mdi-file-restore text-amber-600 dark:text-amber-400"></i>
+            <i class="i-[mdi--file-restore] text-amber-600 dark:text-amber-400"></i>
             <span class="text-sm font-medium text-amber-800 dark:text-amber-200">
               已恢复上次未发布的草稿
             </span>

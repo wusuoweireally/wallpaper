@@ -4,6 +4,8 @@ import { Repository, LessThan } from "typeorm";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ViewHistory } from "../entities/view-history.entity";
 import { CreateViewHistoryDto } from "../dto/view-history.dto";
+import { sanitizeUser } from "../utils/sanitize";
+import { normalizePagination } from "../common/pagination";
 
 @Injectable()
 export class ViewHistoryService {
@@ -20,26 +22,21 @@ export class ViewHistoryService {
   ): Promise<ViewHistory> {
     const { userId, wallpaperId } = createViewHistoryDto;
 
-    // 检查是否已存在相同的浏览记录（同一用户同一壁纸）
-    const existingHistory = await this.viewHistoryRepository.findOne({
+    await this.viewHistoryRepository.upsert(
+      {
+        userId,
+        wallpaperId,
+        viewedAt: new Date(),
+      },
+      {
+        conflictPaths: ["userId", "wallpaperId"],
+        skipUpdateIfNoValuesChanged: false,
+      },
+    );
+
+    return this.viewHistoryRepository.findOneOrFail({
       where: { userId, wallpaperId },
-      order: { viewedAt: "DESC" },
     });
-
-    // 如果存在记录，更新浏览时间
-    if (existingHistory) {
-      existingHistory.viewedAt = new Date();
-      return await this.viewHistoryRepository.save(existingHistory);
-    }
-
-    // 创建新记录
-    const viewHistory = this.viewHistoryRepository.create({
-      userId,
-      wallpaperId,
-      viewedAt: new Date(),
-    });
-
-    return await this.viewHistoryRepository.save(viewHistory);
   }
 
   /**
@@ -50,11 +47,13 @@ export class ViewHistoryService {
     page: number = 1,
     limit: number = 20,
   ): Promise<{ data: ViewHistory[]; total: number }> {
+    ({ page, limit } = normalizePagination(page, limit));
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.viewHistoryRepository.findAndCount({
       where: {
         userId,
+        wallpaper: { status: 1 },
       },
       relations: ["wallpaper", "wallpaper.uploader"],
       order: { viewedAt: "DESC" },
@@ -62,7 +61,22 @@ export class ViewHistoryService {
       take: limit,
     });
 
-    return { data, total };
+    return {
+      data: data.map((history) => {
+        if (!history.wallpaper?.uploader) return history;
+
+        return {
+          ...history,
+          wallpaper: {
+            ...history.wallpaper,
+            uploader: sanitizeUser(
+              history.wallpaper.uploader as unknown as Record<string, unknown>,
+            ) as unknown as typeof history.wallpaper.uploader,
+          },
+        };
+      }),
+      total,
+    };
   }
 
   /**
@@ -76,19 +90,5 @@ export class ViewHistoryService {
     await this.viewHistoryRepository.delete({
       viewedAt: LessThan(thirtyDaysAgo),
     });
-  }
-
-  /**
-   * 删除特定用户的浏览记录
-   */
-  async deleteUserViewHistory(userId: number): Promise<void> {
-    await this.viewHistoryRepository.delete({ userId });
-  }
-
-  /**
-   * 删除特定壁纸的浏览记录
-   */
-  async deleteWallpaperViewHistory(wallpaperId: number): Promise<void> {
-    await this.viewHistoryRepository.delete({ wallpaperId });
   }
 }

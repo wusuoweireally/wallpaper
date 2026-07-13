@@ -13,6 +13,7 @@ import {
   ReportStatus,
   ReportTargetType,
 } from "../entities/report.entity";
+import { PaginationQueryDto } from "./pagination.dto";
 
 export class CreateReportDto {
   @IsEnum(ReportTargetType)
@@ -41,19 +42,10 @@ export class UpdateReportDto {
   reviewNote?: string;
 
   @IsEnum(ReportStatus)
-  @IsOptional()
-  status?: ReportStatus;
+  status: ReportStatus;
 }
 
-export class GetReportsDto {
-  @Type(() => Number)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsOptional()
-  limit?: number = 20;
-
+export class GetReportsDto extends PaginationQueryDto {
   @IsEnum(ReportTargetType)
   @IsOptional()
   targetType?: ReportTargetType;
@@ -68,9 +60,13 @@ export class GetReportsDto {
 
   @Type(() => Number)
   @IsOptional()
+  @IsInt()
+  @Min(1)
   userId?: number;
 
   @IsOptional()
   @IsString()
   keyword?: string;
 }
+
+export class UserReportsQueryDto extends PaginationQueryDto {}

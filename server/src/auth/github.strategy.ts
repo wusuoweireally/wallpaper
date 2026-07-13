@@ -3,13 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-github2";
 import { GitHubProfile, PassportGitHubProfile } from "../dto/github.dto";
-
-// 扩展 passport-github2 的类型定义，支持 prompt 参数
-declare module "passport-github2" {
-  interface IStrategyOptions {
-    prompt?: string;
-  }
-}
+import { OAuthStateStore } from "./oauth-state.store";
 
 /**
  * GitHub OAuth 2.0 认证策略
@@ -27,7 +21,6 @@ export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
     const clientSecret = configService.get<string>("GITHUB_CLIENT_SECRET");
     const callbackURL = configService.get<string>("GITHUB_CALLBACK_URL");
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     super({
       clientID:
         clientID && !clientID.includes("placeholder")
@@ -37,10 +30,12 @@ export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
         clientSecret && !clientSecret.includes("placeholder")
           ? clientSecret
           : "placeholder_client_secret",
-      callbackURL: callbackURL || "http://localhost:1234/auth/github/callback",
-      scope: ["user:email"], // 请求读取用户邮箱的权限
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      callbackURL:
+        callbackURL || "http://localhost:1234/api/auth/github/callback",
+      scope: ["user:email"],
+      allRawEmails: true,
+      store: new OAuthStateStore(),
+    });
   }
 
   /**
@@ -57,13 +52,17 @@ export class GitHubStrategy extends PassportStrategy(Strategy, "github") {
     profile: PassportGitHubProfile,
     done: (error: Error | null, user?: GitHubProfile) => void,
   ): void {
+    const verifiedEmail = profile.emails?.find(
+      (email) => email.primary && email.verified,
+    )?.value;
+
     // 提取 GitHub 用户信息
     const githubProfile: GitHubProfile = {
       id: profile.id,
       login: profile.username || profile.displayName || "",
       avatar_url: profile._json.avatar_url,
       bio: profile._json.bio || "",
-      email: profile.emails?.[0]?.value || profile._json.email || "",
+      email: verifiedEmail?.trim().toLowerCase() || "",
       name: profile.displayName || profile._json.name || "",
       html_url: profile._json.html_url,
       location: profile._json.location || "",

@@ -1,4 +1,8 @@
-import { Injectable, ConflictException } from "@nestjs/common";
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as bcrypt from "bcryptjs";
@@ -35,6 +39,7 @@ export class GitHubAuthService {
     });
 
     if (user) {
+      this.assertActiveUser(user);
       // 2. 如果用户已存在，更新 GitHub 信息并返回
       user = await this.syncGitHubProfile(user, githubProfile);
       return user;
@@ -52,7 +57,17 @@ export class GitHubAuthService {
    * @returns 新创建的用户
    */
   private async createGitHubUser(githubProfile: GitHubProfile): Promise<User> {
-    // 生成唯一系统用户名（格式：github_{githubLogin}_{githubId}）
+    const email = githubProfile.email?.trim().toLowerCase() || null;
+    if (email) {
+      const emailOwner = await this.userRepository.findOne({
+        where: { email },
+      });
+      if (emailOwner) {
+        throw new ConflictException("该邮箱已注册，请使用原账号登录");
+      }
+    }
+
+    // 用户名包含 GitHub ID，既可读又天然唯一。
     const username = this.generateUsername(
       githubProfile.login,
       githubProfile.id,
@@ -62,34 +77,23 @@ export class GitHubAuthService {
     const randomPassword = this.generateRandomPassword();
     const passwordHash = await bcrypt.hash(randomPassword, 10);
 
-    // 生成新的用户ID（基于数据库最大ID + 1，确保唯一性）
-    const newUserId = await this.generateUniqueUserId();
-
-    // 创建用户实例
-    const newUser = new User();
-    newUser.id = newUserId; // 手动设置主键
-    newUser.username = username;
-    newUser.passwordHash = passwordHash;
-    // email 字段可能为空，只在有值时设置
-    if (githubProfile.email) {
-      newUser.email = githubProfile.email;
-    }
-    newUser.avatarUrl = githubProfile.avatar_url;
-    newUser.bio = githubProfile.bio || "";
-    newUser.githubId = githubProfile.id;
-    newUser.githubLogin = githubProfile.login;
-    newUser.githubAvatarUrl = githubProfile.avatar_url;
-    newUser.githubBio = githubProfile.bio || "";
-    newUser.role = UserRole.USER; // 使用枚举值
-    newUser.status = 1;
+    const newUser = this.userRepository.create({
+      username,
+      passwordHash,
+      email,
+      avatarUrl: githubProfile.avatar_url,
+      bio: githubProfile.bio || "",
+      githubId: githubProfile.id,
+      githubLogin: githubProfile.login,
+      githubAvatarUrl: githubProfile.avatar_url,
+      githubBio: githubProfile.bio || "",
+      role: UserRole.USER,
+      status: 1,
+    });
 
     // 保存到数据库
     try {
-      const savedUsers = (await this.userRepository.save(newUser)) as
-        | User
-        | User[];
-      const savedUser = Array.isArray(savedUsers) ? savedUsers[0] : savedUsers;
-      return savedUser;
+      return await this.userRepository.save(newUser);
     } catch (error: unknown) {
       // 处理用户名或ID冲突
       if (
@@ -97,9 +101,22 @@ export class GitHubAuthService {
         "code" in error &&
         error.code === "ER_DUP_ENTRY"
       ) {
-        throw new ConflictException("用户创建失败：用户名或ID已存在");
+        const existing = await this.userRepository.findOne({
+          where: { githubId: githubProfile.id },
+        });
+        if (existing) {
+          this.assertActiveUser(existing);
+          return existing;
+        }
+        throw new ConflictException("用户创建失败：用户名或邮箱已存在");
       }
       throw error;
+    }
+  }
+
+  private assertActiveUser(user: User): void {
+    if (user.status !== 1 || user.deletedAt) {
+      throw new UnauthorizedException("账号已禁用");
     }
   }
 
@@ -113,7 +130,7 @@ export class GitHubAuthService {
    */
   private generateUsername(githubLogin: string, githubId: number): string {
     // 清理用户名：移除特殊字符，只保留字母、数字、下划线和减号
-    const cleanLogin = githubLogin.replace(/[^a-zA-Z0-9_-]/g, "");
+    const cleanLogin = githubLogin.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 25);
     return `github_${cleanLogin}_${githubId}`;
   }
 
@@ -130,15 +147,9 @@ export class GitHubAuthService {
 
     // 使用 crypto 生成安全的随机密码
     const array = new Uint32Array(length);
-    if (typeof window !== "undefined") {
-      // 浏览器环境
-      window.crypto.getRandomValues(array);
-    } else {
-      // Node.js 环境
-      const bytes = crypto.randomBytes(length * 4);
-      for (let i = 0; i < length; i++) {
-        array[i] = bytes.readUInt32BE(i * 4);
-      }
+    const bytes = crypto.randomBytes(length * 4);
+    for (let i = 0; i < length; i++) {
+      array[i] = bytes.readUInt32BE(i * 4);
     }
 
     for (let i = 0; i < length; i++) {
@@ -146,22 +157,6 @@ export class GitHubAuthService {
     }
 
     return password;
-  }
-
-  /**
-   * 生成新的用户ID
-   * 基于数据库最大ID + 1，确保唯一性
-   *
-   * @returns 用户ID
-   */
-  private async generateUniqueUserId(): Promise<number> {
-    const maxIdResult = await this.userRepository
-      .createQueryBuilder("user")
-      .select("MAX(user.id)", "maxId")
-      .getRawOne<{ maxId: number | null }>();
-
-    const maxId = maxIdResult?.maxId ? Number(maxIdResult.maxId) : 0;
-    return maxId + 1;
   }
 
   /**
@@ -190,38 +185,18 @@ export class GitHubAuthService {
       user.bio = githubProfile.bio || "";
     }
 
-    // 如果用户没有邮箱，使用 GitHub 邮箱
-    if (!user.email && githubProfile.email) {
-      user.email = githubProfile.email;
+    // 已绑定账号可以继续登录，但不能占用另一个本地账号的邮箱。
+    const email = githubProfile.email?.trim().toLowerCase();
+    if (!user.email && email) {
+      const emailOwner = await this.userRepository.findOne({
+        where: { email },
+      });
+      if (!emailOwner) {
+        user.email = email;
+      }
     }
 
     // 保存更新
     return await this.userRepository.save(user);
-  }
-
-  /**
-   * 根据 GitHub ID 查找用户
-   *
-   * @param githubId - GitHub 用户ID
-   * @returns 用户实例或 null
-   */
-  async findByGitHubId(githubId: number): Promise<User | null> {
-    return await this.userRepository.findOne({
-      where: { githubId },
-    });
-  }
-
-  /**
-   * 检查用户是否绑定 GitHub 账号
-   *
-   * @param userId - 系统用户ID
-   * @returns 是否已绑定
-   */
-  async isGitHubLinked(userId: number): Promise<boolean> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ["githubId"],
-    });
-    return Boolean(user?.githubId);
   }
 }

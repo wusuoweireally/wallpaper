@@ -3,7 +3,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { PassportModule } from "@nestjs/passport";
-import type { StringValue } from "ms";
 import { User } from "../entities/user.entity";
 import { UserService } from "../services/user.service";
 import { AuthService } from "../services/auth.service";
@@ -15,6 +14,8 @@ import { JwtStrategy } from "../auth/jwt.strategy";
 import { GitHubStrategy } from "../auth/github.strategy";
 import { WallpaperModule } from "./wallpaper.module";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
+import { GitHubAuthGuard } from "../auth/github-auth.guard";
+import { parseDurationSeconds } from "../utils/duration";
 
 @Module({
   imports: [
@@ -25,13 +26,17 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>("JWT_SECRET");
+        if (!secret) {
+          throw new Error("JWT_SECRET 未配置");
+        }
+        const expiresIn = parseDurationSeconds(
+          configService.get<string>("JWT_EXPIRES_IN") ?? "30d",
+        );
         return {
-          secret: configService.get<string>("JWT_SECRET", "your-secret-key"),
+          secret,
           signOptions: {
-            expiresIn: configService.get<string>(
-              "JWT_EXPIRES_IN",
-              "30d",
-            ) as StringValue,
+            expiresIn,
           },
         };
       },
@@ -46,6 +51,7 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
     AdminSeedService,
     JwtStrategy,
     GitHubStrategy,
+    GitHubAuthGuard,
     OptionalJwtAuthGuard,
   ],
   exports: [UserService, AuthService, GitHubAuthService],

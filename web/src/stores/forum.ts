@@ -29,8 +29,9 @@ export interface Post {
   createdAt: string
   updatedAt: string
   metadata?: string
-  // 前端扩展字段
-  isLiked?: boolean // 当前用户是否点赞
+  // 前端扩展字段（详情/列表由后端 OptionalJwt 填充）
+  isLiked?: boolean
+  isBookmarked?: boolean
 }
 
 export interface Comment {
@@ -303,6 +304,20 @@ export const useForumStore = defineStore("forum", () => {
     }
   }
 
+  /** 用服务端最终状态覆盖点赞字段，避免本地 ±1 与真实计数漂移 */
+  const applyPostLikeState = (postId: number, isLiked: boolean, likeCount: number) => {
+    const post = posts.value.find((p) => p.id === postId)
+    if (post) {
+      post.isLiked = isLiked
+      post.likeCount = likeCount
+    }
+
+    if (currentPost.value && currentPost.value.id === postId) {
+      currentPost.value.isLiked = isLiked
+      currentPost.value.likeCount = likeCount
+    }
+  }
+
   const incrementPostView = (postId: number) => {
     const post = posts.value.find((p) => p.id === postId)
     if (post) {
@@ -368,6 +383,7 @@ export const useForumStore = defineStore("forum", () => {
     updateFilters,
     resetFilters,
     togglePostLike,
+    applyPostLikeState,
     incrementPostView,
     incrementPostComment,
     clearState,

@@ -22,7 +22,7 @@ export const CurrentUser = createParamDecorator(
     }
 
     // 验证用户ID的有效性
-    if (isNaN(user.userId) || user.userId <= 0) {
+    if (!Number.isSafeInteger(user.userId) || user.userId <= 0) {
       throw new UnauthorizedException("用户ID无效");
     }
 

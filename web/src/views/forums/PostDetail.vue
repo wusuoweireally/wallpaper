@@ -24,7 +24,7 @@
         <div
           class="border-error/30 bg-error/5 mx-auto mb-4 max-w-md rounded-2xl border px-4 py-3 text-error shadow"
         >
-          <i class="i-mdi-alert-circle mr-2"></i>
+          <i class="i-[mdi--alert-circle] mr-2"></i>
           <span>{{ error }}</span>
         </div>
         <button @click="router.back()" class="btn btn-primary">返回</button>
@@ -33,7 +33,7 @@
       <template v-else-if="post">
         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
           <button class="btn btn-ghost btn-sm" @click="router.back()">
-            <i class="i-mdi-arrow-left text-lg"></i>
+            <i class="i-[mdi--arrow-left] text-lg"></i>
             返回列表
           </button>
           <div class="flex flex-wrap gap-2">
@@ -43,12 +43,12 @@
               :disabled="!userStore.isLoggedIn"
               title="举报帖子"
             >
-              <i class="i-mdi-flag text-lg"></i>
+              <i class="i-[mdi--flag] text-lg"></i>
               举报
             </button>
             <div class="dropdown dropdown-end">
               <label tabindex="0" class="btn btn-ghost btn-sm">
-                <i class="i-mdi-share text-lg"></i>
+                <i class="i-[mdi--share] text-lg"></i>
                 分享
               </label>
               <ul
@@ -68,7 +68,7 @@
               :title="isBookmarked ? '取消收藏' : '收藏帖子'"
             >
               <i
-                :class="isBookmarked ? 'i-mdi-bookmark' : 'i-mdi-bookmark-outline'"
+                :class="isBookmarked ? 'i-[mdi--bookmark]' : 'i-[mdi--bookmark-outline]'"
                 class="text-lg"
               ></i>
               {{ isBookmarked ? "已收藏" : "收藏" }}
@@ -153,17 +153,17 @@
                   </div>
                   <div class="flex flex-wrap gap-4 text-sm">
                     <div class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
-                      <i class="i-mdi-eye text-slate-600"></i>
+                      <i class="i-[mdi--eye] text-slate-600"></i>
                       <span class="font-medium text-slate-700">{{ post.viewCount || 0 }}</span>
                       <span class="text-slate-500">浏览</span>
                     </div>
                     <div class="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1">
-                      <i class="i-mdi-comment text-blue-600"></i>
+                      <i class="i-[mdi--comment] text-blue-600"></i>
                       <span class="font-medium text-blue-700">{{ post.commentCount || 0 }}</span>
                       <span class="text-blue-500">评论</span>
                     </div>
                     <div class="flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1">
-                      <i class="i-mdi-heart text-rose-600"></i>
+                      <i class="i-[mdi--heart] text-rose-600"></i>
                       <span class="font-medium text-rose-700">{{ post.likeCount || 0 }}</span>
                       <span class="text-rose-500">点赞</span>
                     </div>
@@ -174,7 +174,7 @@
                     tabindex="0"
                     class="btn btn-ghost btn-sm btn-circle shadow-md transition-shadow hover:shadow-lg"
                   >
-                    <i class="i-mdi-dots-horizontal text-slate-600"></i>
+                    <i class="i-[mdi--dots-horizontal] text-slate-600"></i>
                   </label>
                   <ul
                     tabindex="0"
@@ -182,13 +182,13 @@
                   >
                     <li class="rounded-xl hover:bg-slate-50">
                       <a @click="editPost" class="text-slate-700">
-                        <i class="i-mdi-pencil"></i>
+                        <i class="i-[mdi--pencil]"></i>
                         编辑
                       </a>
                     </li>
                     <li class="rounded-xl hover:bg-rose-50">
                       <a class="text-rose-600" @click="deletePost">
-                        <i class="i-mdi-delete"></i>
+                        <i class="i-[mdi--delete]"></i>
                         删除
                       </a>
                     </li>
@@ -207,17 +207,17 @@
               >
                 <div class="flex items-center gap-5 text-sm">
                   <div class="flex items-center gap-2 text-slate-600">
-                    <i class="i-mdi-eye text-lg"></i>
+                    <i class="i-[mdi--eye] text-lg"></i>
                     <span class="font-medium">{{ post.viewCount || 0 }}</span>
                     <span>次浏览</span>
                   </div>
                   <div class="flex items-center gap-2 text-slate-600">
-                    <i class="i-mdi-comment text-lg"></i>
+                    <i class="i-[mdi--comment] text-lg"></i>
                     <span class="font-medium">{{ post.commentCount || 0 }}</span>
                     <span>条评论</span>
                   </div>
                   <div class="flex items-center gap-2 text-slate-600">
-                    <i class="i-mdi-heart text-lg"></i>
+                    <i class="i-[mdi--heart] text-lg"></i>
                     <span class="font-medium">{{ post.likeCount || 0 }}</span>
                     <span>人点赞</span>
                   </div>
@@ -234,7 +234,7 @@
                 >
                   <span class="loading loading-spinner loading-xs" v-if="likeLoading"></span>
                   <i
-                    class="i-mdi-heart transition-all"
+                    class="i-[mdi--heart] transition-all"
                     :class="isLiked ? 'fill-current text-white' : 'group-hover:scale-110'"
                   ></i>
                   <span class="font-medium">{{ isLiked ? "已点赞" : "点赞" }}</span>
@@ -263,7 +263,7 @@
                 <div
                   class="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-3 shadow-lg shadow-indigo-500/30"
                 >
-                  <i class="i-mdi-comment text-2xl text-white"></i>
+                  <i class="i-[mdi--comment] text-2xl text-white"></i>
                 </div>
                 <div>
                   <h2
@@ -302,7 +302,7 @@
             >
               <div class="flex items-center gap-3">
                 <div class="rounded-full bg-amber-100 p-2">
-                  <i class="i-mdi-information text-lg text-amber-600"></i>
+                  <i class="i-[mdi--information] text-lg text-amber-600"></i>
                 </div>
                 <div class="flex-1">
                   <p class="mb-1 font-medium text-slate-700">登录后即可参与讨论</p>
@@ -312,7 +312,7 @@
                   class="btn btn-primary btn-sm shadow-md transition-shadow hover:shadow-lg"
                   @click="router.push('/auth/login')"
                 >
-                  <i class="i-mdi-login"></i>
+                  <i class="i-[mdi--login]"></i>
                   去登录
                 </button>
               </div>
@@ -337,11 +337,11 @@
                 <div class="mt-3 flex items-center justify-between">
                   <div class="flex items-center gap-3 text-xs text-slate-500">
                     <span class="flex items-center gap-1">
-                      <i class="i-mdi-emoticon-happy-outline"></i>
+                      <i class="i-[mdi--emoticon-happy-outline]"></i>
                       友善交流
                     </span>
                     <span class="flex items-center gap-1">
-                      <i class="i-mdi-shield-check"></i>
+                      <i class="i-[mdi--shield-check]"></i>
                       理性讨论
                     </span>
                   </div>
@@ -355,7 +355,7 @@
                       @click="submitComment"
                       :disabled="!userStore.isLoggedIn || !newComment.trim() || commentSubmitting"
                     >
-                      <i class="i-mdi-send transition-transform group-hover:translate-x-0.5"></i>
+                      <i class="i-[mdi--send] transition-transform group-hover:translate-x-0.5"></i>
                       <span class="font-medium">{{
                         commentSubmitting ? "发布中..." : "发表评论"
                       }}</span>
@@ -371,7 +371,7 @@
             >
               <div class="flex flex-col items-center gap-3">
                 <div class="rounded-full bg-slate-200 p-4">
-                  <i class="i-mdi-comment-outline text-4xl text-slate-400"></i>
+                  <i class="i-[mdi--comment-outline] text-4xl text-slate-400"></i>
                 </div>
                 <p class="text-lg font-semibold text-slate-700">暂无评论</p>
                 <p class="text-sm text-slate-500">快来发表第一条评论吧！</p>
@@ -399,7 +399,7 @@
               >
                 <span class="loading loading-spinner loading-sm mr-2" v-if="loadingMore"></span>
                 <i
-                  class="i-mdi-chevron-down transition-transform group-hover:translate-y-0.5"
+                  class="i-[mdi--chevron-down] transition-transform group-hover:translate-y-0.5"
                   v-else
                 ></i>
                 {{ loadingMore ? "加载中..." : "加载更多评论" }}
@@ -649,15 +649,6 @@ const loadMoreComments = async () => {
     await loadComments(false)
   } finally {
     loadingMore.value = false
-  }
-}
-
-const checkLikeStatus = async () => {
-  try {
-    const status = await forumService.checkLikeStatus(postId.value)
-    isLiked.value = status.hasLiked
-  } catch (err) {
-    console.error("检查点赞状态失败:", err)
   }
 }
 

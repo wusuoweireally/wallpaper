@@ -46,8 +46,10 @@ export class PostController {
   }
 
   @Get()
-  async getPosts(@Query() query: PostListQueryDto) {
-    const result = await this.postService.findAll(query);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getPosts(@Query() query: PostListQueryDto, @Req() req: Request) {
+    const user = req.user as CurrentUserType | undefined;
+    const result = await this.postService.findAll(query, user?.userId);
     return {
       success: true,
       data: result.data,
@@ -61,10 +63,14 @@ export class PostController {
     const post = await this.postService.findById(id);
     const user = req.user as CurrentUserType | undefined;
     let isLiked = false;
+    let isBookmarked = false;
     if (user?.userId) {
-      isLiked = await this.postService.hasLiked(id, user.userId);
+      [isLiked, isBookmarked] = await Promise.all([
+        this.postService.hasLiked(id, user.userId),
+        this.postService.hasBookmarked(id, user.userId),
+      ]);
     }
-    return { success: true, data: { ...post, isLiked } };
+    return { success: true, data: { ...post, isLiked, isBookmarked } };
   }
 
   @Put(":id")
@@ -94,8 +100,12 @@ export class PostController {
     @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
-    const isLiked = await this.postService.toggleLike(id, user.userId);
-    return { success: true, message: isLiked ? "点赞成功" : "取消点赞成功" };
+    const result = await this.postService.addLike(id, user.userId);
+    return {
+      success: true,
+      message: "点赞成功",
+      data: result,
+    };
   }
 
   @Delete(":id/like")
@@ -104,8 +114,8 @@ export class PostController {
     @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserType,
   ) {
-    await this.postService.removeLike(id, user.userId);
-    return { success: true, message: "已取消点赞" };
+    const result = await this.postService.removeLike(id, user.userId);
+    return { success: true, message: "已取消点赞", data: result };
   }
 
   @Get(":id/like")
@@ -119,7 +129,6 @@ export class PostController {
   }
 
   @Post(":id/share")
-  @UseGuards(JwtAuthGuard)
   async sharePost(@Param("id", ParseIntPipe) id: number) {
     await this.postService.incrementShareCount(id);
     return { success: true, message: "分享计数已更新" };
@@ -161,8 +170,16 @@ export class PostController {
     @Query() query: PaginationQueryDto,
     @CurrentUser() user: CurrentUserType,
   ) {
-    const result = await this.postService.getUserBookmarks(user.userId, query.page, query.limit);
-    return { success: true, data: result.data, pagination: buildPaginationMeta(result) };
+    const result = await this.postService.getUserBookmarks(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
   }
 
   @Get("popular/list")
@@ -183,7 +200,15 @@ export class PostController {
     @Query() query: PaginationQueryDto,
     @CurrentUser() user: CurrentUserType,
   ) {
-    const result = await this.postService.getUserPosts(user.userId, query.page, query.limit);
-    return { success: true, data: result.data, pagination: buildPaginationMeta(result) };
+    const result = await this.postService.getUserPosts(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
   }
 }

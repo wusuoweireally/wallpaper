@@ -46,7 +46,7 @@
 
         <!-- 举报说明 -->
         <div class="alert alert-info mb-6">
-          <i class="i-mdi-information"></i>
+          <i class="i-[mdi--information]"></i>
           <div>
             <p class="font-semibold">举报说明</p>
             <ul class="mt-1 space-y-1 text-sm">

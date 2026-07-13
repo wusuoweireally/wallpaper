@@ -1,28 +1,38 @@
 import {
   IsArray,
+  ArrayNotEmpty,
   ArrayMaxSize,
+  ArrayUnique,
   IsEnum,
   IsInt,
   IsNotEmpty,
-  IsNumberString,
   IsOptional,
   IsString,
   IsBoolean,
+  Length,
+  MaxLength,
   Max,
   Min,
+  IsIn,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { UserRole } from "../entities/user.entity";
 import { CreateUserDto, UpdateUserDto } from "./user.dto";
 import { UpdateWallpaperDto } from "./wallpaper.dto";
+import { WallpaperStatus } from "../entities/wallpaper.entity";
 
 export class AdminUserQueryDto {
   @Type(() => Number)
   @IsOptional()
+  @IsInt()
+  @Min(1)
   page?: number = 1;
 
   @Type(() => Number)
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number = 20;
 
   @IsOptional()
@@ -31,6 +41,9 @@ export class AdminUserQueryDto {
 
   @Type(() => Number)
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1)
   status?: number;
 
   @IsOptional()
@@ -45,6 +58,11 @@ export class AdminCreateUserDto extends CreateUserDto {
 }
 
 export class AdminUpdateUserDto extends UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  @Length(8, 64, { message: "密码长度必须在8-64个字符之间" })
+  password?: string;
+
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
@@ -65,47 +83,85 @@ export class UpdateUserStatusDto {
 }
 
 export class AdminWallpaperQueryDto {
+  @Type(() => Number)
   @IsOptional()
-  @IsNumberString()
-  page?: string = "1";
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
+  @Type(() => Number)
   @IsOptional()
-  @IsNumberString()
-  limit?: string = "20";
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 
   @IsOptional()
   @IsString()
   search?: string;
 
+  @Type(() => Number)
   @IsOptional()
-  @IsNumberString()
-  status?: string;
+  @IsInt()
+  @Min(0)
+  @Max(2)
+  status?: number;
 
+  @Type(() => Number)
   @IsOptional()
-  @IsNumberString()
-  uploaderId?: string;
+  @IsInt()
+  @Min(1)
+  uploaderId?: number;
 
   @IsOptional()
   @IsString()
   category?: "general" | "anime" | "people";
 }
 
-export class AdminUpdateWallpaperDto extends UpdateWallpaperDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @Max(1)
-  status?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isFeatured?: boolean;
-}
+export class AdminUpdateWallpaperDto extends UpdateWallpaperDto {}
 
 export class AdminUpdateWallpaperTagsDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @Length(1, 50, { each: true })
   tags?: string[];
+}
+
+export class AdminReviewWallpaperDto {
+  @Type(() => Number)
+  @IsIn([WallpaperStatus.APPROVED, WallpaperStatus.REJECTED])
+  status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reviewNote?: string;
+}
+
+export class AdminWallpaperIdsDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  ids: number[];
+}
+
+export class AdminBatchFeaturedDto extends AdminWallpaperIdsDto {
+  @IsBoolean()
+  isFeatured: boolean;
+}
+
+export class AdminBatchReviewWallpaperDto extends AdminWallpaperIdsDto {
+  @Type(() => Number)
+  @IsIn([WallpaperStatus.APPROVED, WallpaperStatus.REJECTED])
+  status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reviewNote?: string;
 }

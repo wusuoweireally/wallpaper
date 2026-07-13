@@ -5,7 +5,6 @@ import axios, {
 } from "axios"
 import { useGlobalToast } from "@/composables/useToast"
 
-
 const AUTH_EXPIRED_EVENT = "auth-expired"
 let isDispatchingAuthExpired = false
 const { error: toastError } = useGlobalToast()
@@ -14,8 +13,9 @@ const { error: toastError } = useGlobalToast()
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   requestId?: string
   skipAuthExpiredHandler?: boolean
+  skipDuplicateRequestCancellation?: boolean
+  skipGlobalErrorToast?: boolean
 }
-
 
 // 分页元数据
 export interface PaginationMeta {
@@ -49,6 +49,8 @@ const cancelTokenSources: Map<string, CancelTokenSource> = new Map()
 // 请求拦截器 - 添加请求取消功能
 api.interceptors.request.use(
   (config: CustomAxiosRequestConfig) => {
+    if (config.skipDuplicateRequestCancellation) return config
+
     // 生成更精确的请求ID，包含URL、方法和参数
     const params = new URLSearchParams()
 
@@ -100,7 +102,7 @@ api.interceptors.response.use(
     // 请求成功完成，清理取消令牌
     const config = response.config as CustomAxiosRequestConfig
     const requestId = config.requestId
-    if (requestId && cancelTokenSources.has(requestId)) {
+    if (requestId && cancelTokenSources.get(requestId)?.token === config.cancelToken) {
       cancelTokenSources.delete(requestId)
     }
 
@@ -116,12 +118,24 @@ api.interceptors.response.use(
 
     return response.data
   },
-  (error: Error & { response?: { status: number; data?: { message?: string } }; code?: string; config?: CustomAxiosRequestConfig; request?: unknown; isCancelled?: boolean }) => {
+  (
+    error: Error & {
+      response?: { status: number; data?: { message?: string } }
+      code?: string
+      config?: CustomAxiosRequestConfig
+      request?: unknown
+      isCancelled?: boolean
+      userMessage?: string
+      timestamp?: string
+    },
+  ) => {
+    const requestConfig = error.config as CustomAxiosRequestConfig | undefined
+    const shouldToast = !requestConfig?.skipGlobalErrorToast
     // 清理取消令牌
     if (error.config) {
       const config = error.config as CustomAxiosRequestConfig
       const requestId = config.requestId
-      if (requestId && cancelTokenSources.has(requestId)) {
+      if (requestId && cancelTokenSources.get(requestId)?.token === config.cancelToken) {
         cancelTokenSources.delete(requestId)
       }
     }
@@ -144,21 +158,16 @@ api.interceptors.response.use(
     if (error.code === "ECONNABORTED") {
       errorMessage = "请求超时，请检查网络连接或稍后重试"
       console.error("请求超时:", error.message)
-      toastError(errorMessage)
+      if (shouldToast) toastError(errorMessage)
 
-      const enhancedError = {
-        ...error,
-        userMessage: errorMessage,
-        timestamp: new Date().toISOString(),
-      }
-      return Promise.reject(enhancedError)
+      error.userMessage = errorMessage
+      error.timestamp = new Date().toISOString()
+      return Promise.reject(error)
     }
 
     if (error.response) {
       const status = error.response.status
       const message = error.response.data?.message || ""
-      const requestConfig = error.config as CustomAxiosRequestConfig | undefined
-
       switch (status) {
         case 401:
           errorMessage = "登录已过期，请重新登录"
@@ -211,27 +220,23 @@ api.interceptors.response.use(
       }
 
       // 401 登录过期交由全局处理，其余错误给出提示
-      if (status !== 401 || requestConfig?.skipAuthExpiredHandler) {
+      if (shouldToast && (status !== 401 || requestConfig?.skipAuthExpiredHandler)) {
         toastError(errorMessage)
       }
     } else if (error.request) {
       errorMessage = "网络连接失败，请检查网络"
       console.error("网络错误:", error.request)
-      toastError(errorMessage)
+      if (shouldToast) toastError(errorMessage)
     } else {
       errorMessage = "请求配置错误"
       console.error("配置错误:", error.message)
-      toastError(errorMessage)
+      if (shouldToast) toastError(errorMessage)
     }
 
     // 包装错误对象，添加上下文信息
-    const enhancedError = {
-      ...error,
-      userMessage: errorMessage,
-      timestamp: new Date().toISOString(),
-    }
-
-    return Promise.reject(enhancedError)
+    error.userMessage = errorMessage
+    error.timestamp = new Date().toISOString()
+    return Promise.reject(error)
   },
 )
 
@@ -253,13 +258,33 @@ export default api
 declare module "axios" {
   export interface AxiosRequestConfig {
     skipAuthExpiredHandler?: boolean
+    skipDuplicateRequestCancellation?: boolean
+    skipGlobalErrorToast?: boolean
   }
 
   export interface AxiosInstance {
-    get<T = unknown>(url: string, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
-    post<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
-    put<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
-    patch<T = unknown>(url: string, data?: unknown, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
-    delete<T = unknown>(url: string, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<T>>
+    get<T = unknown>(
+      url: string,
+      config?: import("axios").AxiosRequestConfig,
+    ): Promise<ApiResponse<T>>
+    post<T = unknown>(
+      url: string,
+      data?: unknown,
+      config?: import("axios").AxiosRequestConfig,
+    ): Promise<ApiResponse<T>>
+    put<T = unknown>(
+      url: string,
+      data?: unknown,
+      config?: import("axios").AxiosRequestConfig,
+    ): Promise<ApiResponse<T>>
+    patch<T = unknown>(
+      url: string,
+      data?: unknown,
+      config?: import("axios").AxiosRequestConfig,
+    ): Promise<ApiResponse<T>>
+    delete<T = unknown>(
+      url: string,
+      config?: import("axios").AxiosRequestConfig,
+    ): Promise<ApiResponse<T>>
   }
 }

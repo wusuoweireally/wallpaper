@@ -7,7 +7,7 @@
 
     <!-- 空状态 -->
     <div v-else-if="showcaseWallpapers.length === 0" class="py-12 text-center">
-      <i class="i-mdi-image-off mb-4 text-6xl text-gray-300 dark:text-slate-600"></i>
+      <i class="i-[mdi--image-off] mb-4 text-6xl text-gray-300 dark:text-slate-600"></i>
       <p class="text-lg text-gray-500 dark:text-slate-300">暂无精选壁纸</p>
     </div>
 

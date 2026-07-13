@@ -44,17 +44,8 @@
             </svg>
           </button>
           <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
-            {{ wallpaper.title || `壁纸 #${wallpaper.id}` }}
+            壁纸 #{{ wallpaper.id }}
           </h2>
-        </div>
-
-        <!-- 描述 -->
-        <div
-          v-if="wallpaper.description"
-          class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
-        >
-          <h3 class="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-300">描述</h3>
-          <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ wallpaper.description }}</p>
         </div>
 
         <div
@@ -390,8 +381,6 @@ interface WallpaperDetail {
   height: number
   fileSize: string
   tags: string[]
-  title?: string
-  description?: string
   uploader: {
     id: number
     name: string
@@ -440,8 +429,6 @@ const wallpaper = ref<WallpaperDetail>({
   height: 0,
   fileSize: "",
   tags: [],
-  title: "",
-  description: "",
   uploader: {
     id: 0,
     name: "",
@@ -512,8 +499,6 @@ const fetchWallpaperDetail = async () => {
       height: wallpaperResponse.data.height,
       fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
       tags: (wallpaperResponse.data.tags || []).map((tag: { name: string }) => tag.name),
-      title: wallpaperResponse.data.title || "",
-      description: wallpaperResponse.data.description || "",
       uploader: {
         id: wallpaperResponse.data.uploaderId,
         name: wallpaperResponse.data.uploader?.username || "未知用户",
@@ -713,8 +698,7 @@ const downloadWallpaper = async () => {
 
   // 使用正确的文件扩展名
   const ext = wallpaper.value.format?.toLowerCase() || wallpaper.value.imageUrl.split(".")?.pop() || "jpg"
-  const titlePart = wallpaper.value.title ? `-${wallpaper.value.title.replace(/[^\w\u4e00-\u9fa5]/g, "_").slice(0, 50)}` : ""
-  const fileName = `wallpaper-${wallpaper.value.id}${titlePart}.${ext}`
+  const fileName = `wallpaper-${wallpaper.value.id}.${ext}`
   const link = document.createElement("a")
   link.href = wallpaper.value.imageUrl
   link.download = fileName

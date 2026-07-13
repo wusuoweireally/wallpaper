@@ -14,16 +14,17 @@ import { PostLike } from "../entities/post-like.entity";
 import { CommentLike } from "../entities/comment-like.entity";
 import { Report } from "../entities/report.entity";
 import { PostBookmark } from "../entities/post-bookmark.entity";
+import {
+  getDatabaseConnectionOptions,
+  loadDatabaseEnvironment,
+} from "./database";
+
+loadDatabaseEnvironment();
 
 // TypeORM DataSource 配置
 // 用于 CLI 工具（迁移生成和执行）
 export const AppDataSource = new DataSource({
-  type: "mysql",
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT || 3306),
-  username: process.env.DB_USERNAME || "root",
-  password: process.env.DB_PASSWORD || "12345678",
-  database: process.env.DB_DATABASE || "wallpaper_site",
+  ...getDatabaseConnectionOptions(),
   entities: [
     User,
     Wallpaper,
@@ -42,8 +43,6 @@ export const AppDataSource = new DataSource({
   migrations: [join(__dirname, "..", "migrations", "*{.ts,.js}")],
   synchronize: false,
   logging: true,
-  charset: "utf8mb4",
-  timezone: "+08:00",
 });
 
 /**

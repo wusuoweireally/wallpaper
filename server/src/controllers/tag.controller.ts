@@ -1,8 +1,10 @@
+import { SkipThrottle } from "@nestjs/throttler";
 import {
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -18,6 +20,7 @@ import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
 import { UserRole } from "../entities/user.entity";
 
+@SkipThrottle()
 @Controller("tags")
 export class TagController {
   constructor(private readonly tagService: TagService) {}
@@ -68,8 +71,11 @@ export class TagController {
   @Get(":id")
   async getTagById(
     @Param("id", ParseIntPipe) id: number,
-  ): Promise<{ success: boolean; data: Tag | null }> {
+  ): Promise<{ success: boolean; data: Tag }> {
     const tag = await this.tagService.getTagById(id);
+    if (!tag) {
+      throw new NotFoundException("标签不存在");
+    }
     return {
       success: true,
       data: tag,

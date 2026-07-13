@@ -4,6 +4,7 @@ import { RolesGuard } from "../../guards/roles.guard";
 import { Roles } from "../../decorators/roles.decorator";
 import { UserRole } from "../../entities/user.entity";
 import { AdminDashboardService } from "../../services/admin-dashboard.service";
+import { normalizeLimit } from "../../common/pagination";
 
 @Controller("admin/dashboard")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -23,7 +24,7 @@ export class AdminDashboardController {
 
   @Get("activity")
   async getRecentActivity(@Query("limit") limit?: string) {
-    const take = limit ? Math.min(Math.max(Number(limit), 1), 20) : 8;
+    const take = normalizeLimit(Number(limit), 8, 20);
     const activity = await this.dashboardService.getRecentActivity(take);
     return {
       success: true,

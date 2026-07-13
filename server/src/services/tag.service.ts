@@ -4,10 +4,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, EntityManager, In, Repository } from "typeorm";
 import { Tag } from "../entities/tag.entity";
+import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { CreateTagDto } from "../dto/tag.dto";
+import { normalizeLimit, normalizePagination } from "../common/pagination";
 
 @Injectable()
 export class TagService {
@@ -30,6 +32,7 @@ export class TagService {
    * @param limit 返回数量限制
    */
   async searchTags(keyword?: string, limit: number = 10): Promise<Tag[]> {
+    limit = normalizeLimit(limit, 10, 50);
     const queryBuilder = this.tagRepository.createQueryBuilder("tag");
 
     if (keyword) {
@@ -46,26 +49,27 @@ export class TagService {
    * @param createTagDto 创建标签数据
    */
   async createTag(createTagDto: CreateTagDto): Promise<Tag> {
-    const { name } = createTagDto;
+    return this.findOrCreateTag(this.tagRepository, createTagDto.name);
+  }
+
+  private async findOrCreateTag(
+    repository: Repository<Tag>,
+    name: string,
+  ): Promise<Tag> {
     const normalizedName = name.trim();
     const slug = this.generateSlug(normalizedName);
+    const existing = await repository.findOne({ where: { slug } });
+    if (existing) return existing;
 
-    // 检查标签是否已存在
-    const existingTag = await this.tagRepository.findOne({
-      where: { slug },
-    });
+    await repository
+      .createQueryBuilder()
+      .insert()
+      .into(Tag)
+      .values({ name: normalizedName, slug, usageCount: 0 })
+      .orIgnore()
+      .execute();
 
-    if (existingTag) {
-      return existingTag;
-    }
-
-    const tag = this.tagRepository.create({
-      name: normalizedName,
-      slug,
-      usageCount: 0,
-    });
-
-    return this.tagRepository.save(tag);
+    return repository.findOneOrFail({ where: { slug } });
   }
 
   /**
@@ -79,12 +83,14 @@ export class TagService {
     sortOrder?: "ASC" | "DESC";
   }): Promise<{ data: Tag[]; total: number; page: number; limit: number }> {
     const {
-      page = 1,
-      limit = 20,
+      page: requestedPage = 1,
+      limit: requestedLimit = 20,
       keyword,
       sortBy = "usageCount",
       sortOrder = "DESC",
     } = query;
+
+    const { page, limit } = normalizePagination(requestedPage, requestedLimit);
 
     const qb = this.tagRepository.createQueryBuilder("tag");
 
@@ -98,20 +104,17 @@ export class TagService {
     const orderField = validSort.includes(sortBy) ? sortBy : "usageCount";
     const orderDirection = sortOrder === "ASC" ? "ASC" : "DESC";
 
-    const take = Math.min(Math.max(limit, 1), 100);
-    const currentPage = Math.max(page, 1);
-
     const [data, total] = await qb
       .orderBy(`tag.${orderField}`, orderDirection)
-      .skip((currentPage - 1) * take)
-      .take(take)
+      .skip((page - 1) * limit)
+      .take(limit)
       .getManyAndCount();
 
     return {
       data,
       total,
-      page: currentPage,
-      limit: take,
+      page,
+      limit,
     };
   }
 
@@ -143,19 +146,34 @@ export class TagService {
     }
 
     const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new BadRequestException("标签名称不能为空");
+    }
+    const slug = this.generateSlug(normalizedName);
+    const duplicate = await this.tagRepository.findOne({ where: { slug } });
+    if (duplicate && duplicate.id !== id) {
+      throw new BadRequestException("标签名称已存在");
+    }
     tag.name = normalizedName;
-    tag.slug = this.generateSlug(normalizedName);
+    tag.slug = slug;
 
     return this.tagRepository.save(tag);
   }
 
   async deleteTag(id: number): Promise<void> {
-    const tag = await this.tagRepository.findOne({ where: { id } });
-    if (!tag) {
-      throw new NotFoundException("标签不存在");
-    }
-
-    await this.tagRepository.delete(id);
+    await this.dataSource.transaction(async (manager) => {
+      const tag = await manager
+        .getRepository(Tag)
+        .createQueryBuilder("tag")
+        .setLock("pessimistic_write")
+        .where("tag.id = :id", { id })
+        .getOne();
+      if (!tag) {
+        throw new NotFoundException("标签不存在");
+      }
+      await manager.delete(WallpaperTag, { tagId: id });
+      await manager.delete(Tag, id);
+    });
   }
 
   /**
@@ -172,15 +190,12 @@ export class TagService {
    * @param tagId 标签ID
    */
   async decrementUsageCount(tagId: number): Promise<void> {
-    await this.tagRepository.decrement({ id: tagId }, "usageCount", 1);
-  }
-
-  /**
-   * 根据 slug 查找已存在的标签
-   */
-  private async findTagByName(name: string): Promise<Tag | null> {
-    const slug = this.generateSlug(name.trim());
-    return this.tagRepository.findOne({ where: { slug } });
+    await this.tagRepository
+      .createQueryBuilder()
+      .update(Tag)
+      .set({ usageCount: () => "GREATEST(usage_count - 1, 0)" })
+      .where("id = :tagId", { tagId })
+      .execute();
   }
 
   /**
@@ -196,6 +211,17 @@ export class TagService {
     tagNames: string[],
     allowCreate = false,
   ): Promise<void> {
+    await this.dataSource.transaction((manager) =>
+      this.attachWallpaperTags(manager, wallpaperId, tagNames, allowCreate),
+    );
+  }
+
+  async attachWallpaperTags(
+    manager: EntityManager,
+    wallpaperId: number,
+    tagNames: string[],
+    allowCreate = false,
+  ): Promise<void> {
     if (!tagNames || tagNames.length === 0) return;
 
     const normalizedNames = Array.from(
@@ -203,12 +229,20 @@ export class TagService {
     );
     if (normalizedNames.length === 0) return;
 
-    // 批量查询已存在的标签（避免 N+1）
-    const slugs = normalizedNames.map((n) => this.generateSlug(n));
-    const existingTags = await this.tagRepository.find({
-      where: slugs.map((s) => ({ slug: s })),
-    });
-    const existingBySlug = new Map(existingTags.map((t) => [t.slug, t]));
+    const tagRepo = manager.getRepository(Tag);
+    const wallpaperTagRepo = manager.getRepository(WallpaperTag);
+    const wallpaper = await manager
+      .getRepository(Wallpaper)
+      .createQueryBuilder("wallpaper")
+      .setLock("pessimistic_write")
+      .where("wallpaper.id = :wallpaperId", { wallpaperId })
+      .getOne();
+    if (!wallpaper) {
+      throw new NotFoundException("壁纸不存在");
+    }
+    const slugs = normalizedNames.map((name) => this.generateSlug(name));
+    const existingTags = await tagRepo.find({ where: { slug: In(slugs) } });
+    const existingBySlug = new Map(existingTags.map((tag) => [tag.slug, tag]));
 
     if (!allowCreate) {
       const missingTags = normalizedNames.filter(
@@ -221,31 +255,35 @@ export class TagService {
       }
     }
 
-    const tags: Tag[] = [];
-    for (const name of normalizedNames) {
-      const slug = this.generateSlug(name);
-      let tag = existingBySlug.get(slug);
-      if (!tag) {
-        if (!allowCreate) continue;
-        tag = await this.createTag({ name });
+    const tags = [...existingTags];
+    if (allowCreate) {
+      for (const name of normalizedNames) {
+        const slug = this.generateSlug(name);
+        if (existingBySlug.has(slug)) continue;
+        const tag = await this.findOrCreateTag(tagRepo, name);
+        existingBySlug.set(slug, tag);
+        tags.push(tag);
       }
-      tags.push(tag);
     }
 
-    if (tags.length === 0) return;
-
-    // 批量检查已有关联
-    const existingAssociations = await this.wallpaperTagRepository.find({
+    const existingAssociations = await wallpaperTagRepo.find({
       where: { wallpaperId },
     });
-    const associatedTagIds = new Set(existingAssociations.map((a) => a.tagId));
+    const associatedTagIds = new Set(
+      existingAssociations.map((association) => association.tagId),
+    );
+    const newTags = tags.filter((tag) => !associatedTagIds.has(tag.id));
+    if (newTags.length === 0) return;
 
-    const newTags = tags.filter((t) => !associatedTagIds.has(t.id));
-    for (const tag of newTags) {
-      await this.wallpaperTagRepository.save(
-        this.wallpaperTagRepository.create({ wallpaperId, tagId: tag.id }),
+    await wallpaperTagRepo.insert(
+      newTags.map((tag) => ({ wallpaperId, tagId: tag.id })),
+    );
+    if (wallpaper.status === WallpaperStatus.APPROVED) {
+      await tagRepo.increment(
+        { id: In(newTags.map((tag) => tag.id)) },
+        "usageCount",
+        1,
       );
-      await this.incrementUsageCount(tag.id);
     }
   }
 
@@ -269,23 +307,19 @@ export class TagService {
       const tagRepo = manager.getRepository(Tag);
       const wallpaperTagRepo = manager.getRepository(WallpaperTag);
 
+      const wallpaper = await manager
+        .getRepository(Wallpaper)
+        .createQueryBuilder("wallpaper")
+        .setLock("pessimistic_write")
+        .where("wallpaper.id = :wallpaperId", { wallpaperId })
+        .getOne();
+      if (!wallpaper) {
+        throw new NotFoundException("壁纸不存在");
+      }
+
       const currentTags = await wallpaperTagRepo.find({
         where: { wallpaperId },
-        relations: ["tag"],
       });
-
-      if (currentTags.length > 0) {
-        await wallpaperTagRepo.delete({ wallpaperId });
-        for (const relation of currentTags) {
-          if (relation.tag && relation.tag.usageCount > 0) {
-            await tagRepo.decrement({ id: relation.tagId }, "usageCount", 1);
-          }
-        }
-      }
-
-      if (uniqueNames.length === 0) {
-        return [];
-      }
 
       const tags: Tag[] = [];
       for (const name of uniqueNames) {
@@ -293,15 +327,45 @@ export class TagService {
         let tag = await tagRepo.findOne({ where: { slug } });
 
         if (!tag) {
-          tag = tagRepo.create({ name, slug, usageCount: 0 });
-          await tagRepo.save(tag);
+          tag = await this.findOrCreateTag(tagRepo, name);
         }
 
         tags.push(tag);
-        await wallpaperTagRepo.save(
-          wallpaperTagRepo.create({ wallpaperId, tagId: tag.id }),
+      }
+
+      const currentTagIds = new Set(
+        currentTags.map((relation) => relation.tagId),
+      );
+      const nextTagIds = new Set(tags.map((tag) => tag.id));
+      const removedIds = [...currentTagIds].filter((id) => !nextTagIds.has(id));
+      const addedTags = tags.filter((tag) => !currentTagIds.has(tag.id));
+
+      if (removedIds.length > 0) {
+        await wallpaperTagRepo.delete({
+          wallpaperId,
+          tagId: In(removedIds),
+        });
+        if (wallpaper.status === WallpaperStatus.APPROVED) {
+          await tagRepo
+            .createQueryBuilder()
+            .update(Tag)
+            .set({ usageCount: () => "GREATEST(usage_count - 1, 0)" })
+            .where("id IN (:...removedIds)", { removedIds })
+            .execute();
+        }
+      }
+
+      if (addedTags.length > 0) {
+        await wallpaperTagRepo.insert(
+          addedTags.map((tag) => ({ wallpaperId, tagId: tag.id })),
         );
-        await tagRepo.increment({ id: tag.id }, "usageCount", 1);
+        if (wallpaper.status === WallpaperStatus.APPROVED) {
+          await tagRepo.increment(
+            { id: In(addedTags.map((tag) => tag.id)) },
+            "usageCount",
+            1,
+          );
+        }
       }
 
       return tags;

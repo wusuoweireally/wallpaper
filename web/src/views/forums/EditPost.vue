@@ -29,7 +29,7 @@
               <div
                 class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 py-1.5 dark:border-emerald-700/50 dark:from-emerald-500/20 dark:to-teal-500/20"
               >
-                <i class="i-mdi-pencil-circle text-emerald-600 dark:text-emerald-400"></i>
+                <i class="i-[mdi--pencil-circle] text-emerald-600 dark:text-emerald-400"></i>
                 <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-300">
                   Update
                 </p>
@@ -48,7 +48,7 @@
                 class="btn btn-ghost shadow-sm transition-all hover:bg-slate-100 hover:shadow-md dark:hover:bg-slate-700"
                 @click="handleCancel"
               >
-                <i class="i-mdi-close text-lg"></i>
+                <i class="i-[mdi--close] text-lg"></i>
                 取消
               </button>
               <button
@@ -57,7 +57,7 @@
                 :disabled="!hasChanges"
               >
                 <i
-                  class="i-mdi-restore text-lg transition-transform duration-500 group-hover:rotate-180"
+                  class="i-[mdi--restore] text-lg transition-transform duration-500 group-hover:rotate-180"
                 ></i>
                 恢复原始
               </button>
@@ -66,7 +66,7 @@
                 @click="previewPost"
                 :disabled="!hasContent"
               >
-                <i class="i-mdi-eye text-lg transition-transform group-hover:scale-110"></i>
+                <i class="i-[mdi--eye] text-lg transition-transform group-hover:scale-110"></i>
                 预览
               </button>
               <button
@@ -78,7 +78,7 @@
                   class="absolute inset-0 -translate-x-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-700 group-hover:translate-x-full dark:from-white/0 dark:via-white/10 dark:to-white/0"
                 ></span>
                 <i
-                  class="i-mdi-content-save relative z-10 text-lg transition-transform group-hover:-translate-y-0.5"
+                  class="i-[mdi--content-save] relative z-10 text-lg transition-transform group-hover:-translate-y-0.5"
                   v-if="!isSubmitting"
                 ></i>
                 <span class="loading loading-spinner loading-sm relative z-10" v-else></span>
@@ -107,7 +107,7 @@
       >
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <i class="i-mdi-alert-circle text-2xl"></i>
+            <i class="i-[mdi--alert-circle] text-2xl"></i>
             <span>{{ error }}</span>
           </div>
           <button class="btn btn-sm" @click="router.back()">返回</button>
@@ -126,7 +126,7 @@
               <div class="form-control group">
                 <label class="label mb-2">
                   <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-mdi-format-title text-blue-600 dark:text-blue-400"></i>
+                    <i class="i-[mdi--format-title] text-blue-600 dark:text-blue-400"></i>
                     标题 <span class="text-error">*</span>
                   </span>
                 </label>
@@ -152,7 +152,7 @@
               <div class="form-control group">
                 <label class="label mb-2">
                   <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-mdi-shape-outline text-indigo-600 dark:text-indigo-400"></i>
+                    <i class="i-[mdi--shape-outline] text-indigo-600 dark:text-indigo-400"></i>
                     分类 <span class="text-error">*</span>
                   </span>
                 </label>
@@ -179,7 +179,7 @@
             <div class="form-control group">
               <label class="label mb-2">
                 <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                  <i class="i-mdi-text text-emerald-600 dark:text-emerald-400"></i>
+                  <i class="i-[mdi--text] text-emerald-600 dark:text-emerald-400"></i>
                   内容 <span class="text-error">*</span>
                 </span>
               </label>
@@ -205,7 +205,7 @@
               <div class="form-control group">
                 <label class="label mb-2">
                   <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-mdi-text-short text-amber-600 dark:text-amber-400"></i>
+                    <i class="i-[mdi--text-short] text-amber-600 dark:text-amber-400"></i>
                     摘要 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
                   </span>
                 </label>
@@ -225,7 +225,7 @@
               <div class="form-control group">
                 <label class="label mb-2">
                   <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-mdi-tag-outline text-purple-600 dark:text-purple-400"></i>
+                    <i class="i-[mdi--tag-outline] text-purple-600 dark:text-purple-400"></i>
                     标签 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
                   </span>
                 </label>
@@ -240,7 +240,7 @@
                       @click="removeTag(index)"
                       class="btn btn-ghost btn-xs h-4 w-4 p-0 opacity-0 transition-opacity hover:text-rose-600 group-hover:opacity-100"
                     >
-                      <i class="i-mdi-close text-xs"></i>
+                      <i class="i-[mdi--close] text-xs"></i>
                     </button>
                   </div>
                 </div>
@@ -258,7 +258,7 @@
                     class="btn btn-primary btn-sm shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:hover:scale-100"
                     :disabled="!newTag.trim()"
                   >
-                    <i class="i-mdi-plus"></i>
+                    <i class="i-[mdi--plus]"></i>
                     添加
                   </button>
                 </div>
@@ -280,7 +280,7 @@
                   <div
                     class="rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2 shadow-md shadow-amber-500/30"
                   >
-                    <i class="i-mdi-information text-lg text-white"></i>
+                    <i class="i-[mdi--information] text-lg text-white"></i>
                   </div>
                   <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">编辑说明</h3>
                 </div>
@@ -321,14 +321,14 @@
                   @click="previewPost"
                   :disabled="!hasContent"
                 >
-                  <i class="i-mdi-eye text-base"></i>
+                  <i class="i-[mdi--eye] text-base"></i>
                   预览效果
                 </button>
                 <button
                   class="btn btn-ghost btn-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
                   @click="handleCancel"
                 >
-                  <i class="i-mdi-arrow-left text-base"></i>
+                  <i class="i-[mdi--arrow-left] text-base"></i>
                   返回详情页
                 </button>
               </div>
@@ -344,7 +344,7 @@
             <div class="relative">
               <div class="mb-4 flex items-center justify-between">
                 <h3 class="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                  <i class="i-mdi-eye-outline text-emerald-600 dark:text-emerald-400"></i>
+                  <i class="i-[mdi--eye-outline] text-emerald-600 dark:text-emerald-400"></i>
                   实时预览
                 </h3>
                 <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-400">{{

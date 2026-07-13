@@ -105,8 +105,8 @@ export class Post {
   @Index("idx_last_comment_at")
   lastCommentAt: Date;
 
-  @Column({ nullable: true, comment: "标签" })
-  tags: string;
+  @Column({ type: "varchar", length: 255, nullable: true, comment: "标签" })
+  tags: string | null;
 
   @Column({ type: "text", nullable: true, comment: "摘要" })
   summary: string;

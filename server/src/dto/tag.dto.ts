@@ -1,5 +1,5 @@
-import { IsString, IsOptional, Length } from "class-validator";
-import { Type } from "class-transformer";
+import { IsIn, IsString, IsOptional, Length } from "class-validator";
+import { PaginationQueryDto } from "./pagination.dto";
 
 export class CreateTagDto {
   @IsString({ message: "标签名称必须是字符串" })
@@ -7,25 +7,17 @@ export class CreateTagDto {
   name: string;
 }
 
-export class SearchTagsDto {
-  @Type(() => Number)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsOptional()
-  limit?: number = 20;
-
+export class SearchTagsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString({ message: "搜索关键词必须是字符串" })
   keyword?: string;
 
   @IsOptional()
-  @IsString({ message: "排序字段必须是字符串" })
-  sortBy?: string;
+  @IsIn(["usageCount", "name", "createdAt"])
+  sortBy?: "usageCount" | "name" | "createdAt";
 
   @IsOptional()
-  @IsString({ message: "排序方向必须是字符串" })
+  @IsIn(["ASC", "DESC"])
   sortOrder?: "ASC" | "DESC";
 }
 

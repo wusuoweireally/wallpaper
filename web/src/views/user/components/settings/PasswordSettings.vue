@@ -5,7 +5,7 @@
       <div class="mb-8 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-            <i class="i-mdi-lock text-xl text-blue-600"></i>
+            <i class="i-[mdi--lock] text-xl text-blue-600"></i>
           </div>
           <div>
             <h3 class="text-xl font-semibold text-gray-900">修改密码</h3>
@@ -13,7 +13,7 @@
           </div>
         </div>
         <div class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
-          <i class="i-mdi-shield-check mr-1"></i>
+          <i class="i-[mdi--shield-check] mr-1"></i>
           安全保护
         </div>
       </div>
@@ -34,7 +34,7 @@
               @click="showNewPassword = !showNewPassword"
               class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
             >
-              <i :class="showNewPassword ? 'i-mdi-eye-off' : 'i-mdi-eye'"></i>
+              <i :class="showNewPassword ? 'i-[mdi--eye-off]' : 'i-[mdi--eye]'"></i>
             </button>
           </div>
           <!-- 密码强度指示器 -->
@@ -71,7 +71,7 @@
               @click="showConfirmPassword = !showConfirmPassword"
               class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
             >
-              <i :class="showConfirmPassword ? 'i-mdi-eye-off' : 'i-mdi-eye'"></i>
+              <i :class="showConfirmPassword ? 'i-[mdi--eye-off]' : 'i-[mdi--eye]'"></i>
             </button>
           </div>
           <p class="mt-1 text-xs text-gray-500">
@@ -82,7 +82,7 @@
               "
               class="text-green-600"
             >
-              <i class="i-mdi-check mr-1"></i>密码匹配
+              <i class="i-[mdi--check] mr-1"></i>密码匹配
             </span>
             <span
               v-else-if="
@@ -91,7 +91,7 @@
               "
               class="text-red-600"
             >
-              <i class="i-mdi-close mr-1"></i>密码不匹配
+              <i class="i-[mdi--close] mr-1"></i>密码不匹配
             </span>
           </p>
         </div>
@@ -100,7 +100,7 @@
       <!-- 密码要求说明 -->
       <div class="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
         <h4 class="mb-4 flex items-center gap-2 font-medium text-gray-900">
-          <i class="i-mdi-information text-lg"></i>
+          <i class="i-[mdi--information] text-lg"></i>
           密码要求
         </h4>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -108,8 +108,8 @@
             <i
               :class="
                 passwordChecks.length
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>至少 8 个字符</span>
@@ -118,8 +118,8 @@
             <i
               :class="
                 passwordChecks.uppercase
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>包含大写字母</span>
@@ -128,8 +128,8 @@
             <i
               :class="
                 passwordChecks.lowercase
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>包含小写字母</span>
@@ -138,8 +138,8 @@
             <i
               :class="
                 passwordChecks.number
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>包含数字</span>
@@ -148,8 +148,8 @@
             <i
               :class="
                 passwordChecks.special
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>包含特殊字符</span>
@@ -158,8 +158,8 @@
             <i
               :class="
                 passwordChecks.match
-                  ? 'i-mdi-check-circle text-green-500'
-                  : 'i-mdi-circle-outline text-gray-400'
+                  ? 'i-[mdi--check-circle] text-green-500'
+                  : 'i-[mdi--circle-outline] text-gray-400'
               "
             ></i>
             <span>两次输入一致</span>
@@ -170,7 +170,7 @@
       <!-- 安全建议 -->
       <div class="mb-8 rounded-xl border border-blue-200 bg-blue-50 p-4">
         <p class="text-sm text-blue-800">
-          <i class="i-mdi-lightbulb mr-2 text-blue-500"></i>
+          <i class="i-[mdi--lightbulb] mr-2 text-blue-500"></i>
           <strong>安全建议：</strong
           >避免使用生日、姓名等容易被猜到的信息，不要在不同网站重复使用同一密码。
         </p>
@@ -181,7 +181,7 @@
         v-if="error"
         class="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4"
       >
-        <i class="i-mdi-alert-circle text-xl text-red-500"></i>
+        <i class="i-[mdi--alert-circle] text-xl text-red-500"></i>
         <span class="text-red-800">{{ error }}</span>
       </div>
 
@@ -189,7 +189,7 @@
         v-if="success"
         class="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4"
       >
-        <i class="i-mdi-check-circle text-xl text-green-500"></i>
+        <i class="i-[mdi--check-circle] text-xl text-green-500"></i>
         <span class="text-green-800">{{ success }}</span>
       </div>
 
@@ -200,7 +200,7 @@
           :disabled="loading || !canSubmit"
           class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white shadow-sm transition-colors duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-300"
         >
-          <i v-if="loading" class="i-mdi-loading animate-spin"></i>
+          <i v-if="loading" class="i-[mdi--loading] animate-spin"></i>
           {{ loading ? "保存中..." : "修改密码" }}
         </button>
       </div>

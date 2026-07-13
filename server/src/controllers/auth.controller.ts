@@ -3,17 +3,20 @@ import {
   Get,
   Req,
   Res,
-  UseGuards,
   HttpException,
   HttpStatus,
+  UseGuards,
+  ConflictException,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { AuthGuard } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
 import { GitHubAuthService } from "../services/github-auth.service";
 import { AuthService } from "../services/auth.service";
 import { GitHubProfile } from "../dto/github.dto";
 import { getAuthCookieOptions } from "../utils/cookie";
+import { getJwtCookieMaxAge } from "../utils/duration";
+import { getSafeFrontendUrl } from "../utils/frontend-url";
+import { GitHubAuthGuard } from "../auth/github-auth.guard";
 
 /**
  * GitHub OAuth 认证控制器
@@ -30,41 +33,21 @@ export class AuthController {
     private authService: AuthService,
   ) {}
 
-  /**
-   * 获取经校验的前端基础地址，防止 OAuth 回调被滥用为开放重定向。
-   * - 仅允许 http/https 协议；
-   * - 若配置了 ALLOWED_FRONTEND_ORIGINS（逗号分隔），则校验来源白名单；
-   * - 任何异常情况回退到安全默认值。
-   */
-  private getSafeFrontendUrl(): string {
-    const fallback = "http://localhost:1234";
-    const configured = this.configService.get<string>("FRONTEND_URL", fallback);
+  @Get("providers")
+  getProviders() {
+    const github = [
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "GITHUB_CALLBACK_URL",
+    ].every((key) => {
+      const value = this.configService.get<string>(key)?.trim();
+      return Boolean(value && !value.toLowerCase().includes("placeholder"));
+    });
 
-    let parsed: URL;
-    try {
-      parsed = new URL(configured);
-    } catch {
-      return fallback;
-    }
-
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return fallback;
-    }
-
-    const allowlistRaw = this.configService.get<string>(
-      "ALLOWED_FRONTEND_ORIGINS",
-    );
-    if (allowlistRaw) {
-      const allowed = allowlistRaw
-        .split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean);
-      if (!allowed.includes(parsed.origin)) {
-        return fallback;
-      }
-    }
-
-    return configured.replace(/\/$/, "");
+    return {
+      success: true,
+      data: { github },
+    };
   }
 
   /**
@@ -72,7 +55,7 @@ export class AuthController {
    * 重定向到 GitHub 授权页面
    */
   @Get("github")
-  @UseGuards(AuthGuard("github"))
+  @UseGuards(GitHubAuthGuard)
   async githubAuth(): Promise<void> {
     // Passport 会自动处理重定向到 GitHub OAuth 页面
     // 这个方法不需要实现任何逻辑
@@ -88,11 +71,13 @@ export class AuthController {
    * 5. 重定向到前端成功页面
    */
   @Get("github/callback")
-  @UseGuards(AuthGuard("github"))
+  @UseGuards(GitHubAuthGuard)
   async githubAuthCallback(
     @Req() req: Request,
     @Res() response: Response,
   ): Promise<void> {
+    if (response.headersSent) return;
+
     try {
       // 从 req.user 获取 GitHub 用户资料（由 Passport Strategy 注入）
       const githubProfile = req.user as GitHubProfile;
@@ -110,7 +95,7 @@ export class AuthController {
 
       // 设置 HttpOnly Cookie（与现有登录逻辑保持一致）
       const cookieOptions = getAuthCookieOptions(req, {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（与 JWT_EXPIRES_IN 一致）
+        maxAge: getJwtCookieMaxAge(),
       });
 
       response.cookie(
@@ -120,7 +105,7 @@ export class AuthController {
       );
 
       // 重定向到前端成功页面（经白名单校验，防开放重定向）
-      const frontendUrl = this.getSafeFrontendUrl();
+      const frontendUrl = getSafeFrontendUrl(this.configService);
       const successUrl = `${frontendUrl}/auth/github/success`;
       response.redirect(successUrl);
     } catch (error) {
@@ -128,8 +113,12 @@ export class AuthController {
 
       // 重定向到前端失败页面（经白名单校验，防开放重定向）
       // 仅返回通用错误提示，避免将内部错误细节泄露到 URL
-      const frontendUrl = this.getSafeFrontendUrl();
-      const errorParam = encodeURIComponent("GitHub 登录失败，请稍后重试");
+      const frontendUrl = getSafeFrontendUrl(this.configService);
+      const message =
+        error instanceof ConflictException
+          ? "该 GitHub 账号与现有账号冲突，请先使用原账号登录"
+          : "GitHub 登录失败，请稍后重试";
+      const errorParam = encodeURIComponent(message);
       const redirectUrl = `${frontendUrl}/auth/github/failure?error=${errorParam}`;
       response.redirect(redirectUrl);
     }

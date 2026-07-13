@@ -21,14 +21,18 @@ import {
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { diskStorage } from "multer";
-import { extname } from "path";
 import type { Request, Response } from "express";
 import { UserService } from "../services/user.service";
 import { AuthService } from "../services/auth.service";
 import { WallpaperService } from "../services/wallpaper.service";
 import { ViewHistoryService } from "../services/view-history.service";
-import { CreateUserDto, UpdateUserDto, LoginDto } from "../dto/user.dto";
+import { UploadService } from "../services/upload.service";
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  LoginDto,
+  UpdateUserDto,
+} from "../dto/user.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { CurrentUser } from "../decorators/current-user.decorator";
@@ -38,6 +42,7 @@ import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
 import { UserRole, isAdminRole } from "../entities/user.entity";
 import { getAuthCookieOptions } from "../utils/cookie";
+import { getJwtCookieMaxAge } from "../utils/duration";
 
 @Controller("users")
 export class UserController {
@@ -46,6 +51,7 @@ export class UserController {
     private readonly authService: AuthService,
     private readonly wallpaperService: WallpaperService,
     private readonly viewHistoryService: ViewHistoryService,
+    private readonly uploadService: UploadService,
   ) {}
 
   // 用户注册（仅支持JSON格式，不支持头像上传）
@@ -74,12 +80,12 @@ export class UserController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const user = await this.authService.validateUser(
-      loginDto.id,
+      loginDto.account,
       loginDto.password,
     );
 
     if (!user) {
-      throw new UnauthorizedException("用户ID或密码错误");
+      throw new UnauthorizedException("用户名、邮箱或密码错误");
     }
 
     const result = this.authService.login(user);
@@ -89,7 +95,7 @@ export class UserController {
       "Authentication",
       result.access_token,
       getAuthCookieOptions(request, {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（与 JWT_EXPIRES_IN 一致）
+        maxAge: getJwtCookieMaxAge(),
       }),
     );
 
@@ -98,7 +104,6 @@ export class UserController {
       message: "登录成功",
       data: {
         user: result.user,
-        token: result.access_token,
       },
     };
   }
@@ -199,6 +204,19 @@ export class UserController {
     };
   }
 
+  @Patch("password")
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Body(ValidationPipe) dto: ChangePasswordDto,
+    @CurrentUser() currentUser: CurrentUserType,
+  ) {
+    await this.userService.changePassword(currentUser.userId, dto);
+    return {
+      success: true,
+      message: "密码修改成功",
+    };
+  }
+
   // 更新用户信息
   @Patch(":id")
   @UseGuards(JwtAuthGuard)
@@ -218,7 +236,11 @@ export class UserController {
       throw new ForbiddenException("无权修改该用户信息");
     }
 
-    const user = await this.userService.update(userId, updateUserDto);
+    const user = await this.userService.update(
+      userId,
+      updateUserDto,
+      currentUser,
+    );
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = user;
     return {
@@ -234,6 +256,8 @@ export class UserController {
   async remove(
     @Param("id") id: string,
     @CurrentUser() currentUser: CurrentUserType,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
     // 转换并验证ID
     const userId = Number(id);
@@ -247,9 +271,12 @@ export class UserController {
     }
 
     await this.userService.remove(userId, currentUser);
+    if (currentUser.userId === userId) {
+      response.clearCookie("Authentication", getAuthCookieOptions(request));
+    }
     return {
       success: true,
-      message: "删除成功",
+      message: "账号已注销，历史内容已匿名保留",
     };
   }
 
@@ -277,27 +304,13 @@ export class UserController {
     };
   }
 
-  // 上传头像（管理功能，推荐在注册时上传头像）
+  // 上传头像
   @Post(":id/avatar")
   @UseGuards(JwtAuthGuard)
+  @Throttle({ upload: { limit: 20, ttl: 3600000 } })
   @UseInterceptors(
     FileInterceptor("avatar", {
-      storage: diskStorage({
-        destination: "./uploads/profile-pictures",
-        filename: (req, file, cb) => {
-          const userId = req.params.id;
-          const uniqueSuffix = Date.now();
-          const fileExt = extname(file.originalname);
-          cb(null, `user_${userId}_${uniqueSuffix}${fileExt}`);
-        },
-      }),
-      fileFilter: (_req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          return cb(new BadRequestException("只允许上传图片文件!"), false);
-        }
-        cb(null, true);
-      },
-      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB限制
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
     }),
   )
   async uploadAvatar(
@@ -320,8 +333,21 @@ export class UserController {
       throw new BadRequestException("请选择要上传的头像文件");
     }
 
-    const avatarUrl = `${file.filename}`;
-    const updatedUser = await this.userService.updateAvatar(userId, avatarUrl);
+    const previousAvatar = (await this.userService.findById(userId)).avatarUrl;
+    const avatarUrl = await this.uploadService.processAvatarUpload(
+      file,
+      userId,
+    );
+    let updatedUser: User;
+
+    try {
+      updatedUser = await this.userService.updateAvatar(userId, avatarUrl);
+    } catch (error) {
+      await this.uploadService.deleteAvatar(avatarUrl);
+      throw error;
+    }
+
+    await this.uploadService.deleteAvatar(previousAvatar);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = updatedUser;
@@ -402,13 +428,32 @@ export class UserController {
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "20",
   ) {
-    const result = await this.wallpaperService.findByUploaderId(
+    const result = await this.wallpaperService.findOwnUploads(
       user.userId,
       Number(page),
       Number(limit),
     );
 
     return this.buildPaginatedResponse(result, Number(page), Number(limit));
+  }
+
+  @Get("stats")
+  @UseGuards(JwtAuthGuard)
+  async getUserStats(@CurrentUser() user: CurrentUserType) {
+    const [uploadStats, favorites, likes] = await Promise.all([
+      this.wallpaperService.getUploaderStats(user.userId),
+      this.wallpaperService.getUserFavoritedWallpapers(user.userId, 1, 1),
+      this.wallpaperService.getUserLikedWallpapers(user.userId, 1, 1),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        ...uploadStats,
+        favorites: favorites.total,
+        likes: likes.total,
+      },
+    };
   }
   // 根据ID查询用户
   @Get(":id")

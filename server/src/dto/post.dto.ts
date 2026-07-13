@@ -1,6 +1,8 @@
 import { PartialType } from "@nestjs/mapped-types";
 import { Transform, Type } from "class-transformer";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsIn,
   IsInt,
@@ -13,26 +15,23 @@ import {
 import { PostCategory } from "../entities/post.entity";
 import { PaginationQueryDto } from "./pagination.dto";
 
-const parseTags = (value: unknown): string[] | undefined => {
-  if (!value) {
+const parseTags = (value: unknown): unknown[] | undefined => {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
-  let values: string[];
+  let values: unknown[];
   if (Array.isArray(value)) {
-    values = value as string[];
+    values = value;
   } else if (typeof value === "string") {
     values = value.split(",");
   } else {
-    // 对于非数组非字符串的值，返回undefined
-    return undefined;
+    values = [value];
   }
 
-  const normalized = values
-    .map((tag) => (typeof tag === "string" ? tag.trim() : String(tag).trim()))
-    .filter(Boolean);
-
-  return normalized.length > 0 ? normalized : undefined;
+  return values
+    .map((tag) => (typeof tag === "string" ? tag.trim() : tag))
+    .filter((tag) => tag !== "");
 };
 
 export class CreatePostDto {
@@ -43,6 +42,7 @@ export class CreatePostDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(10000)
   content: string;
 
   @IsEnum(PostCategory)
@@ -60,6 +60,10 @@ export class CreatePostDto {
 
   @IsOptional()
   @Transform(({ value }) => parseTags(value), { toClassOnly: true })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
   tags?: string[];
 }
 
@@ -107,5 +111,9 @@ export class PostListQueryDto extends PaginationQueryDto {
 
   @IsOptional()
   @Transform(({ value }) => parseTags(value), { toClassOnly: true })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
   tags?: string[];
 }

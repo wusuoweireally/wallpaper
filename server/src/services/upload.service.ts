@@ -1,10 +1,19 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
 import sharp from "sharp";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { randomBytes } from "crypto";
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
+  private readonly uploadsDir = path.join(process.cwd(), "uploads");
+
   /**
    * 处理壁纸文件上传
    * @param file 上传的文件
@@ -23,78 +32,137 @@ export class UploadService {
     format: string;
     aspectRatio: number;
   }> {
-    try {
-      // 验证文件类型
-      const allowedMimeTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-      ];
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        throw new BadRequestException(
-          "不支持的文件类型，仅支持 JPG、PNG、WebP、GIF 格式",
-        );
-      }
-
-      // 验证文件大小 (最大50MB)
-      const maxSize = 50 * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new BadRequestException("文件大小不能超过50MB");
-      }
-
-      // 生成文件名 (日期+用户ID)
-      const fileExtension = path.extname(file.originalname);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const fileName = `${timestamp}__${uploaderId}${fileExtension}`;
-      const thumbnailName = `${timestamp}__${uploaderId}_thumbnail.webp`;
-
-      // 创建上传目
-      const uploadDir = path.join(process.cwd(), "uploads");
-      const thumbnailsDir = path.join(uploadDir, "thumbnails");
-      const fileDir = path.join(uploadDir, "wallpapers");
-      await fs.mkdir(uploadDir, { recursive: true });
-      await fs.mkdir(thumbnailsDir, { recursive: true });
-      await fs.mkdir(fileDir, { recursive: true });
-
-      // 使用 Sharp 获取图片信息
-      const image = sharp(file.buffer);
-      const metadata = await image.metadata();
-
-      // 计算宽高比
-      const aspectRatio =
-        metadata.width && metadata.height
-          ? Number((metadata.width / metadata.height).toFixed(2))
-          : 0;
-
-      // 生成缩略图 (300px宽，保持比例)
-      const thumbnailBuffer = await image
-        .resize(300, null, { fit: "inside" })
-        .webp({ quality: 100 })
-        .toBuffer();
-
-      const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
-      const filePath = path.join(fileDir, fileName);
-
-      // 图片解析和缩略图生成成功后再落盘，避免非法/损坏图片留下原始文件
-      await fs.writeFile(filePath, file.buffer);
-      await fs.writeFile(thumbnailPath, thumbnailBuffer);
-
-      return {
-        fileUrl: `/uploads/wallpapers/${fileName}`,
-        thumbnailUrl: `/uploads/thumbnails/${thumbnailName}`,
-        fileSize: file.size,
-        width: metadata.width || 0,
-        height: metadata.height || 0,
-        format: metadata.format || "",
-        aspectRatio,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException("文件处理失败");
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        "不支持的文件类型，仅支持 JPG、PNG、WebP 格式",
+      );
     }
+    if (file.size > 50 * 1024 * 1024) {
+      throw new BadRequestException("文件大小不能超过50MB");
+    }
+
+    const extensions = { jpeg: "jpg", png: "png", webp: "webp" } as const;
+    let metadata: sharp.Metadata;
+    let thumbnailBuffer: Buffer;
+    try {
+      metadata = await sharp(file.buffer, {
+        limitInputPixels: 100_000_000,
+      }).metadata();
+      const format = metadata.format as keyof typeof extensions | undefined;
+      if (
+        !format ||
+        !extensions[format] ||
+        !metadata.width ||
+        !metadata.height
+      ) {
+        throw new Error("invalid image metadata");
+      }
+
+      const expectedMime = format === "jpeg" ? "image/jpeg" : `image/${format}`;
+      if (file.mimetype !== expectedMime) {
+        throw new Error("mime type does not match image content");
+      }
+
+      thumbnailBuffer = await sharp(file.buffer, {
+        limitInputPixels: 100_000_000,
+      })
+        .rotate()
+        .resize(640, 640, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 86 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException("图片文件已损坏或格式无效");
+    }
+
+    const format = metadata.format as keyof typeof extensions;
+    const shouldSwapDimensions = [5, 6, 7, 8].includes(
+      metadata.orientation ?? 0,
+    );
+    const width = shouldSwapDimensions ? metadata.height : metadata.width;
+    const height = shouldSwapDimensions ? metadata.width : metadata.height;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const nonce = randomBytes(6).toString("hex");
+    const fileName = `${timestamp}_${nonce}__${uploaderId}.${extensions[format]}`;
+    const thumbnailName = `${timestamp}_${nonce}__${uploaderId}_thumbnail.webp`;
+    const fileDir = path.join(this.uploadsDir, "wallpapers");
+    const thumbnailsDir = path.join(this.uploadsDir, "thumbnails");
+    const filePath = path.join(fileDir, fileName);
+    const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
+    const temporaryFilePath = `${filePath}.tmp`;
+    const temporaryThumbnailPath = `${thumbnailPath}.tmp`;
+
+    try {
+      await Promise.all([
+        fs.mkdir(fileDir, { recursive: true }),
+        fs.mkdir(thumbnailsDir, { recursive: true }),
+      ]);
+      await fs.writeFile(temporaryFilePath, file.buffer);
+      await fs.writeFile(temporaryThumbnailPath, thumbnailBuffer);
+      await fs.rename(temporaryFilePath, filePath);
+      await fs.rename(temporaryThumbnailPath, thumbnailPath);
+    } catch (error) {
+      await this.removeFiles([
+        temporaryFilePath,
+        temporaryThumbnailPath,
+        filePath,
+        thumbnailPath,
+      ]);
+      this.logger.error("壁纸文件落盘失败", error);
+      throw new InternalServerErrorException("文件保存失败，请稍后重试");
+    }
+
+    return {
+      fileUrl: `/uploads/wallpapers/${fileName}`,
+      thumbnailUrl: `/uploads/thumbnails/${thumbnailName}`,
+      fileSize: file.size,
+      width,
+      height,
+      format,
+      aspectRatio: Number((width / height).toFixed(2)),
+    };
+  }
+
+  async processAvatarUpload(
+    file: Express.Multer.File,
+    userId: number,
+  ): Promise<string> {
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException("头像仅支持 JPG、PNG、WebP 格式");
+    }
+
+    const fileName = `user_${userId}_${Date.now()}.webp`;
+    const directory = path.join(this.uploadsDir, "profile-pictures");
+    await fs.mkdir(directory, { recursive: true });
+
+    try {
+      await sharp(file.buffer, { limitInputPixels: 25_000_000 })
+        .rotate()
+        .resize(512, 512, { fit: "cover" })
+        .webp({ quality: 85 })
+        .toFile(path.join(directory, fileName));
+      return fileName;
+    } catch {
+      throw new BadRequestException("头像文件无效");
+    }
+  }
+
+  async deleteAvatar(fileName?: string | null): Promise<void> {
+    if (
+      !fileName ||
+      fileName === "defaultAvatar.png" ||
+      fileName === "defaultAvatar.webp" ||
+      fileName.startsWith("http")
+    ) {
+      return;
+    }
+
+    await fs
+      .unlink(
+        path.join(this.uploadsDir, "profile-pictures", path.basename(fileName)),
+      )
+      .catch(() => {});
   }
 
   /**
@@ -104,19 +172,28 @@ export class UploadService {
     fileUrl: string,
     thumbnailUrl: string,
   ): Promise<void> {
-    try {
-      if (fileUrl) {
-        const filePath = path.join(process.cwd(), fileUrl);
-        await fs.unlink(filePath).catch(() => {});
-      }
+    const paths = [
+      fileUrl
+        ? path.join(this.uploadsDir, "wallpapers", path.basename(fileUrl))
+        : "",
+      thumbnailUrl
+        ? path.join(this.uploadsDir, "thumbnails", path.basename(thumbnailUrl))
+        : "",
+    ].filter(Boolean);
+    await this.removeFiles(paths);
+  }
 
-      if (thumbnailUrl) {
-        const thumbnailPath = path.join(process.cwd(), thumbnailUrl);
-        await fs.unlink(thumbnailPath).catch(() => {});
-      }
-    } catch (error) {
-      // 文件删除失败不影响主要逻辑
-      console.error("删除文件失败:", error);
-    }
+  private async removeFiles(paths: string[]): Promise<void> {
+    await Promise.all(
+      paths.map(async (filePath) => {
+        try {
+          await fs.unlink(filePath);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+            this.logger.warn(`文件清理失败: ${filePath}`, error);
+          }
+        }
+      }),
+    );
   }
 }

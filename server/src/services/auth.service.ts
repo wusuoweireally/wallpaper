@@ -10,8 +10,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(id: number, password: string): Promise<User | null> {
-    return await this.userService.validateUser(id, password);
+  async validateUser(account: string, password: string): Promise<User | null> {
+    return await this.userService.validateUser(account, password);
   }
 
   login(user: User) {

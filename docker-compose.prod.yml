@@ -1,6 +1,12 @@
-# 线上部署专用 override
-# 使用方式：docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file server/.env.production up -d --build
+# 生产环境 override；根 package.json 中的 docker:prod* 脚本会自动加载本文件。
 services:
+  mysql:
+    restart: always
+
   server:
-    env_file:
-      - server/.env.production
+    restart: always
+    environment:
+      NODE_ENV: production
+
+  web:
+    restart: always

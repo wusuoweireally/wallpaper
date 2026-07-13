@@ -11,6 +11,9 @@ import { User } from "./user.entity";
 import { Wallpaper } from "./wallpaper.entity";
 
 @Entity("user_likes")
+@Index("uk_user_likes_user_wallpaper", ["userId", "wallpaperId"], {
+  unique: true,
+})
 export class UserLike {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "点赞ID" })
   id: number;
@@ -31,7 +34,6 @@ export class UserLike {
   @JoinColumn({ name: "wallpaper_id" })
   wallpaper: Wallpaper;
 
-  @Index("uk_user_wallpaper", ["userId", "wallpaperId"], { unique: true })
   @CreateDateColumn({ name: "created_at", comment: "创建时间" })
   @Index("idx_created_at")
   createdAt: Date;
