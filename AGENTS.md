@@ -23,10 +23,10 @@
 - Node `>=20.19`（推荐 22，见 `.nvmrc`），pnpm `>=10`。
 - **TypeScript 7** 为主依赖；eslint / jest / vue-tsc 等需 TS6 API 时走 `scripts/ts6-resolve-hook.cjs` + `@typescript/typescript6`。
 - **仅根目录** `pnpm-lock.yaml`，禁止子包再生成锁文件。
-- 本地：Docker 只起 MySQL（`127.0.0.1:3306`），`DB_HOST=127.0.0.1`；生产容器内 `DB_HOST=mysql`。
-- 环境模板：`server/.env.*.example`；真实 `.env` 禁止提交。
+- 本地：Docker 只起 MySQL（`pnpm db:up` → `127.0.0.1:3306`），`DB_HOST=127.0.0.1`；生产全栈 `pnpm deploy`，容器内 `DB_HOST=mysql`（compose 写死）。
+- 环境模板：`server/.env.*.example`；真实 `.env` 禁止提交。仅 **一份** `docker-compose.yml`，无 prod override。
 
-根脚本：`pnpm install --frozen-lockfile`、`dev`、`build`、`lint`、`type-check`、`test`、`docker:prod*`。
+根脚本：`pnpm install --frozen-lockfile`、`dev`、`build`、`lint`、`type-check`、`test`、`db:up`/`db:down`、`deploy`/`deploy:logs`/`deploy:down`。
 子包：`pnpm -C server|web dev|build|format`、`pnpm -C server typeorm:run|typeorm:revert|test -- <pattern>`。
 细节与端口见 `README.md`。
 

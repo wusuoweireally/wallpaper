@@ -13,9 +13,11 @@
     "lint": "pnpm -r run lint",
     "type-check": "pnpm -r run type-check",
     "test": "pnpm -r run test",
-    "docker:prod": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
-    "docker:prod:down": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml down",
-    "docker:prod:logs": "docker compose --env-file server/.env.production -f docker-compose.yml -f docker-compose.prod.yml logs -f"
+    "db:up": "docker compose --env-file server/.env.development up -d mysql",
+    "db:down": "docker compose --env-file server/.env.development stop mysql",
+    "deploy": "docker compose --env-file server/.env.production --profile app up -d --build",
+    "deploy:down": "docker compose --env-file server/.env.production --profile app down",
+    "deploy:logs": "docker compose --env-file server/.env.production --profile app logs -f --tail=200"
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
