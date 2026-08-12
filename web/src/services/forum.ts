@@ -148,30 +148,6 @@ export const forumService = {
     })
   },
 
-  async getMyBookmarks(params: { page?: number; limit?: number } = {}) {
-    const payload: any = await api.get("/posts/user/bookmarks", {
-      params: { page: params.page || 1, limit: params.limit || 20 },
-    })
-    return { data: payload.data || [], pagination: toPagination(payload.pagination) }
-  },
-
-  async getPopularPosts(limit = 10): Promise<Post[]> {
-    const payload: any = await api.get("/posts/popular/list", { params: { limit } })
-    return payload.data
-  },
-
-  async getLatestPosts(limit = 10): Promise<Post[]> {
-    const payload: any = await api.get("/posts/latest/list", { params: { limit } })
-    return payload.data
-  },
-
-  async getMyPosts(params: { page?: number; limit?: number } = {}) {
-    const payload: any = await api.get("/posts/user/my", {
-      params: { page: params.page || 1, limit: params.limit || 20 },
-    })
-    return { data: payload.data || [], pagination: toPagination(payload.pagination) }
-  },
-
   // ========== 评论 ==========
 
   async getPostComments(postId: number, params: CommentsQueryParams = {}) {
@@ -199,18 +175,6 @@ export const forumService = {
 
   async deleteComment(id: number): Promise<void> {
     await api.delete(`/comments/${id}`)
-  },
-
-  async getMyComments(params: { page?: number; limit?: number } = {}) {
-    const payload: any = await api.get("/comments/user/my", {
-      params: { page: params.page || 1, limit: params.limit || 20 },
-    })
-    return { data: payload.data || [], pagination: toPagination(payload.pagination) }
-  },
-
-  async getLatestComments(limit = 10): Promise<Comment[]> {
-    const payload: any = await api.get("/comments/latest/list", { params: { limit } })
-    return payload.data
   },
 
   async toggleCommentLike(id: number): Promise<{ isLiked: boolean; likeCount: number }> {

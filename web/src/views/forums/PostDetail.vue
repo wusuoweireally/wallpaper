@@ -473,7 +473,7 @@ const authorAvatar = computed(() => {
 
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
+  img.src = "/defaultAvatar.png"
 }
 
 // 清理后的帖子内容（防止XSS攻击）

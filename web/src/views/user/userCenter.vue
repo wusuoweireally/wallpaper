@@ -232,7 +232,7 @@
       <section
         class="rounded-[2rem] bg-white/90 p-8 shadow-2xl shadow-slate-200/60 ring-1 ring-black/5"
       >
-        <router-view />
+        <router-view :key="$route.fullPath" />
       </section>
     </div>
   </div>

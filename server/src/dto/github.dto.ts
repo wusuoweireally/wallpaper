@@ -51,25 +51,3 @@ export interface GitHubProfile {
   created_at: string; // 账号创建时间
   updated_at: string; // 更新时间
 }
-
-/**
- * GitHub OAuth 响应接口
- */
-export interface GitHubAuthResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
-/**
- * GitHub 用户信息简化接口
- * 用于内部处理
- */
-export interface GitHubUserInfo {
-  githubId: number;
-  githubLogin: string;
-  githubAvatarUrl: string;
-  githubBio: string;
-  email?: string;
-  name?: string;
-}

@@ -613,7 +613,7 @@ const handleFavorite = async () => {
 
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = "/uploads/profile-pictures/defaultAvatar.png"
+  img.src = "/defaultAvatar.png"
   img.onerror = null
 }
 
@@ -688,26 +688,25 @@ const downloadWallpaper = async () => {
 
   downloading.value = true
   try {
-    const id = wallpaperId.value
-    if (!isNaN(id)) {
-      await wallpaperService.recordDownload(id)
-    }
-  } catch {
-    // 下载计数失败不影响下载本身
-  }
+    const response = await wallpaperService.recordDownload(wallpaperId.value)
+    const fileUrl = response.data?.fileUrl
+    if (!fileUrl) throw new Error("下载地址无效")
 
-  // 使用正确的文件扩展名
-  const ext = wallpaper.value.format?.toLowerCase() || wallpaper.value.imageUrl.split(".")?.pop() || "jpg"
-  const fileName = `wallpaper-${wallpaper.value.id}.${ext}`
-  const link = document.createElement("a")
-  link.href = wallpaper.value.imageUrl
-  link.download = fileName
-  link.rel = "noopener"
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  pushShareNotice("开始下载壁纸")
-  downloading.value = false
+    const ext = wallpaper.value.format?.toLowerCase() || fileUrl.split(".").pop() || "jpg"
+    const fileName = `wallpaper-${wallpaper.value.id}.${ext}`
+    const link = document.createElement("a")
+    link.href = fileUrl
+    link.download = fileName
+    link.rel = "noopener"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    pushShareNotice("开始下载壁纸")
+  } catch {
+    pushShareNotice("下载失败，请稍后重试")
+  } finally {
+    downloading.value = false
+  }
 }
 
 const shareWallpaper = async () => {

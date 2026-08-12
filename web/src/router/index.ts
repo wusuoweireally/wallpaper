@@ -131,7 +131,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: "uploads",
         name: "UserUploads",
-        component: () => import("@/views/user/components/UserUploads.vue"),
+        component: () => import("@/views/user/components/UserWallpaperList.vue"),
+        props: { type: "uploads" },
         meta: {
           title: "我的上传",
           requiresAuth: true,
@@ -141,7 +142,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: "favorites",
         name: "UserFavorites",
-        component: () => import("@/views/user/components/UserFavorites.vue"),
+        component: () => import("@/views/user/components/UserWallpaperList.vue"),
+        props: { type: "favorites" },
         meta: {
           title: "我的收藏",
           requiresAuth: true,
@@ -151,7 +153,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: "likes",
         name: "UserLikes",
-        component: () => import("@/views/user/components/UserLikes.vue"),
+        component: () => import("@/views/user/components/UserWallpaperList.vue"),
+        props: { type: "likes" },
         meta: {
           title: "我的点赞",
           requiresAuth: true,

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
 import { Repository, DataSource, EntityManager } from "typeorm";
 import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
@@ -162,29 +158,6 @@ export class WallpaperService {
       !isAdminRole(viewer?.role)
     ) {
       throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-    }
-
-    return wallpaper;
-  }
-
-  async findVisibleByAssetUrl(
-    assetUrl: string,
-    viewer?: WallpaperViewer,
-  ): Promise<Wallpaper> {
-    const where = assetUrl.startsWith("/uploads/thumbnails/")
-      ? { thumbnailUrl: assetUrl }
-      : { fileUrl: assetUrl };
-    const wallpaper = await this.wallpaperRepository.findOne({
-      where,
-    });
-
-    if (
-      !wallpaper ||
-      (wallpaper.status !== WallpaperStatus.APPROVED &&
-        wallpaper.uploaderId !== viewer?.userId &&
-        !isAdminRole(viewer?.role))
-    ) {
-      throw new NotFoundException("壁纸文件不存在");
     }
 
     return wallpaper;
@@ -406,96 +379,6 @@ export class WallpaperService {
   async update(id: number, updateData: Partial<Wallpaper>): Promise<Wallpaper> {
     await this.wallpaperRepository.update(id, updateData);
     return await this.findById(id);
-  }
-
-  async updateSubmission(
-    id: number,
-    updateData: Partial<Wallpaper>,
-    requiresReview: boolean,
-  ): Promise<Wallpaper> {
-    if (!requiresReview) return this.update(id, updateData);
-
-    await this.dataSource.transaction(async (manager) => {
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :id", { id })
-        .getOne();
-      if (!wallpaper) throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-
-      if (wallpaper.status === WallpaperStatus.APPROVED) {
-        await this.adjustTagUsageCount(manager, id, -1);
-      }
-
-      await wallpaperRepo.update(id, {
-        ...updateData,
-        status: WallpaperStatus.PENDING,
-        reviewNote: null,
-        reviewedAt: null,
-        reviewedBy: null,
-        isFeatured: false,
-      });
-    });
-
-    return this.findById(id);
-  }
-
-  async review(
-    id: number,
-    status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED,
-    reviewedBy: number,
-    reviewNote?: string,
-  ): Promise<Wallpaper> {
-    const note = reviewNote?.trim() || null;
-    if (status === WallpaperStatus.REJECTED && !note) {
-      throw new BadRequestException("驳回时请填写审核说明");
-    }
-
-    await this.dataSource.transaction(async (manager) => {
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :id", { id })
-        .getOne();
-      if (!wallpaper) throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-
-      const wasApproved = wallpaper.status === WallpaperStatus.APPROVED;
-      const willBeApproved = status === WallpaperStatus.APPROVED;
-      if (wasApproved !== willBeApproved) {
-        await this.adjustTagUsageCount(manager, id, willBeApproved ? 1 : -1);
-      }
-
-      await wallpaperRepo.update(id, {
-        status,
-        reviewNote: note,
-        reviewedBy,
-        reviewedAt: new Date(),
-        isFeatured: willBeApproved ? wallpaper.isFeatured : false,
-      });
-    });
-
-    return this.findById(id);
-  }
-
-  async batchReview(
-    ids: number[],
-    status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED,
-    reviewedBy: number,
-    reviewNote?: string,
-  ): Promise<{ updatedCount: number; failedIds: number[] }> {
-    let updatedCount = 0;
-    const failedIds: number[] = [];
-    for (const id of ids) {
-      try {
-        await this.review(id, status, reviewedBy, reviewNote);
-        updatedCount += 1;
-      } catch {
-        failedIds.push(id);
-      }
-    }
-    return { updatedCount, failedIds };
   }
 
   private async adjustTagUsageCount(

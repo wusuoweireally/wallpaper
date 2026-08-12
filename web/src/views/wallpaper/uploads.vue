@@ -148,7 +148,7 @@
                   {{ isDragging ? "松开即可添加" : "拖拽或点击选择图片" }}
                 </p>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  JPG / PNG / WEBP · 单张 ≤ 50MB · 可多选
+                  JPG / PNG / WEBP · 单张 ≤ 32MB · 可多选
                 </p>
               </div>
               <div class="mt-1 flex flex-wrap justify-center gap-2">
@@ -742,7 +742,7 @@ const addFiles = (files: File[]) => {
   if (isUploading.value) return
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue
-    if (file.size > 50 * 1024 * 1024) continue
+    if (file.size > 32 * 1024 * 1024) continue
     pendingFiles.value.push({
       id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
       file,
@@ -821,9 +821,10 @@ const uploadSingleFile = async (item: PendingFile): Promise<boolean> => {
     }
     throw new Error((response as { message?: string }).message || "上传失败")
   } catch (error: unknown) {
-    const err = error as Error & { message?: string }
+    // 优先取 axios 拦截器注入的后端消息（如"图片不符合上传规范"），而非 axios 原生英文报错
+    const err = error as Error & { message?: string; userMessage?: string }
     item.status = "error"
-    item.errorMsg = err.message || "上传失败"
+    item.errorMsg = err.userMessage || err.message || "上传失败"
     item.progress = 0
     return false
   }

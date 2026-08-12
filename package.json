@@ -21,12 +21,7 @@
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp"],
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "typescript": "7"
-      }
-    }
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0",

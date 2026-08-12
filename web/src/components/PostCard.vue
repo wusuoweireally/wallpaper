@@ -193,7 +193,7 @@ const authorAvatar = computed(() => {
 
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = "/api/uploads/profile-pictures/defaultAvatar.png"
+  img.src = "/defaultAvatar.png"
 }
 
 const handlePostClick = () => {

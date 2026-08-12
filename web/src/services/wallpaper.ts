@@ -1,4 +1,5 @@
 import api from "@/config/api"
+import type { ApiResponse } from "@/config/api"
 import type { AxiosProgressEvent } from "axios"
 
 /**
@@ -161,14 +162,6 @@ class WallpaperService {
     return await api.get<Wallpaper>(`/wallpapers/${id}`)
   }
 
-  async updateWallpaper(id: number, updateData: Partial<Wallpaper>) {
-    return await api.put<Wallpaper>(`/wallpapers/${id}`, updateData)
-  }
-
-  async deleteWallpaper(id: number) {
-    return await api.delete(`/wallpapers/${id}`)
-  }
-
   async likeWallpaper(id: number) {
     return await api.post(`/wallpapers/${id}/like`, undefined, {
       skipGlobalErrorToast: true,
@@ -197,26 +190,14 @@ class WallpaperService {
     return await api.get<Wallpaper[]>(`/wallpapers/${id}/related`, { params: { limit } })
   }
 
-  async getTrendingWallpapers(days = 7, limit = 10) {
-    return await api.get<Wallpaper[]>(`/wallpapers/trending`, { params: { days, limit } })
-  }
-
   async getPopularWallpapers(limit = 10) {
     return await api.get<Wallpaper[]>(`/wallpapers/popular`, { params: { limit } })
   }
 
-  async getWallpapersByUploader(uploaderId: number, page = 1, limit = 20) {
-    return await api.get<Wallpaper[]>(`/wallpapers/uploader/${uploaderId}`, {
-      params: { page, limit },
-    })
-  }
-
-  async recordDownload(id: number) {
-    return await api.post(`/wallpapers/${id}/download`)
-  }
-
-  async getWallpaperTags(id: number) {
-    return await api.get<import("./tag").Tag[]>(`/wallpapers/${id}/tags`)
+  async recordDownload(id: number): Promise<ApiResponse<{ fileUrl: string }>> {
+    return (await api.post(`/wallpapers/${id}/download`)) as ApiResponse<{
+      fileUrl: string
+    }>
   }
 }
 

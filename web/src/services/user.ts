@@ -133,19 +133,6 @@ class UserService {
   }
 
   /**
-   * 根据ID获取用户信息
-   */
-  async getUserById(id: number): Promise<ApiResponse<User>> {
-    try {
-      const response = await api.get(`/users/${id}`)
-      return response as ApiResponse<User>
-    } catch (error) {
-      console.error("获取用户信息失败:", error)
-      throw error
-    }
-  }
-
-  /**
    * 更新用户信息（不含密码）
    */
   async updateUser(id: number, updateData: UpdateUserDto): Promise<ApiResponse<User>> {
@@ -193,6 +180,23 @@ class UserService {
     }
   }
 
+  /** 获取当前用户统计数据 */
+  async getUserStats(): Promise<
+    ApiResponse<{
+      uploads: number
+      favorites: number
+      likes: number
+      likesReceived: number
+    }>
+  > {
+    return (await api.get("/users/stats")) as ApiResponse<{
+      uploads: number
+      favorites: number
+      likes: number
+      likesReceived: number
+    }>
+  }
+
   /**
    * 获取用户点赞的壁纸列表
    */
@@ -238,21 +242,6 @@ class UserService {
       })) as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取用户上传壁纸列表失败:", error)
-      throw error
-    }
-  }
-
-  /**
-   * 获取用户浏览记录
-   */
-  async getUserViewHistory(page: number = 1, limit: number = 20) {
-    try {
-      const response = await api.get("/users/view-history", {
-        params: { page, limit },
-      })
-      return response
-    } catch (error) {
-      console.error("获取用户浏览记录失败:", error)
       throw error
     }
   }

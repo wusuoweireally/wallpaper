@@ -29,20 +29,6 @@ class ReportService {
   }
 
   /**
-   * 获取当前用户的举报历史
-   */
-  async getUserReports(page: number = 1, limit: number = 20) {
-    return await api.get("/reports/user/my", { params: { page, limit } })
-  }
-
-  /**
-   * 检查是否可以举报某个内容
-   */
-  async checkCanReport(targetType: string, targetId: number) {
-    return await api.get(`/reports/check/${targetType}/${targetId}`)
-  }
-
-  /**
    * 获取举报原因选项
    */
   async getReportReasons(): Promise<ReportReason[]> {

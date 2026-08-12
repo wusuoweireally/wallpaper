@@ -93,7 +93,7 @@ export class UserService {
       username,
       email: normalizedEmail,
       passwordHash: hashedPassword,
-      avatarUrl: "defaultAvatar.png", // 默认头像
+      avatarUrl: "/defaultAvatar.png", // 默认头像（走 public 静态）
       bio: createUserDto.bio || "",
       role: userRole,
     });

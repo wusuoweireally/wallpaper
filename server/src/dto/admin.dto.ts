@@ -18,7 +18,6 @@ import {
 import { Type } from "class-transformer";
 import { UserRole } from "../entities/user.entity";
 import { CreateUserDto, UpdateUserDto } from "./user.dto";
-import { UpdateWallpaperDto } from "./wallpaper.dto";
 import { WallpaperStatus } from "../entities/wallpaper.entity";
 
 export class AdminUserQueryDto {
@@ -117,8 +116,6 @@ export class AdminWallpaperQueryDto {
   @IsString()
   category?: "general" | "anime" | "people";
 }
-
-export class AdminUpdateWallpaperDto extends UpdateWallpaperDto {}
 
 export class AdminUpdateWallpaperTagsDto {
   @IsOptional()

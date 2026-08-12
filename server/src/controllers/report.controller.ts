@@ -14,7 +14,8 @@ import {
   CurrentUser,
   type CurrentUserType,
 } from "../decorators/current-user.decorator";
-import { CreateReportDto, UserReportsQueryDto } from "../dto/report.dto";
+import { CreateReportDto } from "../dto/report.dto";
+import { PaginationQueryDto } from "../dto/pagination.dto";
 import { ReportTargetType } from "../entities/report.entity";
 import { ReportService } from "../services/report.service";
 
@@ -62,7 +63,7 @@ export class ReportController {
   @UseGuards(JwtAuthGuard)
   async getUserReports(
     @CurrentUser() user: CurrentUserType,
-    @Query() query: UserReportsQueryDto,
+    @Query() query: PaginationQueryDto,
   ) {
     const reports = await this.reportService.getUserReports(
       user.userId,

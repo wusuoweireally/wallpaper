@@ -39,7 +39,7 @@ describe("WallpaperController upload", () => {
     );
   });
 
-  it("stores a regular user's upload as pending review", async () => {
+  it("stores a regular user's upload as approved after COS audit", async () => {
     create.mockImplementation((data: Record<string, unknown>) =>
       Promise.resolve({ id: 1, ...data }),
     );
@@ -51,11 +51,11 @@ describe("WallpaperController upload", () => {
     );
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: WallpaperStatus.PENDING }),
+      expect.objectContaining({ status: WallpaperStatus.APPROVED }),
       7,
       true,
     );
-    expect(result.message).toBe("壁纸已提交审核");
+    expect(result.message).toBe("壁纸上传成功");
   });
 
   it("publishes an administrator's upload immediately", async () => {

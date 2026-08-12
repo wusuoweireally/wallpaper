@@ -111,23 +111,14 @@
 
 <script lang="ts" setup>
 import { useUserStore } from "@/stores/user"
-import { ref, onMounted, onUnmounted } from "vue"
+import { onUnmounted } from "vue"
 import ProfileSettings from "./settings/ProfileSettings.vue"
 import PasswordSettings from "./settings/PasswordSettings.vue"
 import AccountSettings from "./settings/AccountSettings.vue"
 
 const userStore = useUserStore()
 
-// 组件挂载状态
-const isMounted = ref(false)
-
-onMounted(() => {
-  isMounted.value = true
-})
-
 onUnmounted(() => {
-  isMounted.value = false
-
   // 清理任何可能的 Teleport 残留元素
   if (typeof document !== "undefined") {
     const teleportElements = document.querySelectorAll("[data-teleport]")

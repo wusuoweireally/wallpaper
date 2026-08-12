@@ -79,24 +79,6 @@ export class Post {
   shareCount: number;
 
   @Column({
-    name: "is_pinned",
-    type: "boolean",
-    default: false,
-    comment: "是否置顶",
-  })
-  @Index("idx_is_pinned")
-  isPinned: boolean;
-
-  @Column({
-    name: "is_featured",
-    type: "boolean",
-    default: false,
-    comment: "是否精华",
-  })
-  @Index("idx_is_featured")
-  isFeatured: boolean;
-
-  @Column({
     name: "last_comment_at",
     type: "datetime",
     nullable: true,
@@ -125,9 +107,6 @@ export class Post {
 
   @UpdateDateColumn({ name: "updated_at", comment: "更新时间" })
   updatedAt: Date;
-
-  @Column({ type: "text", nullable: true, comment: "元数据" })
-  metadata: string;
 
   @DeleteDateColumn({
     name: "deleted_at",

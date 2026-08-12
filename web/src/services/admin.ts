@@ -52,10 +52,6 @@ export interface UpdateAdminUser {
   avatarUrl?: string | null
 }
 
-export interface UpdateUserStatus {
-  status: number
-}
-
 export interface AdminWallpaperTag {
   id?: number
   name?: string
@@ -194,10 +190,6 @@ class AdminService {
     return api.patch(`/admin/users/${id}`, data)
   }
 
-  async adminUpdateUserStatus(id: number, data: UpdateUserStatus) {
-    return api.patch(`/admin/users/${id}/status`, data)
-  }
-
   async adminDeleteUser(id: number) {
     return api.delete(`/admin/users/${id}`)
   }
@@ -207,10 +199,6 @@ class AdminService {
     return api.get("/admin/wallpapers", { params: query }) as Promise<
       ApiResponseWithPagination<AdminWallpaper[]>
     >
-  }
-
-  async adminGetWallpaperDetail(id: number) {
-    return api.get(`/admin/wallpapers/${id}`) as Promise<ApiResponse<AdminWallpaper>>
   }
 
   async adminUpdateWallpaper(id: number, data: UpdateAdminWallpaper) {

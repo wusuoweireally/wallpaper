@@ -11,7 +11,6 @@ COPY server/package.json ./server/package.json
 COPY web/package.json ./web/package.json
 RUN pnpm install --frozen-lockfile
 
-COPY scripts/ ./scripts/
 COPY server/ ./server/
 RUN mkdir -p server/public && pnpm --filter server build
 RUN pnpm --filter server deploy --legacy --prod --frozen-lockfile /app/server-runtime

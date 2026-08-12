@@ -1,8 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import { join } from "path";
-import * as express from "express";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./filters/http-exception.filter";
@@ -26,15 +24,6 @@ async function bootstrap() {
 
     // 使用cookie解析器
     app.use(cookieParser());
-
-    // 配置静态文件服务
-    app.use(express.static(join(__dirname, "..", "public")));
-
-    // 头像公开访问；壁纸原图和缩略图由 UploadAssetController 按审核状态鉴权。
-    app.use(
-      "/uploads/profile-pictures",
-      express.static(join(__dirname, "..", "uploads", "profile-pictures")),
-    );
 
     // 全局验证管道
     // 信任反向代理的 X-Forwarded-For 头（Docker Compose 架构: 宿主机 Nginx → web 容器 Nginx → server）

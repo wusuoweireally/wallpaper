@@ -3,7 +3,7 @@
     <!-- 页面标题和统计 -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-3xl font-bold text-slate-900">{{ title }}</h2>
+        <h2 class="text-3xl font-bold text-slate-900">{{ config.title }}</h2>
         <p class="mt-2 text-sm text-slate-500">
           共 <span class="font-semibold text-slate-900">{{ pagination.total }}</span> 个壁纸
         </p>
@@ -50,15 +50,14 @@
           <i class="icon-[mdi--image-off] relative text-8xl text-slate-300"></i>
         </div>
         <div>
-          <h3 class="text-2xl font-semibold text-slate-700">{{ emptyTitle }}</h3>
-          <p class="mt-3 text-slate-500">{{ emptyDescription }}</p>
+          <h3 class="text-2xl font-semibold text-slate-700">{{ config.emptyTitle }}</h3>
+          <p class="mt-3 text-slate-500">{{ config.emptyDescription }}</p>
         </div>
         <button
-          v-if="emptyAction"
           class="group mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 px-8 py-3 font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl"
-          @click="emptyAction.handler"
+          @click="router.push(config.emptyRoute)"
         >
-          {{ emptyAction.text }}
+          {{ config.emptyText }}
           <i class="icon-[mdi--arrow-right] text-lg transition-transform group-hover:translate-x-1"></i>
         </button>
       </div>
@@ -70,8 +69,6 @@
         v-for="wallpaper in wallpapers"
         :key="wallpaper.id"
         :wallpaper="wallpaper"
-        :show-uploader="showUploader"
-        :show-actions="showActions"
         @click="goToWallpaper(wallpaper.id)"
       />
     </div>
@@ -119,125 +116,69 @@
 import { ref, computed, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
 import WallpaperCard from "@/components/WallpaperCard.vue"
+import { useUserStore } from "@/stores/user"
 import type { Wallpaper } from "@/services/wallpaper"
 
+type ListType = "uploads" | "favorites" | "likes"
+
+const props = defineProps<{ type: ListType }>()
+
 const router = useRouter()
+const userStore = useUserStore()
 
-const goToWallpaper = (id: number) => {
-  router.push(`/wallpaper/${id}`)
+// 各列表的标题与空状态文案
+const TYPE_CONFIG: Record<
+  ListType,
+  { title: string; emptyTitle: string; emptyDescription: string; emptyText: string; emptyRoute: string }
+> = {
+  uploads: {
+    title: "我的上传",
+    emptyTitle: "暂无上传的壁纸",
+    emptyDescription: "开始分享你的精彩壁纸吧",
+    emptyText: "开始上传",
+    emptyRoute: "/upload",
+  },
+  favorites: {
+    title: "我的收藏",
+    emptyTitle: "暂无收藏的壁纸",
+    emptyDescription: "收藏你喜欢的壁纸，方便随时查看",
+    emptyText: "去发现壁纸",
+    emptyRoute: "/latest",
+  },
+  likes: {
+    title: "我的点赞",
+    emptyTitle: "暂无点赞的壁纸",
+    emptyDescription: "为你喜欢的壁纸点赞，支持创作者",
+    emptyText: "去发现壁纸",
+    emptyRoute: "/wallpapers",
+  },
 }
 
-interface WallpaperItem {
-  id: number
-  fileUrl: string
-  thumbnailUrl?: string
-  uploader?: {
-    username: string
-  }
-  likeCount: number
-  favoriteCount: number
-  createdAt?: string
-  isLiked?: boolean
-  isFavorited?: boolean
-  width?: number
-  height?: number
-  aspectRatio?: string
-  category?: string
-  viewCount?: number
-}
+const config = computed(() => TYPE_CONFIG[props.type])
 
-interface Pagination {
-  page: number
-  limit: number
-  total: number
-  pages: number
-}
-
-interface EmptyAction {
-  text: string
-  handler: () => void
-}
-
-interface Props {
-  title: string
-  emptyTitle: string
-  emptyDescription: string
-  emptyAction?: EmptyAction
-  showUploader?: boolean
-  showActions?: boolean
-  fetchFunction: (
-    page: number,
-    limit: number,
-    search?: string,
-  ) => Promise<{
-    data: WallpaperItem[]
-    pagination: Pagination
-  }>
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  showUploader: true,
-  showActions: true,
-})
-
-// 响应式数据
-const wallpapers = ref<WallpaperItem[]>([])
+const wallpapers = ref<Wallpaper[]>([])
 const loading = ref(false)
 const error = ref<string>("")
+const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
 
-// 分页数据
-const pagination = ref<Pagination>({
-  page: 1,
-  limit: 20,
-  total: 0,
-  pages: 0,
-})
-
-// 计算可见的页码
+// 计算可见的页码：当前页前后各 2 页
 const visiblePages = computed(() => {
   const current = pagination.value.page
   const total = pagination.value.pages
   const pages: number[] = []
-
-  // 显示当前页前后各2页
   for (let i = Math.max(1, current - 2); i <= Math.min(total, current + 2); i++) {
     pages.push(i)
   }
-
   return pages
 })
 
-// 转换后端数据为前端组件期望的格式
-const transformWallpaperData = (data: Wallpaper): WallpaperItem => {
-  return {
-    id: data.id,
-    fileUrl: data.fileUrl,
-    thumbnailUrl: data.thumbnailUrl,
-    uploader: data.uploader ? { username: data.uploader.username } : undefined,
-    likeCount: data.likeCount || 0,
-    favoriteCount: data.favoriteCount || 0,
-    createdAt: data.createdAt,
-    isLiked: data.isLiked || false,
-    isFavorited: data.isFavorited || false,
-    width: data.width,
-    height: data.height,
-    aspectRatio: data.aspectRatio,
-    category: data.category,
-    viewCount: data.viewCount,
-  }
-}
-
-// 获取数据
 const fetchData = async (page: number = 1) => {
   try {
     loading.value = true
     error.value = ""
-
-    const result = await props.fetchFunction(page, pagination.value.limit)
-    // 转换数据格式
-    wallpapers.value = result.data.map(transformWallpaperData)
-
-    pagination.value = result.pagination
+    const result = await userStore.fetchUserWallpapers(props.type, page, pagination.value.limit)
+    wallpapers.value = result?.data || []
+    pagination.value = result?.pagination || { page, limit: pagination.value.limit, total: 0, pages: 0 }
   } catch (err) {
     error.value = err instanceof Error ? err.message : "获取数据失败"
     console.error("获取壁纸列表失败:", err)
@@ -246,29 +187,24 @@ const fetchData = async (page: number = 1) => {
   }
 }
 
-// 搜索处理（防抖）
-// 分页处理
 const handlePageChange = (page: number) => {
   if (page < 1 || page > pagination.value.pages) return
   pagination.value.page = page
   fetchData(page)
 }
 
-// 页面加载时获取数据
+const goToWallpaper = (id: number) => {
+  router.push(`/wallpaper/${id}`)
+}
+
 onMounted(() => {
   fetchData()
 })
 
-// 监听分页变化
 watch(
   () => pagination.value.page,
   (newPage) => {
     fetchData(newPage)
   },
 )
-
-// 暴露方法供父组件调用
-defineExpose({
-  refresh: () => fetchData(pagination.value.page),
-})
 </script>

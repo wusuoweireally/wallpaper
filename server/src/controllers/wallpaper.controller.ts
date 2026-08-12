@@ -31,7 +31,6 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { CurrentUser } from "../decorators/current-user.decorator";
 import type { CurrentUserType } from "../decorators/current-user.decorator";
 import { verifyOwnership } from "../decorators/ownership.decorator";
-import { isAdminRole } from "../entities/user.entity";
 import { WallpaperStatus } from "../entities/wallpaper.entity";
 import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
@@ -65,10 +64,11 @@ export class WallpaperController {
    */
   @Post("upload")
   @UseGuards(JwtAuthGuard)
-  @Throttle({ upload: { limit: 50, ttl: 3600000 } })
+  @SkipThrottle({ default: false })
+  @Throttle({ default: { limit: 50, ttl: 3600000 } })
   @UseInterceptors(
     FileInterceptor("file", {
-      limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+      limits: { fileSize: 32 * 1024 * 1024, files: 1 },
     }),
   )
   async uploadWallpaper(
@@ -89,9 +89,7 @@ export class WallpaperController {
       const createData: CreateWallpaperData = {
         ...createWallpaperDto,
         ...fileInfo,
-        status: isAdminRole(user.role)
-          ? WallpaperStatus.APPROVED
-          : WallpaperStatus.PENDING,
+        status: WallpaperStatus.APPROVED,
       };
 
       // 用户上传允许自定义标签（不存在则创建）
@@ -103,10 +101,7 @@ export class WallpaperController {
 
       return {
         success: true,
-        message:
-          wallpaper.status === WallpaperStatus.APPROVED
-            ? "壁纸上传成功"
-            : "壁纸已提交审核",
+        message: "壁纸上传成功",
         data: wallpaper,
       };
     } catch (error) {
@@ -319,23 +314,11 @@ export class WallpaperController {
       isFavorited = interactionStatus.isFavorited;
     }
 
-    // 处理上传者头像URL，确保返回完整可访问的URL
+    // 头像：COS 完整 URL，否则用默认头像
     const uploader = wallpaper.uploader;
-    let avatarUrl: string | null = null;
-    if (uploader?.avatarUrl) {
-      // 如果头像URL是默认头像，返回默认路径
-      if (
-        uploader.avatarUrl === "defaultAvatar.png" ||
-        uploader.avatarUrl === "defaultAvatar.webp"
-      ) {
-        avatarUrl = "/uploads/profile-pictures/defaultAvatar.png";
-      } else if (/^https?:\/\//i.test(uploader.avatarUrl)) {
-        avatarUrl = uploader.avatarUrl;
-      } else {
-        // 为用户上传的头像添加完整路径
-        avatarUrl = `/uploads/profile-pictures/${uploader.avatarUrl}`;
-      }
-    }
+    const avatarUrl = uploader?.avatarUrl?.startsWith("http")
+      ? uploader.avatarUrl
+      : "/defaultAvatar.png";
 
     return {
       success: true,
@@ -385,17 +368,14 @@ export class WallpaperController {
     const wallpaper = await this.wallpaperService.findById(Number(id));
     verifyOwnership(wallpaper.uploaderId, user, "修改此壁纸");
 
-    const updatedWallpaper = await this.wallpaperService.updateSubmission(
+    const updatedWallpaper = await this.wallpaperService.update(
       Number(id),
       updateData,
-      !isAdminRole(user.role),
     );
 
     return {
       success: true,
-      message: isAdminRole(user.role)
-        ? "壁纸更新成功"
-        : "壁纸已更新并重新提交审核",
+      message: "壁纸更新成功",
       data: updatedWallpaper,
     };
   }
@@ -431,13 +411,23 @@ export class WallpaperController {
    * 记录下载
    */
   @Post(":id/download")
+  @SkipThrottle({ default: false })
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async recordDownload(@Param("id") id: string) {
     const wallpaperId = Number(id);
-    if (isNaN(wallpaperId)) {
+    if (!Number.isSafeInteger(wallpaperId) || wallpaperId <= 0) {
       throw new BadRequestException("无效的壁纸ID");
     }
+
+    const wallpaper =
+      await this.wallpaperService.findPublishedById(wallpaperId);
     await this.wallpaperService.incrementDownloadCount(wallpaperId);
-    return { success: true, message: "下载记录成功" };
+
+    return {
+      success: true,
+      message: "下载记录成功",
+      data: { fileUrl: wallpaper.fileUrl },
+    };
   }
 
   /** 确保点赞存在。 */

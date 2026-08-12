@@ -68,5 +68,3 @@ export class GetReportsDto extends PaginationQueryDto {
   @IsString()
   keyword?: string;
 }
-
-export class UserReportsQueryDto extends PaginationQueryDto {}

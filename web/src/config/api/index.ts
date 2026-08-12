@@ -252,7 +252,6 @@ export const cancelRequest = (requestId: string): boolean => {
 }
 
 export default api
-// 在 src/config/api/index.ts 文件末尾添加
 
 // 扩展 axios 类型定义，让所有请求自动返回 ApiResponse 格式
 declare module "axios" {

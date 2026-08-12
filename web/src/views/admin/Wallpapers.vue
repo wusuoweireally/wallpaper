@@ -124,8 +124,7 @@
                 @change="refreshList"
               >
                 <option value="" class="bg-slate-900">全部</option>
-                <option value="0" class="bg-slate-900">待审核</option>
-                <option value="1" class="bg-slate-900">已审核</option>
+                <option value="1" class="bg-slate-900">已通过</option>
               </select>
             </div>
 
@@ -917,10 +916,9 @@ const getWallpaperImage = (url?: string | null) => {
 }
 
 const getUploaderAvatar = (url?: string | null) => {
-  if (!url) return DEFAULT_AVATAR_PLACEHOLDER
-  if (/^(https?:)?\/\//.test(url)) return url
-  if (url.startsWith("/")) return url
-  return `/api/uploads/profile-pictures/${url}`
+  // COS 完整 URL 或绝对路径直返；其余（旧式文件名等）视为默认头像
+  if (!url || !/^(https?:)?\//.test(url)) return DEFAULT_AVATAR_PLACEHOLDER
+  return url
 }
 
 const formatFileSize = (size?: number) => {
@@ -946,8 +944,8 @@ const formatDateTime = (date: string) => {
 }
 
 const formatStatus = (status?: number) => {
-  if (status === 1) return "已审核"
-  return "待审核"
+  if (status === 1) return "已通过"
+  return "已驳回"
 }
 
 const getCategoryLabel = (category: AdminWallpaper["category"]) => {

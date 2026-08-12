@@ -1,19 +1,6 @@
 import "reflect-metadata";
 import { join } from "path";
 import { DataSource } from "typeorm";
-import { User } from "../entities/user.entity";
-import { Wallpaper } from "../entities/wallpaper.entity";
-import { Tag } from "../entities/tag.entity";
-import { WallpaperTag } from "../entities/wallpaper-tag.entity";
-import { UserFavorite } from "../entities/user-favorite.entity";
-import { UserLike } from "../entities/user-like.entity";
-import { ViewHistory } from "../entities/view-history.entity";
-import { Post } from "../entities/post.entity";
-import { Comment } from "../entities/comment.entity";
-import { PostLike } from "../entities/post-like.entity";
-import { CommentLike } from "../entities/comment-like.entity";
-import { Report } from "../entities/report.entity";
-import { PostBookmark } from "../entities/post-bookmark.entity";
 import {
   getDatabaseConnectionOptions,
   loadDatabaseEnvironment,
@@ -25,21 +12,7 @@ loadDatabaseEnvironment();
 // 用于 CLI 工具（迁移生成和执行）
 export const AppDataSource = new DataSource({
   ...getDatabaseConnectionOptions(),
-  entities: [
-    User,
-    Wallpaper,
-    Tag,
-    WallpaperTag,
-    UserFavorite,
-    UserLike,
-    ViewHistory,
-    Post,
-    Comment,
-    PostLike,
-    CommentLike,
-    Report,
-    PostBookmark,
-  ],
+  entities: [join(__dirname, "..", "entities", "*.entity{.ts,.js}")],
   migrations: [join(__dirname, "..", "migrations", "*{.ts,.js}")],
   synchronize: false,
   logging: true,

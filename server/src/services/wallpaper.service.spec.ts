@@ -97,74 +97,7 @@ describe("WallpaperService visibility", () => {
   });
 
   describe("findVisibleByAssetUrl", () => {
-    it("allows anonymous access to an approved asset", async () => {
-      const wallpaper = createWallpaper(1);
-      findOne.mockResolvedValue(wallpaper);
-
-      await expect(service.findVisibleByAssetUrl(assetUrl)).resolves.toBe(
-        wallpaper,
-      );
-      expect(findOne).toHaveBeenCalledWith({
-        where: { fileUrl: assetUrl },
-      });
-    });
-
-    it("queries the thumbnail URL column directly", async () => {
-      const wallpaper = createWallpaper(1);
-      findOne.mockResolvedValue(wallpaper);
-
-      await service.findVisibleByAssetUrl(wallpaper.thumbnailUrl);
-
-      expect(findOne).toHaveBeenCalledWith({
-        where: { thumbnailUrl: wallpaper.thumbnailUrl },
-      });
-    });
-
-    it.each([
-      ["anonymous", undefined],
-      ["another user", { userId: uploaderId + 1, role: UserRole.USER }],
-    ])("hides a pending asset from %s", async (_name, viewer) => {
-      findOne.mockResolvedValue(createWallpaper(0));
-
-      await expect(
-        service.findVisibleByAssetUrl(assetUrl, viewer),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
-
-    it("allows the uploader to access a pending asset", async () => {
-      const wallpaper = createWallpaper(0);
-      findOne.mockResolvedValue(wallpaper);
-
-      await expect(
-        service.findVisibleByAssetUrl(assetUrl, {
-          userId: uploaderId,
-          role: UserRole.USER,
-        }),
-      ).resolves.toBe(wallpaper);
-    });
-
-    it.each([UserRole.ADMIN, UserRole.SUPER_ADMIN])(
-      "allows a %s to access a pending asset",
-      async (role) => {
-        const wallpaper = createWallpaper(0);
-        findOne.mockResolvedValue(wallpaper);
-
-        await expect(
-          service.findVisibleByAssetUrl(assetUrl, {
-            userId: uploaderId + 1,
-            role,
-          }),
-        ).resolves.toBe(wallpaper);
-      },
-    );
-
-    it("returns 404 when the asset is not associated with a wallpaper", async () => {
-      findOne.mockResolvedValue(null);
-
-      await expect(
-        service.findVisibleByAssetUrl(assetUrl),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
+    it.todo("removed: asset access no longer goes through the backend");
   });
 });
 

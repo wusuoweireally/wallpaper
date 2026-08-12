@@ -386,11 +386,6 @@ export class ReportService {
    * 获取举报统计信息
    */
   async getReportStats(): Promise<{
-    total: number;
-    pending: number;
-    reviewing: number;
-    resolved: number;
-    dismissed: number;
     totalReports: number;
     pendingReports: number;
     processingReports: number;
@@ -428,11 +423,6 @@ export class ReportService {
       .getRawMany<ReportStatsByType>();
 
     return {
-      total,
-      pending,
-      reviewing,
-      resolved,
-      dismissed,
       totalReports: total,
       pendingReports: pending,
       processingReports: reviewing,

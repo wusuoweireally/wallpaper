@@ -357,17 +357,15 @@ const handleDownload = async () => {
   if (downloading.value) return
   downloading.value = true
   try {
-    try {
-      await wallpaperService.recordDownload(props.wallpaper.id)
-    } catch (e) {
-      console.warn('下载计数失败:', e)
-    }
-    const ext = props.wallpaper.format?.toLowerCase() || props.wallpaper.fileUrl.split('.').pop() || 'jpg'
+    const response = await wallpaperService.recordDownload(props.wallpaper.id)
+    const fileUrl = response.data?.fileUrl
+    if (!fileUrl) throw new Error("下载地址无效")
+    const ext = props.wallpaper.format?.toLowerCase() || fileUrl.split(".").pop() || "jpg"
     const fileName = `wallpaper-${props.wallpaper.id}.${ext}`
-    const link = document.createElement('a')
-    link.href = props.wallpaper.fileUrl
+    const link = document.createElement("a")
+    link.href = fileUrl
     link.download = fileName
-    link.rel = 'noopener'
+    link.rel = "noopener"
     document.body.appendChild(link)
     link.click()
     link.remove()

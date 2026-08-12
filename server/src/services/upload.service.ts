@@ -5,20 +5,23 @@ import {
   Logger,
 } from "@nestjs/common";
 import sharp from "sharp";
-import * as fs from "fs/promises";
-import * as path from "path";
 import { randomBytes } from "crypto";
+import { CosService, type AuditResult } from "./cos.service";
 
+/**
+ * 图片上传处理：上传 COS 后同步调用腾讯云审核
+ * - 违规：删除对象，返回 400"图片不符合上传规范"（避免先成功后裂图）
+ * - 通过：公开对象，返回完整 URL
+ * 失败路径保证已上传的对象被清理（不留孤儿对象）
+ */
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name);
-  private readonly uploadsDir = path.join(process.cwd(), "uploads");
+
+  constructor(private readonly cos: CosService) {}
 
   /**
    * 处理壁纸文件上传
-   * @param file 上传的文件
-   * @param uploaderId 上传者ID
-   * @returns 壁纸信息对象
    */
   async processWallpaperUpload(
     file: Express.Multer.File,
@@ -38,8 +41,9 @@ export class UploadService {
         "不支持的文件类型，仅支持 JPG、PNG、WebP 格式",
       );
     }
-    if (file.size > 50 * 1024 * 1024) {
-      throw new BadRequestException("文件大小不能超过50MB");
+    // 腾讯云审核接口最大支持 32MB，上传上限与之对齐
+    if (file.size > 32 * 1024 * 1024) {
+      throw new BadRequestException("文件大小不能超过32MB");
     }
 
     const extensions = { jpeg: "jpg", png: "png", webp: "webp" } as const;
@@ -83,38 +87,50 @@ export class UploadService {
     const height = shouldSwapDimensions ? metadata.width : metadata.height;
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const nonce = randomBytes(6).toString("hex");
-    const fileName = `${timestamp}_${nonce}__${uploaderId}.${extensions[format]}`;
-    const thumbnailName = `${timestamp}_${nonce}__${uploaderId}_thumbnail.webp`;
-    const fileDir = path.join(this.uploadsDir, "wallpapers");
-    const thumbnailsDir = path.join(this.uploadsDir, "thumbnails");
-    const filePath = path.join(fileDir, fileName);
-    const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
-    const temporaryFilePath = `${filePath}.tmp`;
-    const temporaryThumbnailPath = `${thumbnailPath}.tmp`;
+    const fileKey = `wallpapers/${timestamp}_${nonce}__${uploaderId}.${extensions[format]}`;
+    const thumbKey = `thumbnails/${timestamp}_${nonce}__${uploaderId}_thumbnail.webp`;
 
+    // 1. 上传原图到私有桶
     try {
-      await Promise.all([
-        fs.mkdir(fileDir, { recursive: true }),
-        fs.mkdir(thumbnailsDir, { recursive: true }),
-      ]);
-      await fs.writeFile(temporaryFilePath, file.buffer);
-      await fs.writeFile(temporaryThumbnailPath, thumbnailBuffer);
-      await fs.rename(temporaryFilePath, filePath);
-      await fs.rename(temporaryThumbnailPath, thumbnailPath);
-    } catch (error) {
-      await this.removeFiles([
-        temporaryFilePath,
-        temporaryThumbnailPath,
-        filePath,
-        thumbnailPath,
-      ]);
-      this.logger.error("壁纸文件落盘失败", error);
-      throw new InternalServerErrorException("文件保存失败，请稍后重试");
+      await this.cos.putObject(fileKey, file.buffer, file.mimetype);
+    } catch (err) {
+      this.logger.error("原图上传 COS 失败", (err as Error).message);
+      throw new InternalServerErrorException("文件上传失败，请稍后重试");
+    }
+
+    // 2. 同步审核原图；违规/异常都先删除对象再抛错
+    let audit: AuditResult;
+    try {
+      audit = await this.cos.auditImage(fileKey, file.size);
+    } catch (err) {
+      await this.cos.deleteObject(fileKey);
+      this.logger.error("审核服务调用失败", (err as Error).message);
+      throw new InternalServerErrorException(
+        "图片审核服务暂时不可用，请稍后重试",
+      );
+    }
+    if (!audit.passed) {
+      await this.cos.deleteObject(fileKey);
+      throw new BadRequestException(
+        `图片不符合上传规范（${audit.label}），已拒绝上传`,
+      );
+    }
+
+    // 3. 审核通过：原图公开 + 缩略图上传并公开
+    try {
+      await this.cos.setPublicRead(fileKey);
+      await this.cos.putObject(thumbKey, thumbnailBuffer, "image/webp");
+      await this.cos.setPublicRead(thumbKey);
+    } catch (err) {
+      this.logger.error("文件发布失败", (err as Error).message);
+      await this.cos.deleteObject(fileKey);
+      await this.cos.deleteObject(thumbKey);
+      throw new InternalServerErrorException("文件发布失败，请稍后重试");
     }
 
     return {
-      fileUrl: `/uploads/wallpapers/${fileName}`,
-      thumbnailUrl: `/uploads/thumbnails/${thumbnailName}`,
+      fileUrl: this.cos.publicUrl(fileKey),
+      thumbnailUrl: this.cos.publicUrl(thumbKey),
       fileSize: file.size,
       width,
       height,
@@ -123,6 +139,9 @@ export class UploadService {
     };
   }
 
+  /**
+   * 处理头像上传：同样走 COS + 审核，返回完整公开 URL
+   */
   async processAvatarUpload(
     file: Express.Multer.File,
     userId: number,
@@ -132,68 +151,61 @@ export class UploadService {
       throw new BadRequestException("头像仅支持 JPG、PNG、WebP 格式");
     }
 
-    const fileName = `user_${userId}_${Date.now()}.webp`;
-    const directory = path.join(this.uploadsDir, "profile-pictures");
-    await fs.mkdir(directory, { recursive: true });
+    const avatarKey = `profile-pictures/user_${userId}_${Date.now()}.webp`;
 
+    let avatarBuffer: Buffer;
     try {
-      await sharp(file.buffer, { limitInputPixels: 25_000_000 })
+      avatarBuffer = await sharp(file.buffer, { limitInputPixels: 25_000_000 })
         .rotate()
         .resize(512, 512, { fit: "cover" })
         .webp({ quality: 85 })
-        .toFile(path.join(directory, fileName));
-      return fileName;
+        .toBuffer();
     } catch {
       throw new BadRequestException("头像文件无效");
     }
-  }
 
-  async deleteAvatar(fileName?: string | null): Promise<void> {
-    if (
-      !fileName ||
-      fileName === "defaultAvatar.png" ||
-      fileName === "defaultAvatar.webp" ||
-      fileName.startsWith("http")
-    ) {
-      return;
+    try {
+      await this.cos.putObject(avatarKey, avatarBuffer, "image/webp");
+      const audit = await this.cos.auditImage(avatarKey, avatarBuffer.length);
+      if (!audit.passed) {
+        await this.cos.deleteObject(avatarKey);
+        throw new BadRequestException(`头像不符合上传规范（${audit.label}）`);
+      }
+      await this.cos.setPublicRead(avatarKey);
+      return this.cos.publicUrl(avatarKey);
+    } catch (err) {
+      await this.cos.deleteObject(avatarKey);
+      if (err instanceof BadRequestException) throw err;
+      this.logger.error("头像上传/审核失败", (err as Error).message);
+      throw new InternalServerErrorException("头像上传失败，请稍后重试");
     }
-
-    await fs
-      .unlink(
-        path.join(this.uploadsDir, "profile-pictures", path.basename(fileName)),
-      )
-      .catch(() => {});
   }
 
   /**
-   * 删除上传的文件
+   * 删除头像（按完整 URL）；默认头像/GitHub URL/空值跳过
+   */
+  async deleteAvatar(avatarUrl?: string | null): Promise<void> {
+    if (
+      !avatarUrl ||
+      avatarUrl === "defaultAvatar.png" ||
+      avatarUrl === "defaultAvatar.webp" ||
+      !avatarUrl.startsWith("http")
+    ) {
+      return;
+    }
+    await this.cos.deleteObject(this.cos.keyFromUrl(avatarUrl));
+  }
+
+  /**
+   * 删除壁纸原图与缩略图（按完整 URL）
    */
   async deleteUploadedFiles(
     fileUrl: string,
     thumbnailUrl: string,
   ): Promise<void> {
-    const paths = [
-      fileUrl
-        ? path.join(this.uploadsDir, "wallpapers", path.basename(fileUrl))
-        : "",
-      thumbnailUrl
-        ? path.join(this.uploadsDir, "thumbnails", path.basename(thumbnailUrl))
-        : "",
-    ].filter(Boolean);
-    await this.removeFiles(paths);
-  }
-
-  private async removeFiles(paths: string[]): Promise<void> {
-    await Promise.all(
-      paths.map(async (filePath) => {
-        try {
-          await fs.unlink(filePath);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-            this.logger.warn(`文件清理失败: ${filePath}`, error);
-          }
-        }
-      }),
-    );
+    const keys = [fileUrl, thumbnailUrl]
+      .filter((u) => u && u.startsWith("http"))
+      .map((u) => this.cos.keyFromUrl(u));
+    await Promise.all(keys.map((k) => this.cos.deleteObject(k)));
   }
 }

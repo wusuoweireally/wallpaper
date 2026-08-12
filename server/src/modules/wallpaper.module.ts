@@ -2,9 +2,9 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { WallpaperController } from "../controllers/wallpaper.controller";
-import { UploadAssetController } from "../controllers/upload-asset.controller";
 import { WallpaperService } from "../services/wallpaper.service";
 import { UploadService } from "../services/upload.service";
+import { CosService } from "../services/cos.service";
 import { ViewHistoryService } from "../services/view-history.service";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
@@ -30,14 +30,15 @@ import { DemoSeedService } from "../services/demo-seed.service";
     ]),
     TagModule,
   ],
-  controllers: [WallpaperController, UploadAssetController],
+  controllers: [WallpaperController],
   providers: [
     WallpaperService,
     UploadService,
+    CosService,
     ViewHistoryService,
     DemoSeedService,
     OptionalJwtAuthGuard,
   ],
-  exports: [WallpaperService, UploadService, ViewHistoryService],
+  exports: [WallpaperService, UploadService, CosService, ViewHistoryService],
 })
 export class WallpaperModule {}

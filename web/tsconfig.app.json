@@ -1,5 +1,4 @@
 {
-  // "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     // TS 6 起 baseUrl 已弃用；paths 用相对本配置文件的路径即可（@/* → ./src/*）

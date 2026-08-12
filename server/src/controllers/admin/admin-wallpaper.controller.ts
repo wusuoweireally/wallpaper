@@ -17,17 +17,12 @@ import { UserRole } from "../../entities/user.entity";
 import { WallpaperService } from "../../services/wallpaper.service";
 import { UploadService } from "../../services/upload.service";
 import {
-  AdminUpdateWallpaperDto,
   AdminWallpaperQueryDto,
   AdminUpdateWallpaperTagsDto,
   AdminBatchFeaturedDto,
-  AdminBatchReviewWallpaperDto,
-  AdminReviewWallpaperDto,
   AdminWallpaperIdsDto,
 } from "../../dto/admin.dto";
-import { CurrentUser } from "../../decorators/current-user.decorator";
-import type { CurrentUserType } from "../../decorators/current-user.decorator";
-import { WallpaperStatus } from "../../entities/wallpaper.entity";
+import { UpdateWallpaperDto } from "../../dto/wallpaper.dto";
 
 @Controller("admin/wallpapers")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -86,34 +81,12 @@ export class AdminWallpaperController {
   @Patch(":id")
   async update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: AdminUpdateWallpaperDto,
+    @Body() dto: UpdateWallpaperDto,
   ) {
     const wallpaper = await this.wallpaperService.update(id, dto);
     return {
       success: true,
       message: "壁纸信息已更新",
-      data: wallpaper,
-    };
-  }
-
-  @Patch(":id/review")
-  async review(
-    @Param("id", ParseIntPipe) id: number,
-    @Body() dto: AdminReviewWallpaperDto,
-    @CurrentUser() admin: CurrentUserType,
-  ) {
-    const wallpaper = await this.wallpaperService.review(
-      id,
-      dto.status,
-      admin.userId,
-      dto.reviewNote,
-    );
-    return {
-      success: true,
-      message:
-        dto.status === WallpaperStatus.APPROVED
-          ? "壁纸已通过审核"
-          : "壁纸已驳回",
       data: wallpaper,
     };
   }
@@ -186,27 +159,6 @@ export class AdminWallpaperController {
       message: body.isFeatured
         ? `已将 ${result.updatedCount} 个壁纸设为推荐`
         : `已取消 ${result.updatedCount} 个壁纸的推荐`,
-      data: result,
-    };
-  }
-
-  @Post("batch-review")
-  async batchReview(
-    @Body() dto: AdminBatchReviewWallpaperDto,
-    @CurrentUser() admin: CurrentUserType,
-  ) {
-    const result = await this.wallpaperService.batchReview(
-      dto.ids,
-      dto.status,
-      admin.userId,
-      dto.reviewNote,
-    );
-    return {
-      success: true,
-      message:
-        dto.status === WallpaperStatus.APPROVED
-          ? `已通过 ${result.updatedCount} 张壁纸`
-          : `已驳回 ${result.updatedCount} 张壁纸`,
       data: result,
     };
   }

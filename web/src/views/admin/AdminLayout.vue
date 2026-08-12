@@ -357,7 +357,7 @@ const pendingReportsCount = ref(0)
 const loadPendingReportsCount = async () => {
   try {
     const response = await adminService.getReportStats()
-    pendingReportsCount.value = response.data?.pendingReports ?? response.data?.pending ?? 0
+    pendingReportsCount.value = response.data?.pendingReports ?? 0
   } catch (error) {
     console.error("获取待处理举报数量失败:", error)
     pendingReportsCount.value = 0
@@ -386,10 +386,8 @@ const userAvatar = computed(() => {
   if (!userStore.user?.avatarUrl || userStore.user?.avatarUrl === "defaultAvatar.png") {
     return "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
   }
-  if (userStore.user.avatarUrl.startsWith("http")) {
-    return userStore.user.avatarUrl
-  }
-  return `/api/uploads/profile-pictures/${userStore.user.avatarUrl}`
+  // COS 完整 URL 或 /defaultAvatar.png 等绝对路径直返
+  return userStore.user.avatarUrl
 })
 
 const handleImageError = (event: Event) => {

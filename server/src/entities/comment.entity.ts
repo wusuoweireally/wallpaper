@@ -74,12 +74,6 @@ export class Comment {
   @Index("idx_comment_reply_count")
   replyCount: number;
 
-  @Column({ nullable: true, comment: "状态" })
-  status: string;
-
-  @Column({ nullable: true, comment: "元数据" })
-  metadata: string;
-
   @CreateDateColumn({
     name: "created_at",
     comment: "创建时间",

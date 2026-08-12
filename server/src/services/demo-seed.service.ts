@@ -2,17 +2,21 @@ import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { promises as fs } from "fs";
 import { join } from "path";
-import sharp from "sharp";
 import { In, Repository } from "typeorm";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { Tag } from "../entities/tag.entity";
 import { User, UserRole } from "../entities/user.entity";
+import { UploadService } from "./upload.service";
 
 type DemoTagTemplate = {
   name: string;
   slug: string;
 };
 
+/**
+ * 演示数据初始化：读取本地 uploads/壁纸 目录的源图，
+ * 走 UploadService（COS 上传 + 内容审核）入库，审核不通过的图自动跳过
+ */
 @Injectable()
 export class DemoSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DemoSeedService.name);
@@ -37,6 +41,7 @@ export class DemoSeedService implements OnApplicationBootstrap {
     private readonly tagRepository: Repository<Tag>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly uploadService: UploadService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -61,11 +66,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
     }
 
     const wallpapersDir = join(process.cwd(), "uploads", "壁纸");
-    const thumbnailsDir = join(process.cwd(), "uploads", "thumbnails");
-    const targetWallpapersDir = join(process.cwd(), "uploads", "wallpapers");
-    await fs.mkdir(thumbnailsDir, { recursive: true });
-    await fs.mkdir(targetWallpapersDir, { recursive: true });
-
     const files = await this.loadWallpaperFiles(wallpapersDir);
     if (files.length === 0) {
       this.logger.warn("uploads/壁纸 目录为空，跳过演示壁纸初始化。");
@@ -79,63 +79,45 @@ export class DemoSeedService implements OnApplicationBootstrap {
     const entities: Wallpaper[] = [];
 
     for (const [index, fileName] of selectedFiles.entries()) {
-      const filePath = join(wallpapersDir, fileName);
-      const stats = await fs.stat(filePath);
-      const metadata = await sharp(filePath).metadata();
+      try {
+        const buffer = await fs.readFile(join(wallpapersDir, fileName));
+        const file = {
+          buffer,
+          mimetype: `image/${this.getImageExtension(fileName)}`,
+          size: buffer.length,
+        } as Express.Multer.File;
+        // COS 上传 + 内容审核（违规或失败抛错，跳过该文件）
+        const fileInfo = await this.uploadService.processWallpaperUpload(
+          file,
+          uploader.id,
+        );
 
-      if (!metadata.width || !metadata.height) {
-        this.logger.warn(`跳过无法识别尺寸的图片: ${fileName}`);
-        continue;
+        const relatedTags = [
+          tags[index % tags.length],
+          tags[(index + 1) % tags.length],
+        ];
+        relatedTags.forEach((tag) => {
+          tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
+        });
+
+        entities.push(
+          this.wallpaperRepository.create({
+            ...fileInfo,
+            category: this.categories[index % this.categories.length],
+            uploaderId: uploader.id,
+            viewCount: 120 - index * 7,
+            likeCount: 48 - index * 3,
+            favoriteCount: 24 - index * 2,
+            status: 1,
+            isFeatured: index < 3,
+            tags: relatedTags,
+          }),
+        );
+      } catch (error) {
+        this.logger.warn(
+          `演示壁纸处理失败，跳过: ${fileName} - ${String(error)}`,
+        );
       }
-
-      const extension = this.getImageExtension(metadata.format);
-      if (!extension) {
-        this.logger.warn(`跳过不支持的图片格式: ${fileName}`);
-        continue;
-      }
-
-      // 生成唯一的文件名（时间戳+索引）
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const newFileName = `demo_${timestamp}_${index}.${extension}`;
-      const thumbnailName = `demo_${timestamp}_${index}_thumbnail.webp`;
-
-      // 复制原图到 wallpapers 目录
-      const newFilePath = join(wallpapersDir, "..", "wallpapers", newFileName);
-      await fs.copyFile(filePath, newFilePath);
-
-      // 生成缩略图
-      await sharp(filePath)
-        .resize(300, null, { fit: "inside" })
-        .webp({ quality: 100 })
-        .toFile(join(thumbnailsDir, thumbnailName));
-
-      const relatedTags = [
-        tags[index % tags.length],
-        tags[(index + 1) % tags.length],
-      ];
-      relatedTags.forEach((tag) => {
-        tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
-      });
-
-      const wallpaper = this.wallpaperRepository.create({
-        fileUrl: `/uploads/wallpapers/${newFileName}`,
-        thumbnailUrl: `/uploads/thumbnails/${thumbnailName}`,
-        category: this.categories[index % this.categories.length],
-        fileSize: Number(stats.size),
-        format: metadata.format || "jpeg",
-        width: metadata.width,
-        height: metadata.height,
-        aspectRatio: Number((metadata.width / metadata.height).toFixed(2)),
-        uploaderId: uploader.id,
-        viewCount: 120 - index * 7,
-        likeCount: 48 - index * 3,
-        favoriteCount: 24 - index * 2,
-        status: 1,
-        isFeatured: index < 3,
-        tags: relatedTags,
-      });
-
-      entities.push(wallpaper);
     }
 
     if (entities.length === 0) {
@@ -153,18 +135,20 @@ export class DemoSeedService implements OnApplicationBootstrap {
     this.logger.log(`已初始化 ${entities.length} 条演示壁纸数据。`);
   }
 
+  /** 从文件名推断图片类型（jpeg/png/webp），用于 mimetype */
+  private getImageExtension(fileName: string): string {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (ext === "jpeg" || ext === "jpg") return "jpeg";
+    if (ext === "png" || ext === "webp") return ext;
+    return "jpeg";
+  }
+
   private getSeedLimit(maxAvailable: number): number {
     const rawLimit = Number(process.env.DEMO_SEED_LIMIT || 8);
     if (!Number.isInteger(rawLimit) || rawLimit <= 0) {
       return Math.min(8, maxAvailable);
     }
     return Math.min(rawLimit, maxAvailable);
-  }
-
-  private getImageExtension(format?: string): "jpg" | "png" | "webp" | null {
-    if (format === "jpeg") return "jpg";
-    if (format === "png" || format === "webp") return format;
-    return null;
   }
 
   private async loadWallpaperFiles(wallpapersDir: string): Promise<string[]> {

@@ -727,8 +727,9 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null
 const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
 
 const getAvatarUrl = (avatarUrl: string) => {
-  if (avatarUrl.startsWith("http")) return avatarUrl
-  return `/api/uploads/profile-pictures/${avatarUrl}`
+  // COS 完整 URL 或绝对路径直返；旧式相对文件名视为默认头像
+  if (avatarUrl.startsWith("http") || avatarUrl.startsWith("/")) return avatarUrl
+  return "/defaultAvatar.png"
 }
 
 const handleImageError = (event: Event) => {

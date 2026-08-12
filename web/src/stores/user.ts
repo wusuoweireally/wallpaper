@@ -7,8 +7,7 @@ import userService, {
   type UpdateUserDto,
   type LoginResponse,
 } from "@/services/user"
-import type { Wallpaper } from "@/services/wallpaper"
-import type { ApiResponse } from "@/config/api"
+import { resolveAvatarUrl } from "@/utils/avatar"
 
 type ServiceError = Error & { response?: { data?: { message?: string } }; message?: string }
 
@@ -69,25 +68,12 @@ export const useUserStore = defineStore("user", () => {
     likesReceived: 0,
   })
 
-  // 缓存数据
-  const cache = ref<Record<string, ApiResponse<unknown>>>({})
-
   // ==================== 计算属性 ====================
   const isLoggedIn = computed(() => !!user.value)
 
   const currentUser = computed(() => user.value)
 
-  const userAvatar = computed(() => {
-    // 如果没有头像，或者头像就是默认头像，返回默认头像
-    if (!user.value?.avatarUrl || user.value?.avatarUrl === "defaultAvatar.png" || user.value?.avatarUrl === "defaultAvatar.webp")
-      return "/uploads/profile-pictures/defaultAvatar.png"
-    // 如果是完整的 HTTP(S) URL，直接返回
-    if (user.value.avatarUrl.startsWith("http")) return user.value.avatarUrl
-    // 如果已经是完整路径（以 /uploads/ 开头），直接返回
-    if (user.value.avatarUrl.startsWith("/uploads/")) return user.value.avatarUrl
-    // 否则拼接相对路径
-    return `/uploads/profile-pictures/${user.value.avatarUrl}`
-  })
+  const userAvatar = computed(() => resolveAvatarUrl(user.value?.avatarUrl))
 
   // ==================== 用户状态管理 ====================
 
@@ -354,28 +340,12 @@ export const useUserStore = defineStore("user", () => {
         throw new Error("用户未登录")
       }
 
-      const [uploadsResp, favoritesResp, likesResp] = await Promise.all([
-        userService.getUserWallpapers(1, 100),
-        userService.getUserFavorites(1, 1),
-        userService.getUserLikes(1, 1),
-      ])
-
-      const uploadsTotal = uploadsResp?.pagination?.total ?? 0
-      const favoritesTotal = favoritesResp?.pagination?.total ?? 0
-      const likesTotal = likesResp?.pagination?.total ?? 0
-      const uploadsList = Array.isArray(uploadsResp?.data) ? uploadsResp.data : []
-      const likesReceived = uploadsList.reduce(
-        (sum: number, wallpaper: Wallpaper) => sum + (wallpaper?.likeCount || 0),
-        0,
-      )
-
-      userStats.value = {
-        uploads: uploadsTotal,
-        favorites: favoritesTotal,
-        likes: likesTotal,
-        likesReceived,
+      const response = await userService.getUserStats()
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "获取用户统计数据失败")
       }
 
+      userStats.value = response.data
       return userStats.value
     } catch (err: unknown) {
       return handleError(err as ServiceError, "获取用户统计数据失败")
@@ -391,19 +361,11 @@ export const useUserStore = defineStore("user", () => {
     type: "uploads" | "favorites" | "likes",
     page: number = 1,
     limit: number = 20,
-    search: string = "",
+    _search: string = "",
   ) => {
     try {
       loading.value = true
       clearError()
-
-      // 生成缓存键
-      const cacheKey = `${type}_${page}_${limit}_${search}`
-
-      // 检查缓存
-      if (cache.value[cacheKey]) {
-        return cache.value[cacheKey]
-      }
 
       let response
       switch (type) {
@@ -419,9 +381,6 @@ export const useUserStore = defineStore("user", () => {
         default:
           throw new Error("不支持的壁纸类型")
       }
-
-      // 缓存结果
-      cache.value[cacheKey] = response
 
       return response
     } catch (err: unknown) {
@@ -441,59 +400,6 @@ export const useUserStore = defineStore("user", () => {
       likes: "点赞",
     }
     return typeMap[type as keyof typeof typeMap] || type
-  }
-
-  /**
-   * 获取用户点赞的壁纸列表
-   */
-  const getUserLikes = async (page: number = 1, limit: number = 20) => {
-    return await fetchUserWallpapers("likes", page, limit)
-  }
-
-  /**
-   * 获取用户收藏的壁纸列表
-   */
-  const getUserFavorites = async (page: number = 1, limit: number = 20) => {
-    return await fetchUserWallpapers("favorites", page, limit)
-  }
-
-  /**
-   * 获取用户上传的壁纸列表
-   */
-  const getUserWallpapers = async (page: number = 1, limit: number = 20) => {
-    return await fetchUserWallpapers("uploads", page, limit)
-  }
-
-  /**
-   * 获取用户浏览记录
-   */
-  const getUserViewHistory = async (page: number = 1, limit: number = 20) => {
-    try {
-      loading.value = true
-      clearError()
-      return await userService.getUserViewHistory(page, limit)
-    } catch (err: unknown) {
-      return handleError(err as ServiceError, "获取用户浏览记录失败")
-    } finally {
-      loading.value = false
-    }
-  }
-
-  /**
-   * 清除缓存
-   */
-  const clearCache = (type?: string) => {
-    if (type) {
-      // 清除特定类型的缓存
-      Object.keys(cache.value).forEach((key) => {
-        if (key.startsWith(type)) {
-          delete cache.value[key]
-        }
-      })
-    } else {
-      // 清除所有缓存
-      cache.value = {}
-    }
   }
 
   // ==================== 缓存相关方法 ====================
@@ -544,14 +450,9 @@ export const useUserStore = defineStore("user", () => {
     // 用户数据相关
     fetchUserStats,
     fetchUserWallpapers,
-    getUserLikes,
-    getUserFavorites,
-    getUserWallpapers,
-    getUserViewHistory,
 
     // 缓存相关
     restoreFromStorage,
-    clearCache,
   }
 })
 
