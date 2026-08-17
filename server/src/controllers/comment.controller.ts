@@ -47,12 +47,7 @@ export class CommentController {
     return { success: true, message: "评论创建成功", data: comment };
   }
 
-  @Get(":id")
-  async getComment(@Param("id", ParseIntPipe) id: number) {
-    const comment = await this.commentService.findById(id);
-    return { success: true, data: comment };
-  }
-
+  // 静态路径必须在 :id 之前
   @Get("post/:postId")
   @UseGuards(OptionalJwtAuthGuard)
   async getPostComments(
@@ -71,6 +66,60 @@ export class CommentController {
       data: result.data,
       pagination: buildPaginationMeta(result),
     };
+  }
+
+  @Get("stats/:postId")
+  async getCommentStats(@Param("postId", ParseIntPipe) postId: number) {
+    const stats = await this.commentService.getCommentStats(postId);
+    return { success: true, data: stats };
+  }
+
+  @Get("user/my")
+  @UseGuards(JwtAuthGuard)
+  async getMyComments(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    const result = await this.commentService.getUserComments(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
+  }
+
+  @Get("latest/list")
+  async getLatestComments(@Query("limit") limit: number = 10) {
+    const comments = await this.commentService.getLatestComments(limit);
+    return { success: true, data: comments };
+  }
+
+  @Get("user/liked")
+  @UseGuards(JwtAuthGuard)
+  async getMyLikedComments(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    const result = await this.commentService.getUserLikedComments(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
+  }
+
+  @Get(":id")
+  async getComment(@Param("id", ParseIntPipe) id: number) {
+    const comment = await this.commentService.findById(id);
+    return { success: true, data: comment };
   }
 
   @Get(":parentCommentId/replies")
@@ -106,36 +155,6 @@ export class CommentController {
     return { success: true, message: "评论删除成功" };
   }
 
-  @Get("stats/:postId")
-  async getCommentStats(@Param("postId", ParseIntPipe) postId: number) {
-    const stats = await this.commentService.getCommentStats(postId);
-    return { success: true, data: stats };
-  }
-
-  @Get("user/my")
-  @UseGuards(JwtAuthGuard)
-  async getMyComments(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.commentService.getUserComments(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  @Get("latest/list")
-  async getLatestComments(@Query("limit") limit: number = 10) {
-    const comments = await this.commentService.getLatestComments(limit);
-    return { success: true, data: comments };
-  }
-
   @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async toggleCommentLike(
@@ -162,23 +181,5 @@ export class CommentController {
     );
     const stats = await this.commentService.getCommentLikeStats(id);
     return { success: true, data: { isLiked, likeCount: stats.likeCount } };
-  }
-
-  @Get("user/liked")
-  @UseGuards(JwtAuthGuard)
-  async getMyLikedComments(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.commentService.getUserLikedComments(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
   }
 }

@@ -57,6 +57,55 @@ export class PostController {
     };
   }
 
+  // 静态路径必须在 :id 之前，否则 popular/user 会被当成 id
+  @Get("user/bookmarks")
+  @UseGuards(JwtAuthGuard)
+  async getMyBookmarks(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    const result = await this.postService.getUserBookmarks(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
+  }
+
+  @Get("popular/list")
+  async getPopularPosts(@Query("limit") limit: number = 10) {
+    const posts = await this.postService.getPopularPosts(limit);
+    return { success: true, data: posts };
+  }
+
+  @Get("latest/list")
+  async getLatestPosts(@Query("limit") limit: number = 10) {
+    const posts = await this.postService.getLatestPosts(limit);
+    return { success: true, data: posts };
+  }
+
+  @Get("user/my")
+  @UseGuards(JwtAuthGuard)
+  async getMyPosts(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    const result = await this.postService.getUserPosts(
+      user.userId,
+      query.page,
+      query.limit,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: buildPaginationMeta(result),
+    };
+  }
+
   @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
   async getPost(@Param("id", ParseIntPipe) id: number, @Req() req: Request) {
@@ -162,53 +211,5 @@ export class PostController {
   ) {
     const hasBookmarked = await this.postService.hasBookmarked(id, user.userId);
     return { success: true, data: { hasBookmarked } };
-  }
-
-  @Get("user/bookmarks")
-  @UseGuards(JwtAuthGuard)
-  async getMyBookmarks(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.postService.getUserBookmarks(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  @Get("popular/list")
-  async getPopularPosts(@Query("limit") limit: number = 10) {
-    const posts = await this.postService.getPopularPosts(limit);
-    return { success: true, data: posts };
-  }
-
-  @Get("latest/list")
-  async getLatestPosts(@Query("limit") limit: number = 10) {
-    const posts = await this.postService.getLatestPosts(limit);
-    return { success: true, data: posts };
-  }
-
-  @Get("user/my")
-  @UseGuards(JwtAuthGuard)
-  async getMyPosts(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.postService.getUserPosts(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
   }
 }

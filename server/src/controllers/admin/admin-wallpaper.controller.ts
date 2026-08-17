@@ -114,6 +114,7 @@ export class AdminWallpaperController {
     await this.uploadService.deleteUploadedFiles(
       wallpaper.fileUrl,
       wallpaper.thumbnailUrl,
+      wallpaper.previewUrl,
     );
     return {
       success: true,
@@ -132,6 +133,7 @@ export class AdminWallpaperController {
         this.uploadService.deleteUploadedFiles(
           file.fileUrl,
           file.thumbnailUrl || "",
+          file.previewUrl,
         ),
       ),
     );

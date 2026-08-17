@@ -10,15 +10,12 @@ import {
   IsString,
   IsBoolean,
   Length,
-  MaxLength,
   Max,
   Min,
-  IsIn,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { UserRole } from "../entities/user.entity";
 import { CreateUserDto, UpdateUserDto } from "./user.dto";
-import { WallpaperStatus } from "../entities/wallpaper.entity";
 
 export class AdminUserQueryDto {
   @Type(() => Number)
@@ -103,7 +100,7 @@ export class AdminWallpaperQueryDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(2)
+  @Max(1)
   status?: number;
 
   @Type(() => Number)
@@ -126,17 +123,6 @@ export class AdminUpdateWallpaperTagsDto {
   tags?: string[];
 }
 
-export class AdminReviewWallpaperDto {
-  @Type(() => Number)
-  @IsIn([WallpaperStatus.APPROVED, WallpaperStatus.REJECTED])
-  status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  reviewNote?: string;
-}
-
 export class AdminWallpaperIdsDto {
   @IsArray()
   @ArrayNotEmpty()
@@ -150,15 +136,4 @@ export class AdminWallpaperIdsDto {
 export class AdminBatchFeaturedDto extends AdminWallpaperIdsDto {
   @IsBoolean()
   isFeatured: boolean;
-}
-
-export class AdminBatchReviewWallpaperDto extends AdminWallpaperIdsDto {
-  @Type(() => Number)
-  @IsIn([WallpaperStatus.APPROVED, WallpaperStatus.REJECTED])
-  status: WallpaperStatus.APPROVED | WallpaperStatus.REJECTED;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  reviewNote?: string;
 }
