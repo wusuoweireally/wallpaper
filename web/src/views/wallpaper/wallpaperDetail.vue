@@ -1,366 +1,426 @@
 <template>
-  <div class="min-h-screen bg-slate-50 py-6 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-    <div v-if="loading" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+  <!-- 详情页：主图居左陈列（880 上限）+ 右侧信息栏；跟随站点浅色/深色主题 -->
+  <div class="wb-page overflow-x-clip bg-canvas text-fg">
+    <div v-if="loading" class="flex items-center justify-center py-24">
+      <span class="wb-spinner wb-spinner-lg"></span>
     </div>
 
-    <div v-else-if="error" class="flex justify-center px-4 py-12">
+    <div v-else-if="error" class="flex items-center justify-center px-4 py-20">
       <div
-        class="inline-flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200"
+        class="inline-flex items-center gap-3 rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-4 py-3 text-error"
       >
-        <svg
-          class="h-5 w-5"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 9v3.75m0 3a.375.375 0 1 1 0 .75.375.375 0 0 1 0-.75ZM10.5 3.75h3L21 18.75H3L10.5 3.75Z"
-          />
-        </svg>
         <span>{{ error }}</span>
+        <button type="button" class="wb-btn-ghost wb-btn-sm" @click="$router.back()">返回</button>
       </div>
     </div>
 
     <div
       v-else
-      class="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1400px] grid-cols-1 items-stretch gap-5 px-4 lg:grid-cols-[320px_1fr]"
+      class="wb-container-gallery flex flex-col gap-8 py-7 lg:flex-row lg:flex-wrap lg:gap-6"
     >
-      <aside
-        class="flex h-full flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
-      >
-        <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
-            @click="$router.back()"
-            title="返回 (Esc)"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-          </button>
-          <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
-            壁纸 #{{ wallpaper.id }}
-          </h2>
-        </div>
-
+      <!-- 主观图区：环境光晕包裹 + 预览→原图淡入 -->
+      <main class="relative min-w-0 flex-1">
+        <!-- 环境光晕：与画框同位、放大糊化后向四周溢出，把观图区裹进图片自身色调，消除"装在盒子里"的割裂感 -->
         <div
-          class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+          v-if="ambientSrc"
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-x-0 top-6 mx-auto max-w-[880px] scale-105 bg-cover bg-center opacity-40 blur-3xl lg:top-10"
+          :style="{ height: 'min(70vh, 700px)', backgroundImage: `url(${ambientSrc})` }"
+        ></div>
+        <!-- 观图台：880 × min(70vh,700px)，任意比例 contain 居中，观感一致且加载不闪跳 -->
+        <div
+          class="relative mx-auto mt-6 w-full max-w-[880px] overflow-hidden rounded-tile border border-line lg:mt-10"
+          :style="{ height: 'min(70vh, 700px)' }"
         >
-          <h3 class="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-300">标签</h3>
-          <div class="mt-2 flex flex-wrap gap-2">
-            <span
-              v-for="tag in wallpaper.tags"
-              :key="tag"
-              class="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-800 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-100"
+          <!-- 框内环境底：同图糊化填满，消除 contain 两侧的生硬空隙 -->
+          <div
+            v-if="ambientSrc"
+            aria-hidden="true"
+            class="absolute inset-0 scale-110 bg-cover bg-center blur-2xl"
+            :style="{ backgroundImage: `url(${ambientSrc})` }"
+          ></div>
+          <Transition name="preview-fade">
+            <img
+              v-if="!imageLoaded && wallpaper.previewUrl"
+              :key="`prev-${wallpaper.id}`"
+              :src="wallpaper.previewUrl"
+              class="absolute inset-0 h-full w-full cursor-zoom-in select-none object-contain"
+              :alt="`壁纸 ${wallpaper.id} 预览`"
+              draggable="false"
+              @click="openLightbox"
+            />
+          </Transition>
+          <img
+            v-show="imageLoaded"
+            :src="imageSrc"
+            class="absolute inset-0 h-full w-full cursor-zoom-in select-none object-contain"
+            :alt="`壁纸 ${wallpaper.id}`"
+            draggable="false"
+            @load="imageLoaded = true"
+            @error="imageError = true"
+            @click="openLightbox"
+          />
+          <!-- 原图加载失败：预览兜底 + 重试 -->
+          <div
+            v-if="imageError"
+            class="absolute inset-x-0 bottom-4 z-10 flex flex-col items-center gap-2"
+            role="alert"
+          >
+            <p class="rounded-control bg-black/60 px-3 py-1.5 text-xs text-white">
+              原图加载失败，当前显示预览图
+            </p>
+            <button type="button" class="wb-btn wb-btn-sm" @click="retryImage">
+              <i class="i-[mdi--refresh]" aria-hidden="true"></i>
+              重试
+            </button>
+          </div>
+          <div
+            v-if="!imageLoaded && !imageError && !wallpaper.previewUrl"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <span class="wb-spinner wb-spinner-lg text-faint"></span>
+          </div>
+        </div>
+      </main>
+
+      <!-- 右侧信息栏：无壳透明堆叠（贴画布）；桌面 360 固定宽，移动端在图下方 -->
+      <aside class="w-full shrink-0 lg:w-[360px]">
+        <!-- 作者 -->
+        <div class="mb-5 flex items-center gap-3">
+          <router-link :to="`/u/${wallpaper.uploader.id}`" class="shrink-0">
+            <img
+              :src="wallpaper.uploader.avatar || '/defaultAvatar.png'"
+              :alt="wallpaper.uploader.name || '上传者'"
+              class="h-9 w-9 rounded-full object-cover ring-1 ring-line"
+              @error="handleAvatarError"
+            />
+          </router-link>
+          <div class="min-w-0">
+            <router-link
+              :to="`/u/${wallpaper.uploader.id}`"
+              class="block truncate text-sm font-bold text-fg transition-colors hover:text-primary"
             >
-              {{ tag }}
-            </span>
-            <span
-              v-if="wallpaper.tags.length === 0"
-              class="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            >
-              暂无标签
-            </span>
+              {{ wallpaper.uploader.name }}
+            </router-link>
+            <p class="mt-0.5 truncate text-xs text-faint">
+              {{ wallpaper.uploadDate }} 发布 · {{ wallpaper.views ?? "—" }} 次浏览
+            </p>
           </div>
         </div>
 
-        <div
-          class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
-        >
-          <h3 class="text-sm font-bold tracking-wide text-slate-500 dark:text-slate-300">上传者</h3>
-          <div class="flex items-center gap-3">
+        <!-- 收藏：主按钮 + 右侧合集下拉（wallhaven 布局） -->
+        <div class="fav-split relative mb-4">
+          <div
+            class="wb-shadow-pop flex overflow-hidden rounded-control border-[1.5px] border-fg/85 text-sm font-bold text-primary-content"
+            :class="isFavorited ? 'bg-primary-fill' : 'bg-primary-fill/90'"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center justify-center gap-2 px-3 py-2.5 transition hover:brightness-110 disabled:opacity-60"
+              :disabled="favoriting"
+              @click="handleFavorite"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                :class="isFavorited ? 'fill-current' : 'fill-none stroke-current'"
+                viewBox="0 0 24 24"
+                stroke-width="1.8"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.563.563 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"
+                />
+              </svg>
+              <span class="truncate">{{ isFavorited ? "已收藏" : "添加收藏" }}</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-10 shrink-0 items-center justify-center border-l border-primary-content/25 bg-black/10 transition hover:brightness-110"
+              :disabled="collectionBusy"
+              title="加入合集"
+              aria-label="加入合集"
+              @click="toggleCollectionMenu"
+            >
+              <svg
+                class="h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showCollectionMenu }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 合集下拉 -->
+          <div
+            v-if="showCollectionMenu"
+            class="absolute left-0 right-0 z-40 mt-1.5 overflow-hidden rounded-control border border-line bg-surface text-fg shadow-lg"
+          >
             <div
-              class="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
-            >
-              <img
-                :src="wallpaper.uploader.avatar"
-                :alt="wallpaper.uploader.name"
-                @error="handleAvatarError"
-                class="h-full w-full object-cover"
-              />
-            </div>
-            <div>
-              <p class="font-semibold">{{ wallpaper.uploader.name }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ wallpaper.uploadDate }}</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-sm">
-            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
-              <span class="text-xs text-slate-500 dark:text-slate-400">分类</span>
-              <span class="font-semibold">{{ categoryLabel }}</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
-              <span class="text-xs text-slate-500 dark:text-slate-400">点赞</span>
-              <span class="font-semibold">{{ wallpaper.likes }}</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
-              <span class="text-xs text-slate-500 dark:text-slate-400">收藏</span>
-              <span class="font-semibold">{{ wallpaper.favorites }}</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
-              <span class="text-xs text-slate-500 dark:text-slate-400">下载</span>
-              <span class="font-semibold">{{ wallpaper.downloads }}</span>
-            </div>
+              class="pointer-events-none absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-line bg-surface"
+            ></div>
+            <p v-if="!userStore.isLoggedIn" class="px-3 py-2.5 text-xs text-muted">请先登录</p>
+            <p v-else-if="collectionsLoading" class="px-3 py-2.5 text-xs text-muted">加载中…</p>
+            <template v-else>
+              <button
+                v-for="c in myCollections"
+                :key="c.id"
+                type="button"
+                class="flex w-full items-center gap-2 border-b border-line/60 px-3 py-2.5 text-left text-sm transition hover:bg-subtle disabled:cursor-default disabled:opacity-70"
+                :disabled="collectionBusy"
+                @click="addWallpaperToCollection(c.id, c.name)"
+              >
+                <i
+                  class="w-5 shrink-0 text-center text-base"
+                  :class="
+                    containingCollectionIds.has(c.id)
+                      ? 'i-[mdi--check] text-success'
+                      : 'i-[mdi--folder-outline] text-faint'
+                  "
+                ></i>
+                <span class="truncate">{{ c.name }}</span>
+                <span v-if="containingCollectionIds.has(c.id)" class="ml-auto text-xs text-muted">
+                  已加入
+                </span>
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-subtle"
+                :disabled="collectionBusy"
+                @click="createCollectionAndAdd"
+              >
+                <i class="i-[mdi--plus] w-5 shrink-0 text-center text-base text-faint"></i>
+                新建合集并加入
+              </button>
+            </template>
           </div>
         </div>
 
-        <div
-          class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
-        >
+        <!-- 下载操作行：下载原图 + 裁剪下载（照设计稿并排半宽贴纸） -->
+        <div class="mb-5 flex gap-3">
           <button
-            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-gradient-to-r from-emerald-400 to-cyan-300 px-3 py-2 font-semibold text-slate-900 shadow-lg shadow-emerald-200/50"
-            :class="{ 'opacity-90 ring-2 ring-emerald-300': isLiked }"
-            @click="handleLike"
-          >
-            <svg
-              class="h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C4.099 3.75 2 5.765 2 8.25c0 7.22 8 12 8 12s8-4.78 8-12Z"
-              />
-            </svg>
-            {{ isLiked ? "已点赞" : "点赞" }}
-          </button>
-          <button
-            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-gradient-to-r from-amber-300 to-orange-400 px-3 py-2 font-semibold text-slate-900 shadow-lg shadow-amber-200/50"
-            :class="{ 'opacity-90 ring-2 ring-amber-300': isFavorited }"
-            @click="handleFavorite"
-          >
-            <svg
-              class="h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m11.48 3.499-2.27 4.61a.75.75 0 0 1-.564.41l-5.067.736c-.613.089-.857.843-.414 1.276l3.664 3.57a.75.75 0 0 1 .216.664l-.864 5.04c-.105.616.54 1.088 1.09.797l4.52-2.377a.75.75 0 0 1 .698 0l4.52 2.377c.55.29 1.195-.18 1.09-.798l-.864-5.039a.75.75 0 0 1 .216-.663l3.664-3.57c.443-.433.199-1.187-.414-1.276l-5.067-.737a.75.75 0 0 1-.564-.409l-2.27-4.611a.75.75 0 0 0-1.354 0Z"
-              />
-            </svg>
-            {{ isFavorited ? "已收藏" : "收藏" }}
-          </button>
-          <button
-            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            type="button"
+            class="wb-btn flex-1"
+            :disabled="downloading"
             @click="downloadWallpaper"
           >
-            <svg
-              class="h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3v12m0 0 3.75-3.75M12 15 8.25 11.25M4.5 15.75V18A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25"
-              />
-            </svg>
-            下载
+            <i class="i-[mdi--download] text-base" aria-hidden="true"></i>
+            {{ downloading ? "下载中…" : "下载原图" }}
           </button>
+          <button type="button" class="wb-btn flex-1" @click="cropScaleOpen = true">
+            <i class="i-[mdi--content-cut] text-base" aria-hidden="true"></i>
+            裁剪下载
+          </button>
+        </div>
+        <p v-if="shareNotice" class="-mt-3 mb-4 text-center text-xs font-medium text-success">
+          {{ shareNotice }}
+        </p>
+
+        <!-- 主色板:wallhaven 色板条,点击按此色筛选 -->
+        <section v-if="wallpaper.dominantColor" class="mb-4">
+          <h2 class="mb-2 text-xs font-bold tracking-wide text-primary">主色</h2>
+          <router-link
+            :to="{
+              path: '/wallpapers',
+              query: { color: wallpaper.colorBucket || wallpaper.dominantColor },
+            }"
+            class="group block"
+            title="按此主色筛选相似壁纸"
+          >
+            <span
+              class="block h-7 w-full rounded-control ring-1 ring-inset ring-black/10 transition group-hover:ring-primary/50"
+              :style="{ background: wallpaper.dominantColor }"
+            ></span>
+            <span
+              class="mt-1 block font-mono text-[11px] uppercase tracking-wide text-faint transition group-hover:text-primary"
+            >
+              {{ wallpaper.dominantColor }}
+            </span>
+          </router-link>
+        </section>
+
+        <div
+          v-if="wallpaper.status === 0"
+          class="mb-3 rounded-control border border-warning/30 bg-[color:var(--wb-warning-subtle)] p-3 text-[color:var(--wb-warning)]"
+        >
+          <p class="text-sm font-semibold">未公开发布</p>
+          <p class="mt-1 text-xs opacity-90">完善分类与标签后发布，他人才能看到。</p>
+          <button type="button" class="wb-btn wb-btn-sm mt-2 w-full" @click="goPublishDraft">
+            去发布
+          </button>
+        </div>
+
+        <section class="mb-4">
+          <h2 class="mb-2 text-xs font-bold tracking-wide text-primary">标签</h2>
+          <div class="flex flex-wrap gap-1.5">
+            <router-link
+              v-for="tag in wallpaper.tags"
+              :key="tag"
+              :to="{ path: '/wallpapers', query: { tags: tag } }"
+              class="rounded-md border border-primary/20 bg-[color:var(--wb-accent-subtle)] px-2 py-0.5 text-xs font-medium text-primary transition hover:border-primary/50"
+            >
+              #{{ tag }}
+            </router-link>
+            <span v-if="!wallpaper.tags.length" class="text-xs text-faint">暂无标签</span>
+          </div>
           <button
-            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-400 to-indigo-400 px-3 py-2 font-semibold text-white shadow-lg shadow-blue-200/50"
+            v-if="wallpaper.status === 1 && wallpaper.tags.length"
+            type="button"
+            class="mt-2 text-xs text-muted underline-offset-2 hover:text-primary hover:underline"
+            @click="searchSimilarTags"
+          >
+            更多相似 →
+          </button>
+        </section>
+
+        <section class="mb-4">
+          <h2 class="mb-2 text-xs font-bold tracking-wide text-primary">属性</h2>
+          <dl class="space-y-2.5 text-sm">
+            <div class="flex items-center gap-2">
+              <dt class="w-16 shrink-0 text-xs text-faint">分类</dt>
+              <dd class="font-medium">{{ categoryLabel }}</dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-16 shrink-0 text-xs text-faint">尺寸</dt>
+              <dd class="font-mono font-medium tabular-nums">
+                {{ wallpaper.width }} × {{ wallpaper.height }}
+              </dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-16 shrink-0 text-xs text-faint">大小</dt>
+              <dd class="font-mono">{{ wallpaper.fileSize }}</dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-16 shrink-0 text-xs text-faint">浏览</dt>
+              <dd class="font-mono tabular-nums">
+                {{ wallpaper.views ?? "—" }}
+              </dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-16 shrink-0 text-xs text-faint">收藏</dt>
+              <dd class="font-mono font-medium tabular-nums text-primary">
+                {{ wallpaper.favorites }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- 底部：分享 -->
+        <div class="mt-6 border-t border-line pt-4">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 text-xs font-medium text-faint transition-colors hover:text-primary"
             @click="shareWallpaper"
           >
-            <svg
-              class="h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-              />
-            </svg>
-            分享链接
+            <i class="i-[mdi--share-variant] text-sm" aria-hidden="true"></i>
+            分享这张壁纸
           </button>
-          <p v-if="shareNotice" class="text-sm font-semibold text-emerald-500">
-            {{ shareNotice }}
-          </p>
         </div>
       </aside>
 
-      <main
-        class="flex h-full flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/90 dark:shadow-black/30"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="text-sm font-semibold text-slate-600 dark:text-slate-300">
-            {{ wallpaper.width }} × {{ wallpaper.height }} px · {{ wallpaper.fileSize }} ·
-            {{ wallpaper.format || "未知格式" }}
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <span
-              v-for="resolution in wallpaper.resolutions"
-              :key="resolution"
-              class="rounded-full border border-cyan-200 bg-cyan-100 px-3 py-1 text-sm font-semibold text-cyan-800 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-100"
-            >
-              {{ resolution }}
-            </span>
-          </div>
+      <!-- 相关推荐：通栏横向轨，单行固定高、行内横滑，不再撑高页面 -->
+      <section v-if="relatedWallpapers.length" class="w-full">
+        <div class="mb-3 flex items-center gap-3">
+          <h2 class="text-xs font-bold tracking-wide text-primary">相关推荐</h2>
+          <router-link
+            :to="relatedMoreTo"
+            class="inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-primary"
+          >
+            查看全部
+            <i class="i-[mdi--chevron-right] text-sm" aria-hidden="true"></i>
+          </router-link>
         </div>
         <div
-          class="relative w-full flex-1 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900"
+          class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <img
-            :src="`${wallpaper.imageUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
-            class="h-full w-full cursor-zoom-in object-contain"
-            @load="imageLoaded = true"
-            @click="openLightbox"
-          />
-          <div
-            v-if="!imageLoaded"
-            class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70"
-          >
-            <span class="loading loading-spinner loading-lg"></span>
-          </div>
-          <!-- 全屏按钮 -->
           <button
-            class="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/50 text-white backdrop-blur transition hover:bg-black/70"
-            @click="openLightbox"
-            title="全屏预览 (F)"
+            v-for="item in relatedWallpapers.slice(0, 8)"
+            :key="item.id"
+            type="button"
+            class="group w-44 shrink-0 snap-start overflow-hidden rounded-control ring-1 ring-line transition hover:ring-primary/50"
+            @click="router.push(`/wallpaper/${item.id}`)"
           >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-            </svg>
-          </button>
-          <!-- 左右导航按钮 -->
-          <button
-            v-if="relatedWallpapers.length > 0"
-            class="absolute left-3 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/60"
-            @click="navigateRelated(-1)"
-            title="上一张 (←)"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <button
-            v-if="relatedWallpapers.length > 0"
-            class="absolute right-14 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/60"
-            @click="navigateRelated(1)"
-            title="下一张 (→)"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-          <!-- 键盘提示 -->
-          <div
-            v-if="relatedWallpapers.length > 0"
-            class="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/60"
-          >
-            <kbd class="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-mono">←</kbd>
-            <kbd class="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-mono">→</kbd>
-            <span>切换壁纸</span>
-          </div>
-        </div>
-
-        <!-- Lightbox 全屏预览 -->
-        <Teleport to="body">
-          <Transition
-            enter-active-class="transition-opacity duration-200"
-            leave-active-class="transition-opacity duration-200"
-            enter-from-class="opacity-0"
-            leave-to-class="opacity-0"
-          >
-            <div
-              v-if="lightboxVisible"
-              class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
-              @click.self="closeLightbox"
-            >
-              <button
-                class="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-                @click="closeLightbox"
-                title="关闭 (Esc)"
-              >
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
+            <div class="aspect-[3/2] bg-inset">
               <img
-                :src="`${wallpaper.imageUrl}?t=${wallpaper.updatedAt || wallpaper.id}`"
-                class="max-h-[95vh] max-w-[95vw] object-contain"
-                @click.stop
+                :src="item.thumbnailUrl || item.fileUrl"
+                class="h-full w-full object-cover opacity-90 transition group-hover:scale-105 group-hover:opacity-100"
+                loading="lazy"
+                alt=""
               />
-              <!-- 图片信息 -->
-              <div class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-2 text-sm text-white/80 backdrop-blur">
-                {{ wallpaper.width }} × {{ wallpaper.height }} · {{ wallpaper.fileSize }} · {{ wallpaper.format || '未知' }}
-              </div>
             </div>
-          </Transition>
-        </Teleport>
-      </main>
-    </div>
+          </button>
+        </div>
+      </section>
 
-    <!-- 返回顶部 -->
-    <Transition
-      enter-active-class="transition-all duration-300"
-      leave-active-class="transition-all duration-300"
-      enter-from-class="opacity-0 translate-y-4"
-      leave-to-class="opacity-0 translate-y-4"
-    >
-      <button
-        v-if="showBackToTop"
-        class="fixed bottom-6 right-6 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-110 dark:bg-slate-100 dark:text-slate-900"
-        @click="scrollToTop"
-        title="回到顶部"
-      >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-        </svg>
-      </button>
-    </Transition>
-
-    <!-- 相关推荐 -->
-    <div v-if="relatedWallpapers.length > 0" class="mx-auto mt-8 max-w-[1400px] px-4">
-      <h2 class="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200">
-        相关推荐
-      </h2>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div
-          v-for="item in relatedWallpapers"
-          :key="item.id"
-          class="group cursor-pointer overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800"
-          @click="$router.push(`/wallpaper/${item.id}`)"
+      <!-- Lightbox：双击缩放、滚轮缩放、拖拽平移 -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition-opacity duration-200"
+          leave-active-class="transition-opacity duration-200"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
         >
-          <div class="relative h-36 overflow-hidden">
+          <div
+            v-if="lightboxVisible"
+            class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/95"
+            :class="
+              dragging ? 'cursor-grabbing' : lightboxScale > 1 ? 'cursor-grab' : 'cursor-zoom-out'
+            "
+            @click.self="closeLightbox"
+            @wheel.prevent="onLightboxWheel"
+            @mousedown="onLightboxDragStart"
+            @mousemove="onLightboxDragMove"
+            @mouseup="onLightboxDragEnd"
+            @mouseleave="onLightboxDragEnd"
+            @touchstart="onLightboxTouchStart"
+            @touchmove.prevent="onLightboxTouchMove"
+            @touchend="onLightboxTouchEnd"
+            @touchcancel="onLightboxTouchEnd"
+          >
+            <button
+              type="button"
+              class="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+              title="关闭 (Esc)"
+              @click="closeLightbox"
+            >
+              <i class="i-[mdi--close]" aria-hidden="true"></i>
+            </button>
+            <p
+              v-if="lightboxScale > 1"
+              class="pointer-events-none absolute left-4 top-4 z-10 rounded-control bg-white/10 px-2.5 py-1 text-xs text-white/90"
+            >
+              {{ Math.round(lightboxScale * 100) }}%
+            </p>
             <img
-              :src="`${item.thumbnailUrl || item.fileUrl}?t=${item.updatedAt || item.id}`"
-              class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-              loading="lazy"
+              :src="wallpaper.imageUrl"
+              class="max-h-[100dvh] max-w-[100vw] select-none object-contain"
+              :class="dragging ? '' : 'transition-transform duration-200'"
+              :style="lightboxStyle"
+              alt=""
+              draggable="false"
+              @click.stop
+              @dblclick.prevent.stop="toggleLightboxZoom"
             />
           </div>
-          <div class="flex items-center justify-between px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-            <span>{{ item.width }}×{{ item.height }}</span>
-            <span class="inline-flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C4.099 3.75 2 5.765 2 8.25c0 7.22 8 12 8 12s8-4.78 8-12Z" />
-              </svg>
-              {{ item.likeCount }}
-            </span>
-          </div>
-        </div>
-      </div>
+        </Transition>
+      </Teleport>
+
+      <CropScaleDownload
+        v-model:open="cropScaleOpen"
+        :wallpaper-id="wallpaper.id"
+        :source-width="wallpaper.width"
+        :source-height="wallpaper.height"
+        :file-url="wallpaper.imageUrl"
+        :format="wallpaper.format"
+      />
     </div>
   </div>
 </template>
@@ -368,29 +428,31 @@
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { wallpaperService } from "@/services/wallpaper"
+import { wallpaperService, type Collection } from "@/services/wallpaper"
 import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
+import CropScaleDownload from "@/components/CropScaleDownload.vue"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 
 interface WallpaperDetail {
   id: number
   category: "general" | "anime" | "people"
   format?: string
   imageUrl: string
+  previewUrl?: string
   width: number
   height: number
   fileSize: string
   tags: string[]
-  uploader: {
-    id: number
-    name: string
-    avatar: string
-  }
+  status: number
+  uploader: { id: number; name: string; avatar: string }
   uploadDate: string
-  likes: number
   favorites: number
-  downloads: number
-  resolutions: string[]
+  views?: number
+  /** 主色 hex(色板条 + 点击按色筛选) */
+  dominantColor?: string | null
+  /** 主色粗分桶(筛选用) */
+  colorBucket?: string | null
 }
 
 const route = useRoute()
@@ -398,47 +460,75 @@ const router = useRouter()
 const wallpaperId = computed(() => Number(route.params.id))
 const userStore = useUserStore()
 const toast = useGlobalToast()
+
 const imageLoaded = ref(false)
-const isLiked = ref(false)
+const imageError = ref(false)
+/** 重试计数拼进缓存参数，强制浏览器重新拉原图 */
+const imageRetry = ref(0)
+/** 避免已有 query 的 URL 被再拼一个 "?" 拼坏 */
+const withQuery = (url: string, param: string) =>
+  (url.includes("?") ? `${url}&` : `${url}?`) + param
+const imageSrc = computed(() =>
+  wallpaper.value.imageUrl
+    ? withQuery(wallpaper.value.imageUrl, `t=${wallpaper.value.id}-${imageRetry.value}`)
+    : "",
+)
+/** 环境光晕用图：优先小体积预览图（糊化后看不出分辨率），避免重复拉原图 */
+const ambientSrc = computed(() => wallpaper.value.previewUrl || imageSrc.value)
+const retryImage = () => {
+  imageLoaded.value = false
+  imageError.value = false
+  imageRetry.value += 1
+}
 const isFavorited = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
-const detailTimeoutId = ref<NodeJS.Timeout | null>(null)
 const shareNotice = ref("")
-const liking = ref(false)
 const favoriting = ref(false)
 const downloading = ref(false)
+const cropScaleOpen = ref(false)
 const lightboxVisible = ref(false)
-const showBackToTop = ref(false)
-const relatedWallpapers = ref<Array<{
-  id: number
-  fileUrl: string
-  thumbnailUrl?: string
-  width: number
-  height: number
-  likeCount: number
-  category: string
-}>>([])
+const showCollectionMenu = ref(false)
+const myCollections = ref<Collection[]>([])
+/** 已包含当前壁纸的合集 ID（下拉勾选态） */
+const containingCollectionIds = ref<Set<number>>(new Set())
+const collectionsLoading = ref(false)
+const collectionBusy = ref(false)
+/** 详情请求代数：快速切图时旧响应不得覆盖新数据 */
+const detailGeneration = createFetchGeneration()
+/** 相关推荐最多展示 8 张 */
+const relatedWallpapers = ref<
+  Array<{
+    id: number
+    fileUrl: string
+    thumbnailUrl?: string
+    width: number
+    height: number
+    category: string
+  }>
+>([])
+
+/** 「查看全部」：相关推荐按同分类随机取，故跳到同分类浏览页 */
+const relatedMoreTo = computed(() => ({
+  path: "/wallpapers",
+  query: { category: wallpaper.value.category },
+}))
 
 const wallpaper = ref<WallpaperDetail>({
   id: 0,
   category: "general",
   format: "",
   imageUrl: "",
+  previewUrl: "",
   width: 0,
   height: 0,
   fileSize: "",
   tags: [],
-  uploader: {
-    id: 0,
-    name: "",
-    avatar: "",
-  },
+  status: 1,
+  uploader: { id: 0, name: "", avatar: "" },
   uploadDate: "",
-  likes: 0,
   favorites: 0,
-  downloads: 0,
-  resolutions: [],
+  views: 0,
 })
 
 const categoryLabelMap = {
@@ -446,84 +536,75 @@ const categoryLabelMap = {
   anime: "动漫",
   people: "人物",
 } as const
-
 const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
 
-onMounted(() => {
-  fetchWallpaperDetail()
-  window.addEventListener("keydown", handleKeydown)
-  window.addEventListener("scroll", handleScroll, { passive: true })
-})
+const goPublishDraft = () => {
+  router.push({ path: "/upload", query: { drafts: String(wallpaper.value.id) } })
+}
 
-// 监听路由变化，点击推荐壁纸时重新加载
-watch(
-  () => route.params.id,
-  (newId, oldId) => {
-    if (newId && newId !== oldId) {
-      imageLoaded.value = false
-      lightboxVisible.value = false
-      showBackToTop.value = false
-      relatedWallpapers.value = []
-      shareNotice.value = ""
-      fetchWallpaperDetail()
-      window.scrollTo({ top: 0 })
-    }
-  },
-)
+const searchSimilarTags = () => {
+  const tag = wallpaper.value.tags[0]
+  // 按精确标签筛，不用全文搜索
+  if (tag) router.push({ path: "/wallpapers", query: { tags: tag } })
+}
 
 const fetchWallpaperDetail = async () => {
+  const gen = detailGeneration.next()
   loading.value = true
   error.value = null
-
   try {
     const id = wallpaperId.value
-    if (isNaN(id)) {
-      throw new Error("无效的壁纸ID")
-    }
+    if (isNaN(id)) throw new Error("无效的壁纸ID")
 
     const wallpaperResponse = await wallpaperService.getWallpaperDetail(id)
-
+    if (!detailGeneration.isCurrent(gen)) return
     if (!wallpaperResponse.success) {
       throw new Error(wallpaperResponse.message || "获取壁纸详情失败")
     }
 
+    const d = wallpaperResponse.data
     wallpaper.value = {
-      id: wallpaperResponse.data.id,
-      category: wallpaperResponse.data.category || "general",
-      format:
-        wallpaperResponse.data.format ||
-        wallpaperResponse.data.fileUrl?.split(".").pop()?.toUpperCase() ||
-        "",
-      imageUrl: wallpaperResponse.data.fileUrl,
-      width: wallpaperResponse.data.width,
-      height: wallpaperResponse.data.height,
-      fileSize: `${(wallpaperResponse.data.fileSize / 1024 / 1024).toFixed(2)} MB`,
-      tags: (wallpaperResponse.data.tags || []).map((tag: { name: string }) => tag.name),
+      id: d.id,
+      category: d.category || "general",
+      format: d.format || d.fileUrl?.split(".").pop()?.toUpperCase() || "",
+      imageUrl: d.fileUrl,
+      previewUrl: d.previewUrl || "",
+      width: d.width,
+      height: d.height,
+      fileSize: `${(d.fileSize / 1024 / 1024).toFixed(2)} MB`,
+      tags: (d.tags || []).map((tag: { name: string }) => tag.name),
+      status: d.status ?? 1,
       uploader: {
-        id: wallpaperResponse.data.uploaderId,
-        name: wallpaperResponse.data.uploader?.username || "未知用户",
-        avatar: wallpaperResponse.data.uploader?.avatarUrl || "",
+        id: d.uploader?.id || d.uploaderId,
+        name: d.uploader?.username || "未知用户",
+        avatar: d.uploader?.avatarUrl || "",
       },
-      uploadDate: new Date(wallpaperResponse.data.createdAt).toLocaleDateString(),
-      likes: wallpaperResponse.data.likeCount,
-      favorites: wallpaperResponse.data.favoriteCount,
-      downloads: wallpaperResponse.data.downloadCount || 0,
-      resolutions: [`${wallpaperResponse.data.width}x${wallpaperResponse.data.height}`],
+      uploadDate: new Date(d.createdAt).toLocaleDateString(),
+      favorites: d.favoriteCount,
+      views: d.viewCount || 0,
+      dominantColor: d.dominantColor || null,
+      colorBucket: d.colorBucket || null,
     }
 
-    isLiked.value = wallpaperResponse.data.isLiked || false
-    isFavorited.value = wallpaperResponse.data.isFavorited || false
+    isFavorited.value = d.isFavorited || false
+    imageLoaded.value = false
+    imageError.value = false
 
-    // 异步加载相关推荐（不阻塞主流程）
-    wallpaperService.getRelatedWallpapers(id, 8).then((res) => {
-      if (res.success && res.data) {
-        relatedWallpapers.value = res.data
-      }
-    }).catch(() => {})
-
+    if (wallpaper.value.status === 1) {
+      wallpaperService
+        .getRelatedWallpapers(id, 8)
+        .then((res) => {
+          // 相关推荐晚到但已切图：丢弃
+          if (detailGeneration.isCurrent(gen) && res.success && res.data) {
+            relatedWallpapers.value = res.data
+          }
+        })
+        .catch(() => {})
+    } else {
+      relatedWallpapers.value = []
+    }
   } catch (err: unknown) {
-    const errObj = err as Error & { message?: string; name?: string; isCancelled?: boolean }
-    console.error("获取壁纸详情失败:", errObj)
+    const errObj = err as Error & { name?: string; isCancelled?: boolean }
     if (
       errObj.message === "请求已取消" ||
       errObj.name === "REQUEST_CANCELLED" ||
@@ -531,46 +612,83 @@ const fetchWallpaperDetail = async () => {
     ) {
       return
     }
+    if (!detailGeneration.isCurrent(gen)) return
     error.value = errObj instanceof Error ? errObj.message : "获取壁纸详情失败"
   } finally {
-    loading.value = false
+    // 旧请求不得关掉新请求的 loading
+    if (detailGeneration.isCurrent(gen)) {
+      loading.value = false
+    }
   }
 }
 
-const handleLike = async () => {
+const loadCollections = async () => {
+  collectionsLoading.value = true
+  try {
+    // 带当前壁纸 ID：一次拿到列表 + 勾选态（哪些合集已包含）
+    const res = await wallpaperService.listCollections(wallpaperId.value)
+    myCollections.value = res.data || []
+    containingCollectionIds.value = new Set(res.containingIds || [])
+  } catch {
+    myCollections.value = []
+    containingCollectionIds.value = new Set()
+  } finally {
+    collectionsLoading.value = false
+  }
+}
+
+const toggleCollectionMenu = async () => {
   if (!userStore.isLoggedIn) {
-    toast.warning("请先登录后再点赞")
+    toast.warning("请先登录后再加入合集")
     return
   }
-  if (liking.value) return
+  showCollectionMenu.value = !showCollectionMenu.value
+  if (showCollectionMenu.value) {
+    await loadCollections()
+  }
+}
 
+const addWallpaperToCollection = async (collectionId: number, name: string) => {
+  if (collectionBusy.value) return
   const id = wallpaperId.value
   if (isNaN(id)) return
-
-  const previousLiked = isLiked.value
-  const previousLikes = wallpaper.value.likes
-  const shouldLike = !previousLiked
-  isLiked.value = shouldLike
-  wallpaper.value.likes += shouldLike ? 1 : -1
-  liking.value = true
-
+  collectionBusy.value = true
   try {
-    if (shouldLike) {
-      await wallpaperService.likeWallpaper(id)
-    } else {
-      await wallpaperService.unlikeWallpaper(id)
-    }
-  } catch (err: unknown) {
-    isLiked.value = previousLiked
-    wallpaper.value.likes = previousLikes
-    const errObj = err as Error & { response?: { status?: number } }
-    if (errObj.response?.status === 401) {
-      toast.error("登录已过期，请重新登录")
-    } else {
-      toast.error("点赞失败，请稍后重试")
-    }
+    await wallpaperService.addToCollection(collectionId, id)
+    containingCollectionIds.value.add(collectionId)
+    toast.success(`已加入「${name}」`)
+    showCollectionMenu.value = false
+    const c = myCollections.value.find((x) => x.id === collectionId)
+    if (c && typeof c.itemCount === "number") c.itemCount += 1
+  } catch (e: unknown) {
+    toast.error((e as Error).message || "加入合集失败")
   } finally {
-    liking.value = false
+    collectionBusy.value = false
+  }
+}
+
+/** 新建合集并加入当前壁纸 */
+const createCollectionAndAdd = async () => {
+  if (!userStore.isLoggedIn) {
+    toast.warning("请先登录")
+    return
+  }
+  const name = window.prompt("新建合集名称")?.trim()
+  if (!name) return
+  if (collectionBusy.value) return
+  collectionBusy.value = true
+  try {
+    const res = await wallpaperService.createCollection(name)
+    const col = res.data
+    if (!col?.id) throw new Error("创建失败")
+    myCollections.value = [col, ...myCollections.value]
+    await wallpaperService.addToCollection(col.id, wallpaperId.value)
+    toast.success(`已加入「${col.name}」`)
+    showCollectionMenu.value = false
+  } catch (e: unknown) {
+    toast.error((e as Error).message || "创建合集失败")
+  } finally {
+    collectionBusy.value = false
   }
 }
 
@@ -580,7 +698,6 @@ const handleFavorite = async () => {
     return
   }
   if (favoriting.value) return
-
   const id = wallpaperId.value
   if (isNaN(id)) return
 
@@ -590,22 +707,13 @@ const handleFavorite = async () => {
   isFavorited.value = shouldFavorite
   wallpaper.value.favorites += shouldFavorite ? 1 : -1
   favoriting.value = true
-
   try {
-    if (shouldFavorite) {
-      await wallpaperService.favoriteWallpaper(id)
-    } else {
-      await wallpaperService.unfavoriteWallpaper(id)
-    }
-  } catch (err: unknown) {
+    if (shouldFavorite) await wallpaperService.favoriteWallpaper(id)
+    else await wallpaperService.unfavoriteWallpaper(id)
+  } catch {
     isFavorited.value = previousFavorited
     wallpaper.value.favorites = previousFavorites
-    const errObj = err as Error & { response?: { status?: number } }
-    if (errObj.response?.status === 401) {
-      toast.error("登录已过期，请重新登录")
-    } else {
-      toast.error("收藏失败，请稍后重试")
-    }
+    toast.error("收藏失败，请稍后重试")
   } finally {
     favoriting.value = false
   }
@@ -617,63 +725,147 @@ const handleAvatarError = (event: Event) => {
   img.onerror = null
 }
 
+/* ---------- Lightbox：缩放 + 拖拽 ---------- */
+
+const lightboxScale = ref(1)
+const lightboxX = ref(0)
+const lightboxY = ref(0)
+const dragging = ref(false)
+let dragStart = { x: 0, y: 0, ox: 0, oy: 0 }
+
+const lightboxStyle = computed(() => ({
+  transform: `translate(${lightboxX.value}px, ${lightboxY.value}px) scale(${lightboxScale.value})`,
+}))
+
+const resetLightboxTransform = () => {
+  lightboxScale.value = 1
+  lightboxX.value = 0
+  lightboxY.value = 0
+  dragging.value = false
+}
+
+const toggleLightboxZoom = () => {
+  if (lightboxScale.value > 1) {
+    resetLightboxTransform()
+  } else {
+    lightboxScale.value = 2
+  }
+}
+
+const onLightboxWheel = (e: WheelEvent) => {
+  const factor = e.deltaY < 0 ? 1.15 : 0.87
+  const next = Math.min(4, Math.max(1, lightboxScale.value * factor))
+  lightboxScale.value = next
+  if (next === 1) {
+    lightboxX.value = 0
+    lightboxY.value = 0
+  }
+}
+
+const onLightboxDragStart = (e: MouseEvent) => {
+  if (e.button !== 0 || lightboxScale.value <= 1) return
+  dragging.value = true
+  dragStart = { x: e.clientX, y: e.clientY, ox: lightboxX.value, oy: lightboxY.value }
+}
+
+const onLightboxDragMove = (e: MouseEvent) => {
+  if (!dragging.value) return
+  lightboxX.value = dragStart.ox + (e.clientX - dragStart.x)
+  lightboxY.value = dragStart.oy + (e.clientY - dragStart.y)
+}
+
+const onLightboxDragEnd = () => {
+  dragging.value = false
+}
+
+/* ---------- 触屏：单指平移（放大后）+ 双指捏合缩放 ---------- */
+
+let touchState: {
+  mode: "pan" | "pinch"
+  startX: number
+  startY: number
+  ox: number
+  oy: number
+  dist?: number
+  scale0?: number
+} | null = null
+
+const touchDist = (t: TouchList) =>
+  Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+
+const onLightboxTouchStart = (e: TouchEvent) => {
+  if (e.touches.length === 2) {
+    touchState = {
+      mode: "pinch",
+      startX: 0,
+      startY: 0,
+      ox: lightboxX.value,
+      oy: lightboxY.value,
+      dist: touchDist(e.touches),
+      scale0: lightboxScale.value,
+    }
+  } else if (e.touches.length === 1 && lightboxScale.value > 1) {
+    const t = e.touches[0]
+    touchState = {
+      mode: "pan",
+      startX: t.clientX,
+      startY: t.clientY,
+      ox: lightboxX.value,
+      oy: lightboxY.value,
+    }
+  } else {
+    touchState = null
+  }
+}
+
+const onLightboxTouchMove = (e: TouchEvent) => {
+  if (!touchState) return
+  if (touchState.mode === "pinch" && e.touches.length === 2 && touchState.dist) {
+    const next = Math.min(
+      4,
+      Math.max(1, (touchState.scale0 ?? 1) * (touchDist(e.touches) / touchState.dist)),
+    )
+    lightboxScale.value = next
+    if (next === 1) {
+      lightboxX.value = 0
+      lightboxY.value = 0
+    }
+  } else if (touchState.mode === "pan" && e.touches.length === 1) {
+    const t = e.touches[0]
+    lightboxX.value = touchState.ox + (t.clientX - touchState.startX)
+    lightboxY.value = touchState.oy + (t.clientY - touchState.startY)
+  }
+}
+
+const onLightboxTouchEnd = () => {
+  touchState = null
+}
+
 const openLightbox = () => {
   lightboxVisible.value = true
+  resetLightboxTransform()
   document.body.style.overflow = "hidden"
 }
 
 const closeLightbox = () => {
   lightboxVisible.value = false
+  resetLightboxTransform()
   document.body.style.overflow = ""
 }
 
-const navigateRelated = (direction: number) => {
-  if (relatedWallpapers.value.length === 0) return
-  const currentIdx = relatedWallpapers.value.findIndex((w) => w.id === wallpaperId.value)
-  let nextIdx: number
-  if (currentIdx === -1) {
-    nextIdx = 0
-  } else {
-    nextIdx = (currentIdx + direction + relatedWallpapers.value.length) % relatedWallpapers.value.length
-  }
-  const nextId = relatedWallpapers.value[nextIdx]?.id
-  if (nextId) {
-    router.push(`/wallpaper/${nextId}`)
-  }
-}
-
 const handleKeydown = (e: KeyboardEvent) => {
-  // 忽略输入框中的按键
   const target = e.target as HTMLElement
   if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
 
   if (e.key === "Escape") {
-    if (lightboxVisible.value) {
-      closeLightbox()
-    } else {
-      window.history.back()
-    }
+    if (lightboxVisible.value) closeLightbox()
+    else if (showCollectionMenu.value) showCollectionMenu.value = false
     return
   }
-  if (e.key === "f" || e.key === "F") {
-    if (!lightboxVisible.value && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault()
-      openLightbox()
-    }
+  if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    if (!lightboxVisible.value) openLightbox()
   }
-  // 左右箭头导航到相关推荐壁纸
-  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-    if (lightboxVisible.value || relatedWallpapers.value.length === 0) return
-    navigateRelated(e.key === "ArrowLeft" ? -1 : 1)
-  }
-}
-
-const handleScroll = () => {
-  showBackToTop.value = window.scrollY > 400
-}
-
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" })
 }
 
 const pushShareNotice = (message: string) => {
@@ -685,18 +877,14 @@ const pushShareNotice = (message: string) => {
 
 const downloadWallpaper = async () => {
   if (!wallpaper.value.imageUrl || downloading.value) return
-
   downloading.value = true
   try {
-    const response = await wallpaperService.recordDownload(wallpaperId.value)
-    const fileUrl = response.data?.fileUrl
-    if (!fileUrl) throw new Error("下载地址无效")
-
+    // 原图直链已带 attachment 响应头，直接触发浏览器下载
+    const fileUrl = wallpaper.value.imageUrl
     const ext = wallpaper.value.format?.toLowerCase() || fileUrl.split(".").pop() || "jpg"
-    const fileName = `wallpaper-${wallpaper.value.id}.${ext}`
     const link = document.createElement("a")
     link.href = fileUrl
-    link.download = fileName
+    link.download = `wallpaper-${wallpaper.value.id}.${ext}`
     link.rel = "noopener"
     document.body.appendChild(link)
     link.click()
@@ -709,31 +897,60 @@ const downloadWallpaper = async () => {
   }
 }
 
+/** 分享：优先系统分享面板，退回复制链接 */
 const shareWallpaper = async () => {
-  const url = window.location.href
+  const shareUrl = `${window.location.origin}/wallpaper/${wallpaper.value.id}`
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Wallbay 壁纸", url: shareUrl })
+      return
+    } catch {
+      /* 用户取消 */
+    }
+  }
   try {
-    await navigator.clipboard.writeText(url)
-    pushShareNotice("链接已复制到剪贴板 ✓")
+    await navigator.clipboard.writeText(shareUrl)
+    pushShareNotice("链接已复制到剪贴板")
   } catch {
-    // 降级方案
-    const input = document.createElement("input")
-    input.value = url
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand("copy")
-    input.remove()
-    pushShareNotice("链接已复制到剪贴板 ✓")
+    toast.error("复制失败，请手动复制地址栏链接")
   }
 }
 
+onMounted(() => {
+  fetchWallpaperDetail()
+  window.addEventListener("keydown", handleKeydown)
+})
+
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      imageLoaded.value = false
+      imageError.value = false
+      lightboxVisible.value = false
+      resetLightboxTransform()
+      relatedWallpapers.value = []
+      shareNotice.value = ""
+      showCollectionMenu.value = false
+      fetchWallpaperDetail()
+    }
+  },
+)
+
 onUnmounted(() => {
-  if (detailTimeoutId.value) {
-    clearTimeout(detailTimeoutId.value)
-    detailTimeoutId.value = null
-  }
   loading.value = false
   window.removeEventListener("keydown", handleKeydown)
-  window.removeEventListener("scroll", handleScroll)
-  document.body.style.overflow = ""
 })
 </script>
+
+<style scoped>
+/* 预览图 → 原图 淡出过渡 */
+.preview-fade-enter-active,
+.preview-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.preview-fade-enter-from,
+.preview-fade-leave-to {
+  opacity: 0;
+}
+</style>
