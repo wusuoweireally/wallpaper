@@ -56,7 +56,7 @@ export class UserController {
 
   // 用户注册（仅支持JSON格式，不支持头像上传）
   @Post("register")
-  @Throttle({ auth: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 10, ttl: 300000 } })
   async register(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
 
@@ -73,7 +73,7 @@ export class UserController {
   // 用户登录
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  @Throttle({ auth: { limit: 5, ttl: 900000 } })
+  @Throttle({ default: { limit: 10, ttl: 900000 } })
   async login(
     @Body(ValidationPipe) loginDto: LoginDto,
     @Req() request: Request,
@@ -298,7 +298,7 @@ export class UserController {
   // 上传头像
   @Post(":id/avatar")
   @UseGuards(JwtAuthGuard)
-  @Throttle({ upload: { limit: 20, ttl: 3600000 } })
+  @Throttle({ default: { limit: 40, ttl: 3600000 } })
   @UseInterceptors(
     FileInterceptor("avatar", {
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
@@ -351,25 +351,6 @@ export class UserController {
         user: result,
       },
     };
-  }
-
-  /**
-   * 获取用户点赞的壁纸列表
-   */
-  @Get("likes")
-  @UseGuards(JwtAuthGuard)
-  async getUserLikes(
-    @CurrentUser() user: { userId: number; username: string },
-    @Query("page") page: string = "1",
-    @Query("limit") limit: string = "20",
-  ) {
-    const result = await this.wallpaperService.getUserLikedWallpapers(
-      user.userId,
-      Number(page),
-      Number(limit),
-    );
-
-    return this.buildPaginatedResponse(result, Number(page), Number(limit));
   }
 
   /**
@@ -431,58 +412,72 @@ export class UserController {
   @Get("stats")
   @UseGuards(JwtAuthGuard)
   async getUserStats(@CurrentUser() user: CurrentUserType) {
-    const [uploadStats, favorites, likes] = await Promise.all([
+    const [uploadStats, favorites] = await Promise.all([
       this.wallpaperService.getUploaderStats(user.userId),
-      this.wallpaperService.getUserFavoritedWallpapers(user.userId, 1, 1),
-      this.wallpaperService.getUserLikedWallpapers(user.userId, 1, 1),
+      this.wallpaperService.countUserFavorites(user.userId),
     ]);
 
     return {
       success: true,
       data: {
         ...uploadStats,
-        favorites: favorites.total,
-        likes: likes.total,
+        favorites,
       },
     };
   }
-  // 根据ID查询用户
-  @Get(":id")
-  @UseGuards(JwtAuthGuard)
-  async findOne(
+  /**
+   * 公开：用户已审核上传
+   * 须放在 :id 之前（Nest 按声明顺序匹配，但带二级路径仍需独立声明）
+   */
+  @Get(":id/uploads")
+  async getPublicUploads(
     @Param("id") id: string,
-    @CurrentUser() currentUser: CurrentUserType,
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
   ) {
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
-      throw new BadRequestException("用户ID无效 fava");
+      throw new BadRequestException("用户ID无效");
+    }
+    await this.userService.findById(userId);
+    const result = await this.wallpaperService.findPublicUploadsByUser(
+      userId,
+      Number(page),
+      Number(limit),
+    );
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
+  }
+
+  // 根据ID查询用户（公开可读基础字段；登录后本人/管理员可见更多）
+  @Get(":id")
+  @UseGuards(OptionalJwtAuthGuard)
+  async findOne(
+    @Param("id") id: string,
+    @CurrentUser() currentUser?: CurrentUserType,
+  ) {
+    const userId = Number(id);
+    if (isNaN(userId) || userId <= 0) {
+      throw new BadRequestException("用户ID无效");
     }
 
     const user = await this.userService.findById(userId);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...result } = user;
 
-    // 仅本人或管理员可查看完整信息；其他用户只返回公开字段，避免邮箱等隐私泄露
     const canViewPrivate =
-      currentUser.userId === userId || isAdminRole(currentUser.role);
+      !!currentUser &&
+      (currentUser.userId === userId || isAdminRole(currentUser.role));
 
     if (!canViewPrivate) {
-      const {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        email,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        githubId,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        githubLogin,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        githubBio,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        status,
-        ...publicData
-      } = result;
       return {
         success: true,
-        data: publicData,
+        data: {
+          id: result.id,
+          username: result.username,
+          avatarUrl: result.avatarUrl,
+          bio: result.bio,
+          createdAt: result.createdAt,
+        },
       };
     }
 
