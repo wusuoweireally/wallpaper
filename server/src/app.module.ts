@@ -52,6 +52,7 @@ import { AdminModule } from "./modules/admin.module";
         return dbConfig;
       },
     }),
+    // 只注册 default；多 name 会套全站。登录/上传用 @Throttle 覆盖本路由
     ThrottlerModule.forRoot([{ name: "default", ttl: 60000, limit: 200 }]),
     ScheduleModule.forRoot(),
     UserModule,

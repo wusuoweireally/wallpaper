@@ -46,11 +46,16 @@ export function validateEnvironment(
       "DB_PASSWORD",
       "DB_DATABASE",
       "FRONTEND_URL",
+      "COS_BUCKET",
+      "COS_REGION",
+      "COS_PUBLIC_BASE",
     ]) {
       if (!readString(config, key)) {
         throw new Error(`生产环境必须配置 ${key}`);
       }
     }
+    assertSecret("COS_SECRET_ID", readString(config, "COS_SECRET_ID"), 10);
+    assertSecret("COS_SECRET_KEY", readString(config, "COS_SECRET_KEY"), 16);
 
     const frontendUrl = new URL(readString(config, "FRONTEND_URL"));
     if (frontendUrl.protocol !== "https:") {

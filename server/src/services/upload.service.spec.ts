@@ -3,8 +3,14 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import sharp from "sharp";
+import type { Repository } from "typeorm";
 import { UploadService } from "./upload.service";
 import type { CosService } from "./cos.service";
+import type { Wallpaper } from "../entities/wallpaper.entity";
+import {
+  WALLPAPER_MIN_HEIGHT,
+  WALLPAPER_MIN_WIDTH,
+} from "./wallpaper-upload.constants";
 
 const createFile = (
   buffer: Buffer,
@@ -42,15 +48,25 @@ const createCosMock = () => {
 describe("UploadService wallpaper processing", () => {
   let service: UploadService;
   let cos: ReturnType<typeof createCosMock>;
+  let findOne: jest.Mock;
 
   beforeEach(() => {
     cos = createCosMock();
-    service = new UploadService(cos as unknown as CosService);
+    findOne = jest.fn().mockResolvedValue(null);
+    service = new UploadService(
+      cos as unknown as CosService,
+      { findOne } as unknown as Repository<Wallpaper>,
+    );
   });
 
   it("rejects a declared MIME type that does not match the image content", async () => {
     const jpeg = await sharp({
-      create: { width: 16, height: 9, channels: 3, background: "#123456" },
+      create: {
+        width: WALLPAPER_MIN_WIDTH,
+        height: WALLPAPER_MIN_HEIGHT,
+        channels: 3,
+        background: "#123456",
+      },
     })
       .jpeg()
       .toBuffer();
@@ -60,7 +76,39 @@ describe("UploadService wallpaper processing", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("uploads original + thumbnail to COS and returns public URLs", async () => {
+  it("rejects images below min resolution before COS upload", async () => {
+    const image = await sharp({
+      create: { width: 492, height: 460, channels: 3, background: "#000" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.processWallpaperUpload(createFile(image), 7),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cos.putObject).not.toHaveBeenCalled();
+  });
+
+  it("rejects exact content duplicates", async () => {
+    findOne.mockResolvedValueOnce({ id: 88 });
+    const image = await sharp({
+      create: {
+        width: WALLPAPER_MIN_WIDTH,
+        height: WALLPAPER_MIN_HEIGHT,
+        channels: 3,
+        background: "#112233",
+      },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      service.processWallpaperUpload(createFile(image), 7),
+    ).rejects.toThrow(/重复壁纸.*#88/);
+    expect(cos.putObject).not.toHaveBeenCalled();
+  });
+
+  it("uploads original + thumbnail to COS and returns public URLs + color + hash", async () => {
     const image = await sharp({
       create: { width: 1920, height: 1080, channels: 3, background: "#123456" },
     })
@@ -77,11 +125,16 @@ describe("UploadService wallpaper processing", () => {
         aspectRatio: 1.78,
       }),
     );
-    expect(cos.putObject).toHaveBeenCalledTimes(2); // 原图 + 缩略图
-    expect(cos.auditImage).toHaveBeenCalledTimes(1); // 只审原图
-    expect(cos.setPublicRead).toHaveBeenCalledTimes(2);
+    expect(result.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.dominantColor).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(typeof result.colorBucket).toBe("string");
+    expect(result.colorBucket.length).toBeGreaterThan(0);
+    expect(cos.putObject).toHaveBeenCalledTimes(3);
+    expect(cos.auditImage).toHaveBeenCalledTimes(1);
+    expect(cos.setPublicRead).toHaveBeenCalledTimes(3);
     expect(result.fileUrl).toMatch(/^https:\/\/cos\.test\/wallpapers\//);
     expect(result.thumbnailUrl).toMatch(/^https:\/\/cos\.test\/thumbnails\//);
+    expect(result.previewUrl).toMatch(/^https:\/\/cos\.test\/previews\//);
   });
 
   it("rejects and cleans up when the image violates content policy", async () => {
@@ -91,7 +144,12 @@ describe("UploadService wallpaper processing", () => {
       score: 99,
     });
     const image = await sharp({
-      create: { width: 64, height: 64, channels: 3, background: "#000" },
+      create: {
+        width: WALLPAPER_MIN_WIDTH,
+        height: WALLPAPER_MIN_HEIGHT,
+        channels: 3,
+        background: "#000",
+      },
     })
       .png()
       .toBuffer();
@@ -99,14 +157,19 @@ describe("UploadService wallpaper processing", () => {
     await expect(
       service.processWallpaperUpload(createFile(image), 7),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(cos.deleteObject).toHaveBeenCalledTimes(1); // 删除原图
-    expect(cos.setPublicRead).not.toHaveBeenCalled(); // 违规对象不公开
+    expect(cos.deleteObject).toHaveBeenCalledTimes(1);
+    expect(cos.setPublicRead).not.toHaveBeenCalled();
   });
 
-  it("cleans up both objects when publishing fails", async () => {
+  it("cleans up all objects when publishing fails", async () => {
     cos.setPublicRead.mockRejectedValueOnce(new Error("acl failed"));
     const image = await sharp({
-      create: { width: 64, height: 64, channels: 3, background: "#000" },
+      create: {
+        width: WALLPAPER_MIN_WIDTH,
+        height: WALLPAPER_MIN_HEIGHT,
+        channels: 3,
+        background: "#000",
+      },
     })
       .png()
       .toBuffer();
@@ -114,6 +177,6 @@ describe("UploadService wallpaper processing", () => {
     await expect(
       service.processWallpaperUpload(createFile(image), 7),
     ).rejects.toBeInstanceOf(InternalServerErrorException);
-    expect(cos.deleteObject).toHaveBeenCalledTimes(2); // 原图 + 缩略图
+    expect(cos.deleteObject).toHaveBeenCalledTimes(3);
   });
 });

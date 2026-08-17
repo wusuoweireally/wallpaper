@@ -17,7 +17,6 @@ import { Tag } from "./tag.entity";
 export enum WallpaperStatus {
   PENDING = 0,
   APPROVED = 1,
-  REJECTED = 2,
 }
 
 @Entity("wallpapers")
@@ -55,11 +54,30 @@ export class Wallpaper {
   })
   thumbnailUrl: string;
 
+  @Column({
+    name: "preview_url",
+    length: 500,
+    nullable: true,
+    comment: "预览图URL(1600px, hover/详情占位用)",
+  })
+  previewUrl: string;
+
   @Column({ name: "file_size", type: "bigint", comment: "文件大小(字节)" })
   fileSize: number;
 
   @Column({ length: 20, nullable: true, comment: "文件格式" })
   format: string;
+
+  /** 文件内容 SHA-256，用于精确查重（与 wallhaven 式 dupe 对齐的轻量方案） */
+  @Column({
+    name: "content_hash",
+    type: "varchar",
+    length: 64,
+    nullable: true,
+    comment: "文件SHA256",
+  })
+  @Index("uk_wallpapers_content_hash", { unique: true })
+  contentHash: string | null;
 
   @Column({ type: "int", comment: "图片宽度" })
   width: number;
@@ -113,35 +131,10 @@ export class Wallpaper {
   @Column({
     type: "tinyint",
     default: WallpaperStatus.PENDING,
-    comment: "状态 0:待审核 1:已通过 2:已驳回",
+    comment: "状态 0:草稿/未公开 1:已发布",
   })
   @Index("idx_status")
   status: WallpaperStatus;
-
-  @Column({
-    name: "review_note",
-    type: "varchar",
-    length: 500,
-    nullable: true,
-    comment: "审核说明",
-  })
-  reviewNote: string | null;
-
-  @Column({
-    name: "reviewed_by",
-    type: "bigint",
-    nullable: true,
-    comment: "审核管理员ID",
-  })
-  reviewedBy: number | null;
-
-  @Column({
-    name: "reviewed_at",
-    type: "datetime",
-    nullable: true,
-    comment: "审核时间",
-  })
-  reviewedAt: Date | null;
 
   @Column({
     name: "is_featured",
@@ -151,6 +144,27 @@ export class Wallpaper {
   })
   @Index("idx_is_featured")
   isFeatured: boolean;
+
+  /** 主色 hex，如 #1a2b3c；上传时由 sharp 采样 */
+  @Column({
+    name: "dominant_color",
+    type: "varchar",
+    length: 7,
+    nullable: true,
+    comment: "主色 hex",
+  })
+  dominantColor: string | null;
+
+  /** 粗分色桶：red/blue/... 便于筛选 */
+  @Column({
+    name: "color_bucket",
+    type: "varchar",
+    length: 20,
+    nullable: true,
+    comment: "主色粗分桶",
+  })
+  @Index("idx_color_bucket")
+  colorBucket: string | null;
 
   @CreateDateColumn({ name: "created_at", comment: "创建时间" })
   @Index("idx_created_at_desc")

@@ -31,6 +31,21 @@ describe("validateEnvironment", () => {
     ).toThrow("DB_HOST");
   });
 
+  it("requires COS settings in production", () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: "production",
+        JWT_SECRET: "a-secure-production-secret-over-32-characters",
+        DB_HOST: "mysql",
+        DB_USERNAME: "wallpaper",
+        DB_PASSWORD: "database-password",
+        DB_DATABASE: "wallpaper",
+        FRONTEND_URL: "https://example.com",
+        COOKIE_SECURE: "true",
+      }),
+    ).toThrow("COS_BUCKET");
+  });
+
   it("requires HTTPS for the production frontend", () => {
     expect(() =>
       validateEnvironment({
@@ -41,6 +56,11 @@ describe("validateEnvironment", () => {
         DB_PASSWORD: "database-password",
         DB_DATABASE: "wallpaper",
         FRONTEND_URL: "http://example.com",
+        COS_SECRET_ID: "AKID-secret-id-123",
+        COS_SECRET_KEY: "a-cos-secret-key-over-16-chars",
+        COS_BUCKET: "my-bucket",
+        COS_REGION: "ap-guangzhou",
+        COS_PUBLIC_BASE: "https://my-bucket.cos.ap-guangzhou.myqcloud.com",
       }),
     ).toThrow("HTTPS");
   });

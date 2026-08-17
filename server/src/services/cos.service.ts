@@ -26,11 +26,12 @@ export class CosService {
     });
   }
 
-  /** 上传对象（桶默认私有读，外部不可访问） */
+  /** 上传对象（桶默认私有读，外部不可访问）；contentDisposition 用于下载场景强制附件头 */
   async putObject(
     key: string,
     body: Buffer,
     contentType: string,
+    contentDisposition?: string,
   ): Promise<void> {
     await this.cos.putObject({
       Bucket: this.bucket,
@@ -38,6 +39,7 @@ export class CosService {
       Key: key,
       Body: body,
       ContentType: contentType,
+      ...(contentDisposition ? { ContentDisposition: contentDisposition } : {}),
     });
   }
 
@@ -61,6 +63,9 @@ export class CosService {
     const query: Record<string, string> = {
       "ci-process": "sensitive-content-recognition",
     };
+    // 自定义审核策略：配了 BizType 就走它（覆盖桶默认策略），留空回落默认策略
+    const bizType = process.env.COS_AUDIT_BIZ_TYPE?.trim();
+    if (bizType) query["biz-type"] = bizType;
     if (fileSize && fileSize > 5 * 1024 * 1024) {
       query["large-image-detect"] = "1";
     }
