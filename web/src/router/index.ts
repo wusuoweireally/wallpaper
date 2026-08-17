@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router"
 import type { RouteRecordRaw } from "vue-router"
 import "./types" // 导入路由类型扩展
 import { useUserStore } from "@/stores/user"
+import { useGlobalToast } from "@/composables/useToast"
 import { storeToRefs } from "pinia"
 
 // 路由配置
@@ -12,7 +13,7 @@ const routes: RouteRecordRaw[] = [
     name: "Home",
     component: () => import("@/views/Index.vue"),
     meta: {
-      title: "随心壁纸 - 首页",
+      title: "Wallbay - 首页",
       requiresAuth: false,
       showNavBar: true,
     },
@@ -39,6 +40,10 @@ const routes: RouteRecordRaw[] = [
     redirect: () => ({ path: "/wallpapers", query: { sort: "popular" } }),
   },
   {
+    path: "/hot",
+    redirect: () => ({ path: "/wallpapers", query: { sort: "popular" } }),
+  },
+  {
     path: "/random",
     redirect: () => ({ path: "/wallpapers", query: { sort: "random" } }),
   },
@@ -60,6 +65,7 @@ const routes: RouteRecordRaw[] = [
       title: "上传壁纸",
       requiresAuth: true,
       showNavBar: true,
+      hideFooter: true,
     },
   },
 
@@ -116,6 +122,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
+  // 公开用户主页
+  {
+    path: "/u/:id",
+    name: "PublicProfile",
+    component: () => import("@/views/user/PublicProfile.vue"),
+    meta: {
+      title: "用户主页",
+      requiresAuth: false,
+      showNavBar: true,
+    },
+  },
+
   // 用户中心路由
   {
     path: "/user",
@@ -125,7 +143,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: "个人中心",
       requiresAuth: true,
-      showNavBar: false, // 用户中心不显示主导航栏
+      showNavBar: true,
     },
     children: [
       {
@@ -136,7 +154,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "我的上传",
           requiresAuth: true,
-          showNavBar: false,
+          showNavBar: true,
         },
       },
       {
@@ -147,18 +165,32 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "我的收藏",
           requiresAuth: true,
-          showNavBar: false,
+          showNavBar: true,
         },
       },
       {
-        path: "likes",
-        name: "UserLikes",
-        component: () => import("@/views/user/components/UserWallpaperList.vue"),
-        props: { type: "likes" },
+        path: "history",
+        name: "UserHistory",
+        component: () => import("@/views/user/components/UserViewHistory.vue"),
         meta: {
-          title: "我的点赞",
+          title: "浏览记录",
           requiresAuth: true,
-          showNavBar: false,
+          showNavBar: true,
+        },
+      },
+      {
+        // 点赞已下线：旧链接重定向到收藏，避免 404
+        path: "likes",
+        redirect: "/user/favorites",
+      },
+      {
+        path: "collections",
+        name: "UserCollections",
+        component: () => import("@/views/user/components/UserCollections.vue"),
+        meta: {
+          title: "我的合集",
+          requiresAuth: true,
+          showNavBar: true,
         },
       },
       {
@@ -168,7 +200,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "账号设置",
           requiresAuth: true,
-          showNavBar: false,
+          showNavBar: true,
         },
       },
     ],
@@ -324,12 +356,15 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   // 路由滚动行为
-  scrollBehavior(_to, _from, savedPosition) {
+  scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
-    } else {
-      return { top: 0 }
     }
+    // 同路径仅改查询参数（列表筛选/翻页）时保留当前滚动位置
+    if (to.path === from.path) {
+      return false
+    }
+    return { top: 0 }
   },
 })
 
@@ -359,9 +394,10 @@ router.beforeEach(async (to, _from, next) => {
     document.body.classList.remove("modal-open")
   }
 
-  // 设置页面标题
+  // 设置页面标题（统一后缀品牌名）
   if (to.meta.title) {
-    document.title = to.meta.title as string
+    const title = to.meta.title as string
+    document.title = title.includes("Wallbay") ? title : `${title} - Wallbay`
   }
 
   // 检查登录状态 - 使用Pinia store中的用户状态来判断登录状态
@@ -376,11 +412,15 @@ router.beforeEach(async (to, _from, next) => {
       return
     }
 
-    next({
-      name: "Login",
-      query: { redirect: to.fullPath }, // 保存重定向路径
-    })
-    return
+    // 本地缓存缺失时先等服务端校验（cookie 可能仍有效），再决定是否踢登录页
+    await userStore.initializeAuth()
+    if (!isLoggedIn.value) {
+      next({
+        name: "Login",
+        query: { redirect: to.fullPath }, // 保存重定向路径
+      })
+      return
+    }
   }
 
   // 已登录用户访问登录/注册页面，重定向到首页
@@ -401,6 +441,7 @@ router.beforeEach(async (to, _from, next) => {
     const userRole = currentUser.value?.role
 
     if (requiredRoles.includes("ADMIN") && userRole !== "admin" && userRole !== "super_admin") {
+      useGlobalToast().error("该页面仅对管理员开放")
       next({ name: "Home" })
       return
     }
@@ -411,7 +452,43 @@ router.beforeEach(async (to, _from, next) => {
 
 // 路由错误处理
 router.onError((error) => {
+  // 新版本发布后旧 chunk 加载失败：提示并自动刷新拉取新资源；
+  // sessionStorage 防循环——持续失败时只刷新一次
+  if (
+    /Failed to fetch dynamically imported module|Importing a module script failed/i.test(
+      error.message,
+    )
+  ) {
+    if (!sessionStorage.getItem("wb-chunk-reloaded")) {
+      sessionStorage.setItem("wb-chunk-reloaded", "1")
+      useGlobalToast().info("站点已更新，正在刷新…")
+      setTimeout(() => window.location.reload(), 800)
+      return
+    }
+  }
   console.error("路由错误:", error)
 })
+
+// 空闲时预取懒加载路由 chunk：避免点击导航时现场编译/下载造成切换白屏（admin 需鉴权，跳过）
+if (typeof window !== "undefined") {
+  const prefetchRoutes = () => {
+    for (const record of router.getRoutes()) {
+      if (record.path.startsWith("/admin")) continue
+      try {
+        const comp = record.components?.default
+        if (typeof comp === "function") {
+          void Promise.resolve((comp as () => unknown)()).catch(() => {})
+        }
+      } catch {
+        // 预取失败不影响正常访问
+      }
+    }
+  }
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => prefetchRoutes(), { timeout: 3000 })
+  } else {
+    window.setTimeout(prefetchRoutes, 2000)
+  }
+}
 
 export default router

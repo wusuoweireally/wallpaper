@@ -19,6 +19,8 @@ declare module "vue-router" {
     keepAlive?: boolean
     // 是否显示导航栏
     showNavBar?: boolean
+    // 全屏页（详情/上传编辑器）隐藏页脚
+    hideFooter?: boolean
   }
 }
 

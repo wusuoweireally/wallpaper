@@ -1,17 +1,9 @@
 <template>
-  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
-    <div class="p-8">
-      <!-- 头部区域 -->
-      <div class="mb-8 flex items-center gap-4">
-        <div
-          class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 shadow-lg shadow-purple-500/30"
-        >
-          <i class="icon-[mdi--account] text-2xl text-white"></i>
-        </div>
-        <div>
-          <h3 class="text-2xl font-bold text-slate-900">个人信息</h3>
-          <p class="mt-1 text-sm text-slate-500">完善个人资料，让其他用户更好地了解你</p>
-        </div>
+  <div class="wb-card">
+    <div class="p-6">
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-fg">个人信息</h3>
+        <p class="mt-1 text-sm text-muted">头像与简介会展示在公开主页</p>
       </div>
 
       <div class="grid gap-8 lg:grid-cols-3">
@@ -19,9 +11,7 @@
         <div class="lg:col-span-1">
           <div class="flex flex-col items-center">
             <div class="group relative">
-              <div
-                class="h-36 w-36 overflow-hidden rounded-full border-4 border-white shadow-xl shadow-purple-500/20"
-              >
+              <div class="h-28 w-28 overflow-hidden rounded-full ring-1 ring-line">
                 <img
                   v-if="userStore.user || avatarPreview"
                   :src="avatarPreview || userStore.userAvatar"
@@ -31,30 +21,27 @@
                 />
                 <div
                   v-else
-                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200"
+                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-subtle to-inset"
                 >
-                  <i class="icon-[mdi--account] text-4xl text-slate-400"></i>
+                  <i class="i-[mdi--account] text-4xl text-faint"></i>
                 </div>
               </div>
               <!-- 头像上传按钮 -->
               <label
-                class="absolute inset-0 flex h-36 w-36 cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100"
+                class="absolute inset-0 flex h-28 w-28 cursor-pointer items-center justify-center rounded-full bg-black/50 opacity-0 transition group-hover:opacity-100"
               >
-                <i class="icon-[mdi--camera] text-3xl text-white"></i>
+                <i class="i-[mdi--camera] text-3xl text-white"></i>
                 <input type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
               </label>
             </div>
 
             <div class="mt-5 text-center">
-              <h4 class="text-lg font-semibold text-slate-900">个人头像</h4>
-              <p class="mt-2 text-sm text-slate-500">JPG, PNG, WebP 格式</p>
-              <p class="text-xs text-slate-400">建议 256×256 像素</p>
+              <h4 class="text-sm font-medium text-fg">个人头像</h4>
+              <p class="mt-1 text-xs text-muted">JPG / PNG / WebP，建议 256×256</p>
             </div>
 
-            <label
-              class="mt-5 cursor-pointer rounded-xl border-2 border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:border-purple-300 hover:bg-purple-50"
-            >
-              <i class="icon-[mdi--upload] mr-2"></i>
+            <label class="wb-btn mt-4">
+              <i class="i-[mdi--upload] mr-2"></i>
               选择图片
               <input type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
             </label>
@@ -65,44 +52,43 @@
         <div class="space-y-6 lg:col-span-2">
           <!-- 用户名 -->
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700"> 用户名 </label>
+            <label class="block text-sm font-medium text-fg">用户名</label>
             <input
               type="text"
               v-model="profileForm.username"
               placeholder="请输入用户名"
-              class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
+              class="wb-input"
             />
-            <p class="text-xs text-slate-500">用于展示在个人主页中，建议使用独特易记的名称</p>
+            <p class="text-xs text-faint">展示在个人主页</p>
           </div>
 
           <!-- 邮箱 -->
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700"> 邮箱地址 </label>
+            <label class="block text-sm font-medium text-fg">邮箱地址</label>
             <input
               type="email"
               v-model="profileForm.email"
               placeholder="请输入邮箱地址（可选）"
-              class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
+              class="wb-input"
             />
-            <p class="text-xs text-slate-500">用于接收安全通知，若不填写将无法找回密码</p>
+            <p class="text-xs text-faint">用于接收安全通知</p>
           </div>
 
           <!-- 个人简介 -->
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700"> 个人简介 </label>
+            <label class="block text-sm font-medium text-fg">个人简介</label>
             <div class="relative">
               <textarea
                 v-model="profileForm.bio"
-                placeholder="简单介绍一下自己，分享你的创作灵感和兴趣..."
-                class="w-full resize-none rounded-xl border-2 border-slate-200 px-4 py-3 transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
+                placeholder="简单介绍一下自己"
+                class="wb-input resize-none"
                 rows="4"
                 maxlength="500"
               ></textarea>
-              <div class="absolute bottom-3 right-3 rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-500">
+              <div class="absolute bottom-2 right-2 text-xs text-faint">
                 {{ profileForm.bio?.length || 0 }}/500
               </div>
             </div>
-            <p class="text-xs text-slate-500">展示在公共主页，支持 Markdown 基础语法</p>
           </div>
         </div>
       </div>
@@ -110,48 +96,38 @@
       <!-- 上传状态提示 -->
       <div
         v-if="loading && avatarFile"
-        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-sky-200 bg-sky-50 p-4"
+        class="mt-6 flex items-center gap-3 rounded-card border border-primary/20 bg-[color:var(--wb-accent-subtle)] p-3"
       >
         <div class="relative">
-          <div class="h-5 w-5 animate-spin rounded-full border-2 border-sky-300"></div>
+          <div class="h-5 w-5 animate-spin rounded-full border-2 border-primary/30"></div>
           <div
-            class="absolute left-0 top-0 h-5 w-5 animate-spin rounded-full border-2 border-t-sky-500 border-r-transparent border-b-transparent border-l-transparent"
+            class="absolute left-0 top-0 h-5 w-5 animate-spin rounded-full border-2 border-b-transparent border-l-transparent border-r-transparent border-t-primary"
           ></div>
         </div>
-        <span class="font-medium text-sky-900">正在上传头像，请稍候...</span>
+        <span class="text-sm text-primary">正在上传头像…</span>
       </div>
 
       <!-- 错误提示 -->
       <div
         v-if="error"
-        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-red-200 bg-red-50 p-4"
+        class="border-[color:var(--wb-danger)]/30 mt-6 flex items-center gap-3 rounded-card border bg-[color:var(--wb-danger-subtle)] p-3"
       >
-        <i class="icon-[mdi--alert-circle] text-2xl text-red-500"></i>
-        <span class="font-medium text-red-900">{{ error }}</span>
+        <span class="text-sm text-[color:var(--wb-danger)]">{{ error }}</span>
       </div>
 
       <!-- 成功提示 -->
       <div
         v-if="success"
-        class="mt-6 flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4"
+        class="border-[color:var(--wb-success)]/30 mt-6 flex items-center gap-3 rounded-card border bg-[color:var(--wb-success-subtle)] p-3"
       >
-        <i class="icon-[mdi--check-circle] text-2xl text-emerald-500"></i>
-        <span class="font-medium text-emerald-900">{{ success }}</span>
+        <span class="text-sm text-[color:var(--wb-success)]">{{ success }}</span>
       </div>
 
       <!-- 操作区域 -->
-      <div class="mt-8 flex items-center justify-between border-t-2 border-slate-100 pt-6">
-        <div class="flex items-center gap-2 text-sm text-slate-500">
-          <i class="icon-[mdi--information] text-lg text-purple-500"></i>
-          <span>所有修改将实时同步，保存后立即生效</span>
-        </div>
-        <button
-          @click="updateProfile"
-          :disabled="loading || !hasChanges"
-          class="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 px-8 py-3 font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-400 disabled:shadow-none"
-        >
-          <i v-if="loading" class="icon-[mdi--loading] animate-spin"></i>
-          {{ loading ? "保存中..." : "保存修改" }}
+      <div class="mt-6 flex items-center justify-end border-t border-line pt-4">
+        <button @click="updateProfile" :disabled="loading || !hasChanges" class="wb-btn-primary">
+          <i v-if="loading" class="i-[mdi--loading] animate-spin"></i>
+          {{ loading ? "保存中…" : "保存修改" }}
         </button>
       </div>
     </div>
