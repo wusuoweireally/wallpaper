@@ -1,5 +1,14 @@
 import { Injectable, Logger, BadGatewayException } from "@nestjs/common";
+import { randomUUID } from "crypto";
+import { promises as fs } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import COS from "cos-nodejs-sdk-v5";
+
+/** 超过该大小时走分片并发上传（跨境链路单流受限，并发分片可提速一倍以上） */
+const MULTIPART_THRESHOLD_BYTES = 1024 * 1024;
+/** 分片大小（与跨境 RTT/带宽匹配，实测 1MB 最优） */
+const SLICE_SIZE_BYTES = 1024 * 1024;
 
 export interface AuditResult {
   passed: boolean; // 是否通过内容审核
@@ -23,6 +32,7 @@ export class CosService {
     this.cos = new COS({
       SecretId: process.env.COS_SECRET_ID!,
       SecretKey: process.env.COS_SECRET_KEY!,
+      ChunkParallelLimit: 8,
     });
   }
 
@@ -33,14 +43,29 @@ export class CosService {
     contentType: string,
     contentDisposition?: string,
   ): Promise<void> {
-    await this.cos.putObject({
+    const base = {
       Bucket: this.bucket,
       Region: this.region,
       Key: key,
-      Body: body,
       ContentType: contentType,
       ...(contentDisposition ? { ContentDisposition: contentDisposition } : {}),
-    });
+    };
+    if (body.length <= MULTIPART_THRESHOLD_BYTES) {
+      await this.cos.putObject({ ...base, Body: body });
+      return;
+    }
+    // 大文件：落临时文件走分片并发上传，完成后清理
+    const tmpPath = join(tmpdir(), `cos-upload-${randomUUID()}`);
+    try {
+      await fs.writeFile(tmpPath, body);
+      await this.cos.uploadFile({
+        ...base,
+        FilePath: tmpPath,
+        SliceSize: SLICE_SIZE_BYTES,
+      });
+    } finally {
+      await fs.rm(tmpPath, { force: true });
+    }
   }
 
   /** 审核通过后把对象设为公有读 */
