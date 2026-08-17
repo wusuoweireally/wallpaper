@@ -1,86 +1,62 @@
 <template>
   <article
-    class="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-700/70 dark:bg-slate-800 dark:shadow-slate-900/30"
+    class="group relative cursor-pointer overflow-hidden rounded-tile border border-line/80 bg-surface/60 transition hover:border-primary/40 hover:bg-subtle/50"
     @click="handlePostClick"
   >
-    <div
-      class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-900 via-indigo-500 to-amber-400 opacity-0 transition group-hover:opacity-100"
-    ></div>
-    <div class="relative flex gap-4 p-5">
-      <div class="flex-1 space-y-3">
+    <div class="relative flex gap-4 p-4">
+      <div class="flex-1 space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
-          <span :class="`badge badge-sm ${forumStore.categoryColor(post.category)} badge-outline`">
+          <span class="wb-chip">
             {{ forumStore.categoryLabel(post.category) }}
           </span>
-          <span
-            v-if="post.isPinned"
-            class="border-warning/40 bg-warning/10 badge badge-sm text-warning"
-          >
+          <span v-if="post.isPinned" class="wb-chip border-warning/40 bg-warning/10 text-warning">
             <i class="i-[mdi--pin] mr-1 text-xs"></i>
             置顶
           </span>
-          <span
-            v-if="post.isFeatured"
-            class="border-primary/50 bg-primary/10 badge badge-sm text-primary"
-          >
+          <span v-if="post.isFeatured" class="wb-chip border-primary/50 bg-primary/10 text-primary">
             <i class="i-[mdi--star] mr-1 text-xs"></i>
             精华
           </span>
-          <span class="ml-auto text-xs text-slate-500 dark:text-slate-400">
+          <span class="ml-auto text-xs text-faint">
             {{ formatTime(post.createdAt) }}
           </span>
         </div>
 
-        <h3
-          class="line-clamp-2 text-[20px] font-semibold leading-snug text-slate-900 transition-colors group-hover:text-slate-900 dark:text-slate-100 dark:group-hover:text-white"
+        <!-- 标题可链接化：支持中键新开与键盘聚焦 -->
+        <router-link
+          :to="`/forums/post/${post.id}`"
+          class="line-clamp-2 text-base font-semibold leading-snug text-fg transition-colors hover:text-primary"
+          @click.stop
         >
           {{ post.title }}
-        </h3>
+        </router-link>
 
-        <p class="line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <p class="line-clamp-3 text-sm leading-relaxed text-muted">
           {{ post.summary ? post.summary : stripHtml(post.content) }}
         </p>
 
         <div v-if="post.tags" class="flex flex-wrap gap-1.5">
-          <span
-            v-for="tag in post.tags.split(',').slice(0, 4)"
-            :key="tag.trim()"
-            class="badge badge-xs border border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
-          >
+          <span v-for="tag in post.tags.split(',').slice(0, 4)" :key="tag.trim()" class="wb-chip">
             {{ tag.trim() }}
           </span>
-          <span
-            v-if="post.tags.split(',').length > 4"
-            class="badge badge-ghost badge-xs text-xs dark:text-slate-300"
-          >
+          <span v-if="post.tags.split(',').length > 4" class="wb-chip text-xs">
             +{{ post.tags.split(",").length - 4 }}
           </span>
         </div>
 
-        <div
-          class="flex items-center justify-between border-t border-slate-200/70 pt-3 dark:border-slate-700/70"
-        >
+        <div class="flex items-center justify-between border-t border-line/70 pt-3">
           <div class="flex items-center gap-3">
-            <div class="avatar">
-              <div
-                class="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
-              >
-                <img
-                  :src="authorAvatar"
-                  :alt="post.author?.username || '用户头像'"
-                  class="h-full w-full object-cover"
-                  @error="handleAvatarError"
-                />
-              </div>
-            </div>
+            <img
+              :src="authorAvatar"
+              :alt="post.author?.username || '用户头像'"
+              class="h-9 w-9 overflow-hidden rounded-full object-cover ring-1 ring-line"
+              @error="handleAvatarError"
+            />
             <div class="leading-tight">
-              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <p class="text-sm font-medium text-fg">
                 {{ post.author?.username || "匿名用户" }}
               </p>
-              <p
-                v-if="post.lastCommentAt"
-                class="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"
-              >
+              <p v-if="post.lastCommentAt" class="flex items-center gap-1 text-[11px] text-faint">
                 <i class="i-[mdi--clock-outline] text-xs"></i>
                 最后回复 {{ formatTime(post.lastCommentAt) }}
               </p>
@@ -91,8 +67,8 @@
               class="flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition"
               :class="
                 post.isLiked
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
+                  ? 'border-primary-fill bg-primary-fill text-primary-content'
+                  : 'border-line text-muted hover:bg-subtle hover:text-fg'
               "
               @click.stop="handleLike"
               :disabled="loading"
@@ -101,28 +77,25 @@
               <span>{{ formatNumber(post.likeCount) }}</span>
             </button>
             <button
-              class="flex items-center gap-1 text-xs text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+              class="flex items-center gap-1 text-xs text-muted transition hover:text-fg"
               @click.stop="handleComment"
             >
               <i class="i-[mdi--comment-outline] text-sm"></i>
               <span>{{ formatNumber(post.commentCount) }}</span>
             </button>
             <button
-              class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              class="wb-btn-ghost wb-btn-xs text-faint hover:text-fg"
               @click.stop="handleShare"
             >
               <i class="i-[mdi--share-variant] text-sm"></i>
             </button>
-            <div v-if="isAuthor" class="dropdown dropdown-end" @click.stop>
-              <label
-                tabindex="0"
-                class="btn btn-ghost btn-xs btn-circle text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              >
+            <div v-if="isAuthor" class="wb-drop wb-drop-end" @click.stop>
+              <label tabindex="0" class="wb-btn-ghost wb-btn-xs text-faint hover:text-fg">
                 <i class="i-[mdi--dots-horizontal] text-sm"></i>
               </label>
               <ul
                 tabindex="0"
-                class="dropdown-content menu w-36 rounded-box border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                class="wb-drop-panel w-36 border border-line bg-surface p-1.5 shadow-lg"
               >
                 <li>
                   <a class="text-sm" @click="handleEdit">
@@ -155,6 +128,8 @@ import type { Post } from "@/stores/forum"
 import { resolveAvatarUrl } from "@/utils/avatar"
 import { stripHtml as stripHtmlUtil } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
+import { confirmAction } from "@/composables/useConfirm"
+import { formatNumber, formatTime } from "@/utils/format"
 
 interface Props {
   post: Post
@@ -238,9 +213,13 @@ const handleEdit = () => {
 }
 
 const handleDelete = async () => {
-  if (!confirm("确定要删除这个帖子吗？")) {
-    return
-  }
+  const ok = await confirmAction({
+    title: "删除帖子",
+    message: "确定要删除这个帖子吗？",
+    confirmText: "删除",
+    danger: true,
+  })
+  if (!ok) return
 
   try {
     loading.value = true
@@ -277,36 +256,6 @@ const handleShare = async () => {
     await navigator.clipboard.writeText(shareUrl)
     toast.success("链接已复制到剪贴板")
   }
-}
-
-const formatTime = (timeStr: string) => {
-  const date = new Date(timeStr)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (minutes < 1) return "刚刚"
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-
-  return date.toLocaleDateString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  })
-}
-
-const formatNumber = (num: number) => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + "w"
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "k"
-  }
-  return num.toString()
 }
 
 const stripHtml = (html: string) => {

@@ -1,11 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>随心壁纸</title>
-    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+    <!-- 移动端浏览器工具栏跟随站点深浅色 -->
+    <meta name="theme-color" content="#fff6f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#201c38" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Wallbay - 高清壁纸分享社区：按分类、分辨率、比例、颜色筛选壁纸，支持上传、收藏与论坛讨论。"
+    />
+    <meta property="og:title" content="Wallbay - 高清壁纸分享社区" />
+    <meta property="og:description" content="按分类、分辨率、比例、颜色发现你的下一张壁纸。" />
+    <meta property="og:type" content="website" />
+    <title>Wallbay</title>
+    <script>
+      // 首帧防闪白/闪黑：在样式加载前同步决定深浅色（逻辑与 utils/theme.ts 的 resolveInitialTheme 一致）
+      ;(function () {
+        var t = null
+        try {
+          t = localStorage.getItem("theme")
+        } catch (e) {}
+        if (t !== "dark" && t !== "light") {
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+        }
+        var root = document.documentElement
+        root.classList.toggle("dark", t === "dark")
+        root.setAttribute("data-theme", t)
+        root.style.colorScheme = t
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

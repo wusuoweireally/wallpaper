@@ -1,9 +1,9 @@
 <template>
-  <div class="comment-reply-form rounded-lg border border-base-200 bg-base-100 p-3">
-    <div class="form-control">
+  <div class="comment-reply-form rounded-lg border border-line bg-surface p-3">
+    <div class="">
       <textarea
         v-model="content"
-        class="textarea-bordered textarea textarea-sm"
+        class="wb-input resize-none"
         :placeholder="placeholder"
         maxlength="1000"
         @keydown.ctrl.enter="handleSubmit"
@@ -11,15 +11,15 @@
         ref="textareaRef"
       ></textarea>
       <div class="mt-2 flex items-center justify-between">
-        <div class="text-xs text-gray-500">{{ content.length }}/1000</div>
+        <div class="text-xs text-faint">{{ content.length }}/1000</div>
         <div class="flex gap-2">
-          <button class="btn btn-ghost btn-xs" @click="handleCancel">取消</button>
+          <button class="wb-btn-ghost wb-btn-xs" @click="handleCancel">取消</button>
           <button
-            class="btn btn-primary btn-xs"
+            class="wb-btn-primary wb-btn-xs"
             @click="handleSubmit"
             :disabled="!content.trim() || loading"
           >
-            {{ loading ? "发送中..." : "发送 (Ctrl+Enter)" }}
+            {{ loading ? "发送中…" : "发送 (Ctrl+Enter)" }}
           </button>
         </div>
       </div>
@@ -27,14 +27,14 @@
 
     <!-- 表情选择器 -->
     <div class="mt-2 flex items-center gap-2">
-      <div class="dropdown dropdown-top">
-        <label tabindex="0" class="btn btn-ghost btn-xs btn-circle"> 😊 </label>
-        <div tabindex="0" class="dropdown-content menu w-48 rounded-box bg-base-100 p-2 shadow">
+      <div class="wb-drop wb-drop-top">
+        <label tabindex="0" class="wb-btn-ghost wb-btn-xs"> 😊 </label>
+        <div tabindex="0" class="wb-drop-panel w-48 bg-surface p-2 shadow">
           <div class="grid grid-cols-8 gap-1">
             <button
               v-for="emoji in emojis"
               :key="emoji"
-              class="hover:bg-primary/10 btn btn-ghost btn-xs p-1 text-lg"
+              class="wb-btn-ghost wb-btn-xs p-1 text-lg hover:bg-primary/10"
               @click="insertEmoji(emoji)"
             >
               {{ emoji }}
@@ -44,7 +44,7 @@
       </div>
 
       <!-- 快捷操作提示 -->
-      <div class="text-xs text-gray-500">支持 @用户 提及</div>
+      <div class="text-xs text-faint">支持 @用户 提及</div>
     </div>
   </div>
 </template>
@@ -60,7 +60,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  placeholder: "写下你的回复...",
+  placeholder: "写下你的回复…",
   initialContent: "",
 })
 
@@ -250,13 +250,18 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     emit("submit", content.value.trim())
-    content.value = ""
   } catch (error) {
     console.error("发送回复失败:", error)
   } finally {
     loading.value = false
   }
 }
+
+/** 发送成功后由父组件调用，失败时保留内容供重试 */
+const clear = () => {
+  content.value = ""
+}
+defineExpose({ clear })
 
 const handleCancel = () => {
   content.value = ""
@@ -298,11 +303,3 @@ onMounted(() => {
   }
 })
 </script>
-
-<style scoped>
-.textarea {
-  resize: none;
-  min-height: 60px;
-  max-height: 120px;
-}
-</style>

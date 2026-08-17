@@ -11,10 +11,12 @@
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --fix",
     "type-check": "node ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit",
-    "test": "node --experimental-strip-types src/utils/fetchGeneration.test.ts",
+    "test": "node --experimental-strip-types src/utils/fetchGeneration.test.ts && node --experimental-strip-types src/utils/wallpaperBrowse.test.ts && node --experimental-strip-types src/utils/queryParams.test.ts && node --experimental-strip-types src/utils/safeRedirect.test.ts && node --experimental-strip-types src/utils/wallpaperLayout.test.ts && node --experimental-strip-types src/utils/wallpaperCard.overlay.test.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@fontsource/baloo-2": "^5.3.0",
+    "@fontsource/noto-sans-sc": "^5.3.0",
     "@iconify/tailwind": "^1.2.0",
     "axios": "^1.11.0",
     "dompurify": "^3.3.1",
@@ -28,7 +30,6 @@
     "@types/node": "^24.3.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "autoprefixer": "^10.4.22",
-    "daisyui": "^5.0.50",
     "eslint": "^9.15.0",
     "eslint-plugin-vue": "^9.32.0",
     "globals": "^15.13.0",

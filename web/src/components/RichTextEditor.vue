@@ -14,8 +14,8 @@
 
     <!-- 状态栏 -->
     <div class="editor-status" v-if="showStatus">
-      <span class="text-xs text-gray-500">{{ charCount }} 字符</span>
-      <span class="text-xs text-gray-400" v-if="maxLength">/ {{ maxLength }}</span>
+      <span class="text-xs text-faint">{{ charCount }} 字符</span>
+      <span class="text-xs text-faint" v-if="maxLength">/ {{ maxLength }}</span>
     </div>
   </div>
 </template>
@@ -35,7 +35,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: "",
-  placeholder: "请输入内容...",
+  placeholder: "请输入内容…",
   maxLength: 10000,
   height: "400px",
   showStatus: true,
@@ -120,8 +120,8 @@ defineExpose({
   width: 100%;
   min-height: 400px;
   padding: 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid var(--wb-border);
+  border-radius: 0.5rem;
   font-size: 14px;
   line-height: 1.6;
   font-family:
@@ -130,20 +130,25 @@ defineExpose({
   resize: vertical;
   outline: none;
   transition: all 0.2s;
-  background-color: white;
+  background-color: var(--wb-surface);
+  color: var(--wb-fg);
+}
+
+.editor-textarea::placeholder {
+  color: var(--wb-faint);
 }
 
 .editor-textarea:hover {
-  border-color: #9ca3af;
+  border-color: color-mix(in oklab, var(--wb-border) 60%, var(--wb-muted));
 }
 
 .editor-textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--wb-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--wb-accent) 15%, transparent);
 }
 
 .editor-textarea:disabled {
-  background-color: #f9fafb;
+  background-color: var(--wb-subtle);
   cursor: not-allowed;
 }
 
@@ -152,9 +157,9 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: var(--wb-subtle);
+  border: 1px solid var(--wb-border);
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 0.5rem 0.5rem;
 }
 </style>

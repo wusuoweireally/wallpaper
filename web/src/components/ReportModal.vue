@@ -1,17 +1,19 @@
 <template>
-  <dialog ref="reportModal" class="modal">
-    <div class="modal-box max-w-lg">
+  <dialog ref="reportModal" class="wb-dialog">
+    <div class="wb-dialog-box max-w-lg">
       <h3 class="mb-4 text-lg font-bold">举报内容</h3>
 
       <form @submit.prevent="handleSubmit">
         <!-- 举报原因 -->
-        <div class="form-control mb-4">
-          <label class="label">
-            <span class="label-text font-medium">举报原因 <span class="text-error">*</span></span>
+        <div class="mb-4">
+          <label class="mb-1 block">
+            <span class="text-sm font-medium text-muted"
+              >举报原因 <span class="text-error">*</span></span
+            >
           </label>
           <select
             v-model="formData.reason"
-            class="select-bordered select"
+            class="wb-input"
             :class="{ 'select-error': errors.reason }"
             @change="validateReason"
             required
@@ -21,31 +23,31 @@
               {{ reason.label }} - {{ reason.description }}
             </option>
           </select>
-          <label class="label" v-if="errors.reason">
-            <span class="label-text-alt text-error">{{ errors.reason }}</span>
+          <label class="mb-1 block" v-if="errors.reason">
+            <span class="text-xs text-error text-faint">{{ errors.reason }}</span>
           </label>
         </div>
 
         <!-- 举报描述 -->
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text font-medium"
-              >详细说明 <span class="text-xs text-gray-500">(可选)</span></span
+        <div class="mb-6">
+          <label class="mb-1 block">
+            <span class="text-sm font-medium text-muted"
+              >详细说明 <span class="text-xs text-faint">(可选)</span></span
             >
           </label>
           <textarea
             v-model="formData.description"
             placeholder="请详细描述您举报的原因，有助于我们更好地处理"
-            class="textarea-bordered textarea h-24"
+            class="wb-input h-24"
             maxlength="500"
           ></textarea>
-          <div class="label">
-            <span class="label-text-alt">{{ formData.description.length }}/500</span>
+          <div class="mb-1 block">
+            <span class="text-xs text-faint">{{ formData.description.length }}/500</span>
           </div>
         </div>
 
         <!-- 举报说明 -->
-        <div class="alert alert-info mb-6">
+        <div class="wb-alert mb-6">
           <i class="i-[mdi--information]"></i>
           <div>
             <p class="font-semibold">举报说明</p>
@@ -59,13 +61,13 @@
         </div>
 
         <!-- 操作按钮 -->
-        <div class="modal-action">
-          <button type="button" class="btn btn-ghost" @click="closeModal" :disabled="submitting">
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" class="wb-btn-ghost" @click="closeModal" :disabled="submitting">
             取消
           </button>
-          <button type="submit" class="btn btn-primary" :disabled="submitting || !isFormValid">
-            <span class="loading loading-spinner loading-sm" v-if="submitting"></span>
-            {{ submitting ? "提交中..." : "提交举报" }}
+          <button type="submit" class="wb-btn-primary" :disabled="submitting || !isFormValid">
+            <span class="wb-spinner" v-if="submitting"></span>
+            {{ submitting ? "提交中…" : "提交举报" }}
           </button>
         </div>
       </form>
@@ -77,6 +79,8 @@
 import { ref, reactive, computed, onMounted, watch } from "vue"
 import { reportService, type CreateReportDto } from "@/services/report"
 import { useUserStore } from "@/stores/user"
+import { useGlobalToast } from "@/composables/useToast"
+import { confirmAction } from "@/composables/useConfirm"
 
 // Props
 interface Props {
@@ -96,6 +100,7 @@ const emit = defineEmits<{
 // 组件引用
 const reportModal = ref<HTMLDialogElement>()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 // 响应式数据
 const submitting = ref(false)
@@ -146,25 +151,28 @@ const handleSubmit = async () => {
   }
 
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再进行举报")
+    toast.error("请先登录后再进行举报")
     return
   }
 
-  if (!confirm("确定要提交举报吗？")) {
-    return
-  }
+  const ok = await confirmAction({
+    title: "提交举报",
+    message: "确定要提交举报吗？",
+    confirmText: "提交",
+  })
+  if (!ok) return
 
   try {
     submitting.value = true
 
     await reportService.createReport(formData)
 
-    alert("举报提交成功，我们会尽快处理")
+    toast.success("举报已提交，我们会尽快处理")
     emit("success")
     closeModal()
   } catch (error: unknown) {
     console.error("提交举报失败:", error)
-    alert(error.message || "举报提交失败，请稍后重试")
+    toast.error((error as Error).message || "举报提交失败，请稍后重试")
   } finally {
     submitting.value = false
   }
@@ -204,9 +212,3 @@ onMounted(() => {
   loadReportReasons()
 })
 </script>
-
-<style scoped>
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-</style>

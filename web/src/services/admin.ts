@@ -100,13 +100,7 @@ export interface UpdateWallpaperTags {
 
 export type ReportStatusValue = "pending" | "reviewing" | "resolved" | "dismissed"
 export type ReportReasonValue =
-  | "spam"
-  | "inappropriate"
-  | "harassment"
-  | "violence"
-  | "copyright"
-  | "misinformation"
-  | "other"
+  "spam" | "inappropriate" | "harassment" | "violence" | "copyright" | "misinformation" | "other"
 
 export interface Report {
   id: number

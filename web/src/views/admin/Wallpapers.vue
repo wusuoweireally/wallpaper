@@ -1,827 +1,651 @@
 <template>
   <div class="space-y-8">
     <!-- 页面标题 -->
-    <div class="relative">
-      <div
-        class="absolute -inset-x-4 -inset-y-2 -z-10 rounded-3xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 blur-2xl"
-      ></div>
-      <div class="rounded-3xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div
-              class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/30"
-            >
-              <iconify-icon icon="mdi:image" class="text-2xl text-white"></iconify-icon>
-            </div>
-            <div>
-              <h1
-                class="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-4xl font-bold text-transparent"
-              >
-                壁纸管理
-              </h1>
-              <p class="mt-1 text-white/70">Wallpaper Control</p>
-            </div>
-          </div>
-          <button
-            class="btn gap-2 border-none bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30 hover:from-purple-600 hover:to-pink-600"
-            @click="openUploadModal"
-          >
-            <iconify-icon icon="mdi:plus" class="text-xl"></iconify-icon>
-            上传壁纸
-          </button>
-        </div>
-        <!-- 批量操作 -->
-        <div
-          v-if="hasSelection"
-          class="mt-4 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"
-        >
-          <span class="text-sm text-white/70">已选 {{ selectedIds.size }} 项</span>
-          <div class="h-4 w-px bg-white/20"></div>
-          <button
-            class="btn btn-sm gap-1 rounded-xl border-none bg-gradient-to-r from-amber-400 to-orange-400 text-slate-900 hover:from-amber-500 hover:to-orange-500"
-            :disabled="batchLoading"
-            @click="batchSetFeatured(true)"
-          >
-            <iconify-icon icon="mdi:star"></iconify-icon>
-            批量推荐
-          </button>
-          <button
-            class="btn btn-sm gap-1 rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white/20"
-            :disabled="batchLoading"
-            @click="batchSetFeatured(false)"
-          >
-            <iconify-icon icon="mdi:star-off"></iconify-icon>
-            取消推荐
-          </button>
-          <button
-            class="btn btn-sm gap-1 rounded-xl border-none bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600"
-            :disabled="batchLoading"
-            @click="batchDeleteSelected"
-          >
-            <iconify-icon icon="mdi:delete"></iconify-icon>
-            批量删除
-          </button>
-          <button
-            class="btn btn-ghost btn-sm rounded-xl text-white/60 hover:text-white"
-            @click="selectedIds.clear()"
-          >
-            取消选择
-          </button>
-        </div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-semibold text-fg">壁纸管理</h1>
+        <p class="mt-1 text-sm text-muted">管理站点壁纸</p>
       </div>
+      <button class="wb-btn-primary gap-2" @click="openUploadModal">
+        <i class="i-[mdi--plus] text-xl" aria-hidden="true"></i>
+        上传壁纸
+      </button>
+    </div>
+
+    <!-- 批量操作 -->
+    <div
+      v-if="hasSelection"
+      class="flex flex-wrap items-center gap-3 rounded-control border border-line bg-inset px-4 py-3"
+    >
+      <span class="text-sm text-muted">已选 {{ selectedIds.size }} 项</span>
+      <div class="h-4 w-px bg-line"></div>
+      <button
+        class="wb-btn wb-btn-sm gap-1"
+        :disabled="batchLoading"
+        @click="batchSetFeatured(true)"
+      >
+        <i class="i-[mdi--star]" aria-hidden="true"></i>
+        批量推荐
+      </button>
+      <button
+        class="wb-btn wb-btn-sm gap-1"
+        :disabled="batchLoading"
+        @click="batchSetFeatured(false)"
+      >
+        <i class="i-[mdi--star-off]" aria-hidden="true"></i>
+        取消推荐
+      </button>
+      <button
+        class="wb-btn-danger wb-btn-sm gap-1"
+        :disabled="batchLoading"
+        @click="batchDeleteSelected"
+      >
+        <i class="i-[mdi--delete]" aria-hidden="true"></i>
+        批量删除
+      </button>
+      <button class="wb-btn-ghost wb-btn-sm" @click="selectedIds.clear()">取消选择</button>
     </div>
 
     <div
       v-if="notification"
-      class="alert rounded-2xl border border-white/20 bg-white/10 text-white shadow-xl backdrop-blur-md"
+      class="wb-alert"
+      :class="notification.type === 'error' ? 'wb-alert-danger' : ''"
     >
-      <iconify-icon
-        :icon="notification.type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'"
+      <i
         class="text-2xl"
-        :class="notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'"
-      ></iconify-icon>
+        :class="[
+          notification.type === 'success' ? 'i-[mdi--check-circle]' : 'i-[mdi--alert-circle]',
+          notification.type === 'success' ? 'text-success' : 'text-error',
+        ]"
+        aria-hidden="true"
+      ></i>
       <span class="text-sm">{{ notification.text }}</span>
     </div>
 
     <!-- 筛选器 -->
-    <div class="group relative">
-      <div
-        class="absolute -inset-1 rounded-3xl bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-purple-500/30 opacity-75 blur transition duration-1000 group-hover:opacity-100"
-      ></div>
-      <div
-        class="relative rounded-3xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl"
-      >
-        <div class="space-y-6 p-6">
-          <div class="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/50">
-            <div class="h-1.5 w-1.5 animate-pulse rounded-full bg-pink-400"></div>
-            <span>筛选条件</span>
-            <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+    <div class="wb-card p-6">
+      <div class="grid gap-4 lg:grid-cols-12">
+        <div class="min-w-[150px] lg:col-span-3">
+          <label class="mb-1 block text-sm font-semibold text-fg">分类</label>
+          <select v-model="filters.category" class="wb-input" @change="refreshList">
+            <option value="">全部</option>
+            <option value="general">通用</option>
+            <option value="anime">动漫</option>
+            <option value="people">人物</option>
+          </select>
+        </div>
+
+        <div class="min-w-[150px] lg:col-span-3">
+          <label class="mb-1 block text-sm font-semibold text-fg">状态</label>
+          <select v-model="filters.status" class="wb-input" @change="refreshList">
+            <option value="">全部</option>
+            <option value="1">已发布</option>
+            <option value="0">未发布</option>
+          </select>
+        </div>
+
+        <div class="min-w-[250px] flex-1 lg:col-span-4">
+          <label class="mb-1 block text-sm font-semibold text-fg">搜索</label>
+          <div class="relative">
+            <input
+              v-model="filters.search"
+              type="text"
+              placeholder="搜索壁纸标题…"
+              class="wb-input w-full pl-10 pr-10"
+              @keyup.enter="refreshList"
+            />
+            <i
+              class="i-[mdi--magnify] absolute left-3 top-1/2 -translate-y-1/2 text-lg text-faint"
+              aria-hidden="true"
+            ></i>
+            <button
+              v-if="filters.search"
+              type="button"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-faint transition-colors hover:text-fg"
+              @click="clearSearch"
+            >
+              <i class="i-[mdi--close-circle] text-lg" aria-hidden="true"></i>
+            </button>
           </div>
-          <div class="grid gap-4 lg:grid-cols-12">
-            <div class="form-control min-w-[150px] lg:col-span-3">
-              <label class="label">
-                <span class="label-text font-semibold text-white/80">分类</span>
-              </label>
-              <select
-                v-model="filters.category"
-                class="select rounded-xl border-white/20 bg-white/10 text-white backdrop-blur-sm focus:border-pink-400 focus:ring-2 focus:ring-pink-400/50"
-                @change="refreshList"
-              >
-                <option value="" class="bg-slate-900">全部</option>
-                <option value="general" class="bg-slate-900">通用</option>
-                <option value="anime" class="bg-slate-900">动漫</option>
-                <option value="people" class="bg-slate-900">人物</option>
-              </select>
-            </div>
+        </div>
 
-            <div class="form-control min-w-[150px] lg:col-span-3">
-              <label class="label">
-                <span class="label-text font-semibold text-white/80">状态</span>
-              </label>
-              <select
-                v-model="filters.status"
-                class="select rounded-xl border-white/20 bg-white/10 text-white backdrop-blur-sm focus:border-pink-400 focus:ring-2 focus:ring-pink-400/50"
-                @change="refreshList"
-              >
-                <option value="" class="bg-slate-900">全部</option>
-                <option value="1" class="bg-slate-900">已通过</option>
-              </select>
-            </div>
-
-            <div class="form-control min-w-[250px] flex-1 lg:col-span-4">
-              <label class="label">
-                <span class="label-text font-semibold text-white/80">搜索</span>
-              </label>
-              <div class="relative">
-                <input
-                  v-model="filters.search"
-                  type="text"
-                  placeholder="搜索壁纸标题..."
-                  class="input w-full rounded-xl border-white/20 bg-white/10 pl-12 pr-12 text-white backdrop-blur-sm placeholder:text-white/40 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/50"
-                  @keyup.enter="refreshList"
-                />
-                <iconify-icon
-                  icon="mdi:magnify"
-                  class="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-white/40"
-                ></iconify-icon>
-                <button
-                  v-if="filters.search"
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 transition-colors hover:text-white"
-                  @click="clearSearch"
-                >
-                  <iconify-icon icon="mdi:close-circle" class="text-lg"></iconify-icon>
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-end gap-3 lg:col-span-2">
-              <button
-                class="btn flex-1 gap-2 rounded-xl border-none bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30 hover:from-pink-600 hover:to-purple-600"
-                @click="refreshList"
-              >
-                <iconify-icon icon="mdi:magnify" class="text-lg"></iconify-icon>
-                搜索
-              </button>
-              <button
-                class="btn btn-outline rounded-xl border-white/30 text-white/80 hover:border-white/60 hover:bg-white/10 hover:text-white"
-                @click="resetFilters"
-              >
-                重置
-              </button>
-            </div>
-          </div>
+        <div class="flex items-end gap-3 lg:col-span-2">
+          <button class="wb-btn-primary flex-1 gap-2" @click="refreshList">
+            <i class="i-[mdi--magnify] text-lg" aria-hidden="true"></i>
+            搜索
+          </button>
+          <button class="wb-btn" @click="resetFilters">重置</button>
         </div>
       </div>
     </div>
 
     <!-- 壁纸网格 -->
-    <div class="group relative">
-      <div
-        class="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-indigo-500/30 opacity-75 blur transition duration-1000 group-hover:opacity-100"
-      ></div>
-      <div
-        class="relative overflow-visible rounded-3xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl"
-      >
-        <div v-if="loading" class="flex items-center justify-center py-20">
-          <div class="relative">
-            <div
-              class="h-16 w-16 animate-spin rounded-full border-4 border-purple-500/30 border-t-purple-500"
-            ></div>
-          </div>
-        </div>
+    <div class="wb-card">
+      <div v-if="loading" class="flex items-center justify-center py-20">
+        <span class="wb-spinner wb-spinner-lg"></span>
+      </div>
 
-        <div v-else-if="wallpapers.length === 0" class="py-20 text-center">
-          <div
-            class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-white/5 to-white/10"
+      <div v-else-if="wallpapers.length === 0" class="py-20 text-center">
+        <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-subtle">
+          <i class="i-[mdi--image-off] text-4xl text-faint" aria-hidden="true"></i>
+        </div>
+        <p class="text-lg font-semibold text-muted">暂无壁纸数据</p>
+        <p class="mt-2 text-sm text-faint">开始上传你的第一个作品吧</p>
+      </div>
+
+      <div v-else class="p-6">
+        <!-- 全选 -->
+        <div class="mb-4 flex items-center gap-3">
+          <button
+            class="flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
+            :class="
+              isAllSelected
+                ? 'border-primary bg-primary text-white'
+                : 'border-line bg-surface text-transparent hover:border-primary/50'
+            "
+            @click="toggleSelectAll"
           >
-            <iconify-icon icon="mdi:image-off" class="text-4xl text-white/30"></iconify-icon>
-          </div>
-          <p class="text-lg font-semibold text-white/60">暂无壁纸数据</p>
-          <p class="mt-2 text-sm text-white/40">开始上传你的第一个作品吧</p>
+            <i v-if="isAllSelected" class="i-[mdi--check] text-sm" aria-hidden="true"></i>
+          </button>
+          <span class="text-sm text-muted">全选当前页</span>
         </div>
-
-        <div v-else class="p-6">
-          <!-- 全选 -->
-          <div class="mb-4 flex items-center gap-3">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            v-for="wallpaper in wallpapers"
+            :key="wallpaper.id"
+            class="relative flex h-full flex-col rounded-card border border-line bg-inset p-4"
+            :class="{ 'ring-2 ring-primary/60': isSelected(wallpaper.id) }"
+          >
+            <!-- 选择复选框 -->
             <button
-              class="flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
+              class="absolute left-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
               :class="
-                isAllSelected
-                  ? 'border-purple-400 bg-purple-500 text-white'
-                  : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'
+                isSelected(wallpaper.id)
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-line bg-surface text-transparent hover:border-primary/50'
               "
-              @click="toggleSelectAll"
+              @click.stop="toggleSelect(wallpaper.id)"
             >
-              <iconify-icon v-if="isAllSelected" icon="mdi:check" class="text-sm"></iconify-icon>
+              <i
+                v-if="isSelected(wallpaper.id)"
+                class="i-[mdi--check] text-sm"
+                aria-hidden="true"
+              ></i>
             </button>
-            <span class="text-sm text-white/60">全选当前页</span>
-          </div>
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <div
-              v-for="wallpaper in wallpapers"
-              :key="wallpaper.id"
-              class="relative flex h-full flex-col rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/80 to-slate-950/90 p-4 shadow-xl"
-              :class="{ 'ring-2 ring-purple-400/60': isSelected(wallpaper.id) }"
-            >
-              <!-- 选择复选框 -->
+            <div class="relative overflow-hidden rounded-control">
+              <img
+                :src="getWallpaperImage(wallpaper.thumbnailUrl || wallpaper.fileUrl)"
+                :alt="`壁纸 #${wallpaper.id}`"
+                class="h-64 w-full object-cover"
+                @error="handleImageError"
+              />
               <button
-                class="absolute left-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all"
-                :class="
-                  isSelected(wallpaper.id)
-                    ? 'border-purple-400 bg-purple-500 text-white'
-                    : 'border-white/30 bg-white/10 text-transparent hover:border-white/60'
-                "
-                @click.stop="toggleSelect(wallpaper.id)"
+                class="wb-btn wb-btn-sm absolute left-3 top-3 border-none bg-black/60 text-white hover:bg-black/80"
+                @click.stop="openPreview(wallpaper)"
               >
-                <iconify-icon
-                  v-if="isSelected(wallpaper.id)"
-                  icon="mdi:check"
-                  class="text-sm"
-                ></iconify-icon>
+                <i class="i-[mdi--eye]" aria-hidden="true"></i>
+                预览
               </button>
-              <div class="relative overflow-hidden rounded-2xl">
-                <img
-                  :src="getWallpaperImage(wallpaper.thumbnailUrl || wallpaper.fileUrl)"
-                  :alt="`壁纸 #${wallpaper.id}`"
-                  class="h-64 w-full object-cover"
-                  @error="handleImageError"
-                />
-                <button
-                  class="btn btn-sm absolute left-3 top-3 border-none bg-white/15 text-white backdrop-blur hover:bg-white/25"
-                  @click.stop="openPreview(wallpaper)"
-                >
-                  <iconify-icon icon="mdi:eye"></iconify-icon>
-                  预览
-                </button>
-              </div>
-              <div class="flex flex-1 flex-col gap-3 p-3">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-xs uppercase tracking-[0.3em] text-white/40">
-                      {{ getCategoryLabel(wallpaper.category) }}
-                    </p>
-                    <h3 class="mt-1 line-clamp-1 text-lg font-semibold text-white">
-                      壁纸 #{{ wallpaper.id }}
-                    </h3>
-                  </div>
-                  <div class="flex flex-col items-end gap-1">
-                    <div
-                      class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white"
+            </div>
+            <div class="flex flex-1 flex-col gap-3 p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs uppercase tracking-wide text-faint">
+                    {{ getCategoryLabel(wallpaper.category) }}
+                  </p>
+                  <h3 class="mt-1 line-clamp-1 text-lg font-semibold text-fg">
+                    壁纸 #{{ wallpaper.id }}
+                  </h3>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                  <div
+                    class="wb-badge-success inline-flex items-center gap-1"
+                    :class="{ 'wb-badge-danger': wallpaper.status !== 1 }"
+                  >
+                    <i
+                      class="text-sm"
                       :class="
-                        wallpaper.status === 1
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                          : 'bg-gradient-to-r from-orange-500 to-red-500'
+                        wallpaper.status === 1 ? 'i-[mdi--check-circle]' : 'i-[mdi--alert-circle]'
                       "
-                    >
-                      <iconify-icon
-                        :icon="wallpaper.status === 1 ? 'mdi:check-circle' : 'mdi:alert-circle'"
-                        class="text-sm"
-                      ></iconify-icon>
-                      {{ formatStatus(wallpaper.status) }}
-                    </div>
-                    <span
-                      v-if="wallpaper.isFeatured"
-                      class="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-2 py-0.5 text-[10px] font-bold text-slate-900"
-                    >
-                      <iconify-icon icon="mdi:star" class="text-xs"></iconify-icon>
-                      推荐
-                    </span>
+                      aria-hidden="true"
+                    ></i>
+                    {{ formatStatus(wallpaper.status) }}
                   </div>
-                </div>
-                <div class="flex flex-wrap gap-3 text-xs text-white/60">
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:crop" class="text-base"></iconify-icon
-                    >{{ wallpaper.width }} × {{ wallpaper.height }}</span
-                  >
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:weight" class="text-base"></iconify-icon
-                    >{{ formatFileSize(wallpaper.fileSize) }}</span
-                  >
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:calendar" class="text-base"></iconify-icon
-                    >{{ formatDateTime(wallpaper.createdAt) }}</span
-                  >
-                </div>
-                <div class="flex flex-wrap gap-2" v-if="wallpaper.tags?.length">
                   <span
-                    v-for="(tag, index) in wallpaper.tags"
-                    :key="getTagKey(tag, index)"
-                    class="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/70"
+                    v-if="wallpaper.isFeatured"
+                    class="wb-badge-warning inline-flex items-center gap-1"
                   >
-                    #{{ getTagLabel(tag) }}
+                    <i class="i-[mdi--star] text-xs" aria-hidden="true"></i>
+                    推荐
                   </span>
                 </div>
-                <div class="flex items-center gap-3 text-sm text-white/70">
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:eye-outline"></iconify-icon
-                    >{{ wallpaper.viewCount || 0 }}</span
-                  >
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:heart-outline"></iconify-icon
-                    >{{ wallpaper.likeCount || 0 }}</span
-                  >
-                  <span class="inline-flex items-center gap-1"
-                    ><iconify-icon icon="mdi:star-outline"></iconify-icon
-                    >{{ wallpaper.favoriteCount || 0 }}</span
-                  >
-                </div>
-                <div class="mt-auto flex flex-wrap gap-3">
-                  <button
-                    class="btn flex-1 gap-2 rounded-xl border-none bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30 hover:from-purple-600 hover:to-pink-600"
-                    @click.stop="openPreview(wallpaper)"
-                  >
-                    <iconify-icon icon="mdi:eye"></iconify-icon>
-                    查看详情
-                  </button>
-                  <div class="dropdown dropdown-end">
-                    <div
-                      tabindex="0"
-                      role="button"
-                      class="btn btn-ghost btn-square rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      <iconify-icon icon="mdi:dots-horizontal"></iconify-icon>
-                    </div>
-                    <ul
-                      tabindex="0"
-                      class="dropdown-content menu w-56 space-y-1 rounded-2xl border border-white/10 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-xl"
-                    >
-                      <li>
-                        <button
-                          class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
-                          @click="openInNewTab(wallpaper)"
-                        >
-                          <iconify-icon icon="mdi:arrow-top-right-bold-box"></iconify-icon>
-                          在新标签中打开
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
-                          @click="copyWallpaperUrl(wallpaper)"
-                        >
-                          <iconify-icon icon="mdi:link-variant"></iconify-icon>
-                          复制图片链接
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
-                          @click="copyWallpaperId(wallpaper)"
-                        >
-                          <iconify-icon icon="mdi:identifier"></iconify-icon>
-                          复制壁纸ID
-                        </button>
-                      </li>
-                      <div class="divider my-1 border-white/10"></div>
-                      <li>
-                        <button
-                          class="rounded-xl text-white/90 transition-colors hover:bg-purple-500/20 hover:text-white"
-                          @click="openEditModal(wallpaper)"
-                        >
-                          <iconify-icon icon="mdi:pencil"></iconify-icon>
-                          编辑信息
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          class="rounded-xl text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-200"
-                          :disabled="actionLoadingId === wallpaper.id"
-                          @click="confirmDelete(wallpaper)"
-                        >
-                          <iconify-icon
-                            :icon="actionLoadingId === wallpaper.id ? 'mdi:loading' : 'mdi:delete'"
-                            :class="{ 'animate-spin': actionLoadingId === wallpaper.id }"
-                          ></iconify-icon>
-                          删除壁纸
-                        </button>
-                      </li>
-                    </ul>
+              </div>
+              <div class="flex flex-wrap gap-3 text-xs text-faint">
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--crop] text-base" aria-hidden="true"></i>{{ wallpaper.width }} ×
+                  {{ wallpaper.height }}</span
+                >
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--weight] text-base" aria-hidden="true"></i
+                  >{{ formatFileSize(wallpaper.fileSize) }}</span
+                >
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--calendar] text-base" aria-hidden="true"></i
+                  >{{ formatDateTime(wallpaper.createdAt) }}</span
+                >
+              </div>
+              <div class="flex flex-wrap gap-2" v-if="wallpaper.tags?.length">
+                <span
+                  v-for="(tag, index) in wallpaper.tags"
+                  :key="getTagKey(tag, index)"
+                  class="wb-chip"
+                >
+                  #{{ getTagLabel(tag) }}
+                </span>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-muted">
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--eye-outline]" aria-hidden="true"></i
+                  >{{ wallpaper.viewCount || 0 }}</span
+                >
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--heart-outline]" aria-hidden="true"></i
+                  >{{ wallpaper.likeCount || 0 }}</span
+                >
+                <span class="inline-flex items-center gap-1"
+                  ><i class="i-[mdi--star-outline]" aria-hidden="true"></i
+                  >{{ wallpaper.favoriteCount || 0 }}</span
+                >
+              </div>
+              <div class="mt-auto flex flex-wrap gap-3">
+                <button class="wb-btn-primary flex-1 gap-2" @click.stop="openPreview(wallpaper)">
+                  <i class="i-[mdi--eye]" aria-hidden="true"></i>
+                  查看详情
+                </button>
+                <div class="wb-drop wb-drop-end">
+                  <div tabindex="0" role="button" class="wb-icon-btn">
+                    <i class="i-[mdi--dots-horizontal]" aria-hidden="true"></i>
                   </div>
+                  <ul tabindex="0" class="wb-drop-panel w-56 p-2">
+                    <li>
+                      <button @click="openInNewTab(wallpaper)">
+                        <i class="i-[mdi--arrow-top-right-bold-box]" aria-hidden="true"></i>
+                        在新标签中打开
+                      </button>
+                    </li>
+                    <li>
+                      <button @click="copyWallpaperUrl(wallpaper)">
+                        <i class="i-[mdi--link-variant]" aria-hidden="true"></i>
+                        复制图片链接
+                      </button>
+                    </li>
+                    <li>
+                      <button @click="copyWallpaperId(wallpaper)">
+                        <i class="i-[mdi--identifier]" aria-hidden="true"></i>
+                        复制壁纸ID
+                      </button>
+                    </li>
+                    <div class="my-1 border-t border-line"></div>
+                    <li>
+                      <button
+                        :disabled="actionLoadingId === wallpaper.id"
+                        @click="toggleFeatured(wallpaper)"
+                      >
+                        <i
+                          :class="wallpaper.isFeatured ? 'i-[mdi--star-off]' : 'i-[mdi--star]'"
+                          aria-hidden="true"
+                        ></i>
+                        {{ wallpaper.isFeatured ? "取消推荐" : "设为推荐" }}
+                      </button>
+                    </li>
+                    <li>
+                      <button @click="openEditModal(wallpaper)">
+                        <i class="i-[mdi--pencil]" aria-hidden="true"></i>
+                        编辑信息
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="text-error"
+                        :disabled="actionLoadingId === wallpaper.id"
+                        @click="confirmDelete(wallpaper)"
+                      >
+                        <i
+                          :class="[
+                            actionLoadingId === wallpaper.id
+                              ? 'i-[mdi--loading]'
+                              : 'i-[mdi--delete]',
+                            { 'animate-spin': actionLoadingId === wallpaper.id },
+                          ]"
+                          aria-hidden="true"
+                        ></i>
+                        删除壁纸
+                      </button>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div
-          v-if="shouldShowPagination"
-          class="flex flex-col gap-4 border-t border-white/10 bg-white/5 px-6 py-5 lg:flex-row lg:items-center lg:justify-between"
+      </div>
+      <div
+        v-if="shouldShowPagination"
+        class="flex flex-col gap-4 border-t border-line px-6 py-5 lg:flex-row lg:items-center lg:justify-between"
+      >
+        <div class="text-sm text-muted">
+          当前显示
+          <span class="font-semibold text-fg">{{ pageRange.start }}-{{ pageRange.end }}</span>
+          ，总计
+          <span class="font-semibold text-fg">{{ pagination.total }}</span>
+          张壁纸
+        </div>
+        <Pagination
+          :current-page="pagination.page"
+          :total-pages="pagination.pages"
+          @change="changePage"
+        />
+      </div>
+    </div>
+
+    <!-- 上传壁纸弹窗 -->
+    <dialog ref="uploadModalRef" class="wb-dialog">
+      <div class="wb-dialog-box max-w-5xl">
+        <button
+          class="wb-btn-ghost wb-btn-sm absolute right-4 top-4"
+          @click="closeUploadModal"
+          :disabled="uploadLoading"
         >
-          <div class="text-sm text-white/70">
-            当前显示
-            <span class="font-semibold text-white">{{ pageRange.start }}-{{ pageRange.end }}</span>
-            ，总计
-            <span class="font-semibold text-white">{{ pagination.total }}</span>
-            张壁纸
+          ✕
+        </button>
+        <div class="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+          <div class="space-y-6">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+                Wallpaper Upload
+              </p>
+              <h3 class="mt-2 text-2xl font-semibold text-fg">上传新壁纸</h3>
+              <p class="mt-1 text-sm text-muted">选择图片、设置分类与标签，支持批量标签输入</p>
+            </div>
+
+            <div class="space-y-3">
+              <label class="text-sm text-muted">壁纸图片</label>
+              <div
+                v-if="uploadForm.previewUrl"
+                class="relative overflow-hidden rounded-control border border-line bg-inset"
+              >
+                <img :src="uploadForm.previewUrl" alt="预览" class="h-64 w-full object-cover" />
+                <button
+                  type="button"
+                  class="wb-btn-danger wb-btn-xs absolute right-3 top-3"
+                  @click="removeUploadFile"
+                  :disabled="uploadLoading"
+                >
+                  移除
+                </button>
+              </div>
+              <label
+                v-else
+                class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-control border border-dashed border-line bg-subtle p-6 text-muted transition hover:border-primary/60 hover:text-fg"
+                :class="
+                  uploadDragOver ? 'border-primary bg-[color:var(--wb-accent-subtle)] text-fg' : ''
+                "
+                @dragover.prevent="uploadDragOver = true"
+                @dragleave.prevent="uploadDragOver = false"
+                @drop.prevent="onUploadDrop"
+              >
+                <i class="i-[mdi--cloud-upload] text-3xl text-faint" aria-hidden="true"></i>
+                <div class="text-center text-sm">
+                  <p>点击或拖拽图片到此处</p>
+                  <p class="mt-1 text-xs text-faint">支持 JPG / PNG / WEBP，建议 4K+ 清晰度</p>
+                </div>
+                <input
+                  ref="uploadFileInput"
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  @change="handleUploadFileChange"
+                />
+              </label>
+              <p v-if="uploadErrors.file" class="text-xs text-error">{{ uploadErrors.file }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm text-muted">标签（最多 {{ uploadMaxTags }} 个）</label>
+              <div class="flex gap-2">
+                <input
+                  v-model="uploadForm.tagsInput"
+                  type="text"
+                  placeholder="输入标签后按回车或逗号"
+                  class="wb-input flex-1"
+                  :disabled="uploadLoading"
+                  @keydown.enter.prevent="addUploadTagFromInput"
+                />
+                <button
+                  type="button"
+                  class="wb-btn"
+                  @click="addUploadTagFromInput"
+                  :disabled="uploadLoading"
+                >
+                  添加
+                </button>
+              </div>
+              <div class="flex min-h-[34px] flex-wrap gap-2">
+                <span v-for="tag in uploadTags" :key="tag" class="wb-chip gap-1">
+                  #{{ tag }}
+                  <button
+                    type="button"
+                    class="wb-btn-ghost wb-btn-xs text-muted"
+                    @click="removeUploadTag(tag)"
+                    :disabled="uploadLoading"
+                  >
+                    ×
+                  </button>
+                </span>
+                <span v-if="uploadTags.length === 0" class="text-xs text-faint"
+                  >例如：4K, 星空, 极简</span
+                >
+              </div>
+              <p v-if="uploadErrors.tags" class="text-xs text-error">{{ uploadErrors.tags }}</p>
+            </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button
-              class="btn btn-sm rounded-xl border-white/30 text-white/80 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="pagination.page === 1"
-              @click="changePage(pagination.page - 1)"
-            >
-              上一页
+
+          <div class="space-y-5">
+            <div>
+              <label class="mb-1 block text-sm text-muted">分类</label>
+              <select v-model="uploadForm.category" class="wb-input" :disabled="uploadLoading">
+                <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <p v-if="uploadErrors.category" class="mt-1 text-xs text-error">
+                {{ uploadErrors.category }}
+              </p>
+            </div>
+
+            <div v-if="uploadLoading" class="space-y-2">
+              <div class="flex justify-between text-xs text-muted">
+                <span>上传进度</span>
+                <span>{{ uploadProgress }}%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-inset">
+                <div
+                  class="h-full rounded-full bg-primary transition-all duration-300"
+                  :style="{ width: uploadProgress + '%' }"
+                ></div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3 md:flex-row md:justify-end">
+              <button
+                type="button"
+                class="wb-btn-ghost"
+                @click="closeUploadModal"
+                :disabled="uploadLoading"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="wb-btn-primary"
+                :disabled="uploadLoading"
+                @click="submitWallpaperUpload"
+              >
+                开始上传
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 编辑壁纸弹窗 -->
+    <dialog ref="editModalRef" class="wb-dialog">
+      <div class="wb-dialog-box max-w-lg">
+        <button
+          class="wb-btn-ghost wb-btn-sm absolute right-4 top-4"
+          @click="closeEditModal"
+          :disabled="editLoading"
+        >
+          ✕
+        </button>
+        <div v-if="editWallpaper" class="space-y-6">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary">Edit Wallpaper</p>
+            <h3 class="mt-2 text-xl font-semibold text-fg">编辑壁纸 #{{ editWallpaper.id }}</h3>
+          </div>
+
+          <!-- 预览 -->
+          <div class="overflow-hidden rounded-control border border-line bg-inset">
+            <img
+              :src="getWallpaperImage(editWallpaper.thumbnailUrl || editWallpaper.fileUrl)"
+              :alt="`壁纸 #${editWallpaper.id}`"
+              class="h-48 w-full object-cover"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm text-muted">标签（逗号分隔）</label>
+            <input
+              v-model="editForm.tagsInput"
+              type="text"
+              placeholder="例如：4K, 星空, 极简"
+              class="wb-input w-full"
+              :disabled="editLoading"
+            />
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button class="wb-btn-ghost" @click="closeEditModal" :disabled="editLoading">
+              取消
             </button>
-            <button
-              v-for="page in visiblePages"
-              :key="page"
-              class="btn btn-sm rounded-xl"
-              :class="
-                page === pagination.page
-                  ? 'border-white bg-white text-slate-900'
-                  : 'border-white/30 bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
-              "
-              @click="changePage(page)"
-            >
-              {{ page }}
-            </button>
-            <button
-              class="btn btn-sm rounded-xl border-white/30 text-white/80 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="pagination.page === pagination.pages"
-              @click="changePage(pagination.page + 1)"
-            >
-              下一页
+            <button class="wb-btn-primary" :disabled="editLoading" @click="submitEdit">
+              保存修改
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
 
-    <Teleport to="body">
-      <transition name="fade">
-        <div
-          v-if="showUploadModal"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
-        >
-          <div
-            class="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-800/90 text-white shadow-2xl"
-            style="
-              font-family:
-                &quot;Noto Sans SC&quot;, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;,
-                sans-serif;
-            "
-          >
-            <button
-              class="btn btn-sm btn-circle absolute right-4 top-4 border-white/15 bg-white/10 text-white hover:bg-white/20"
-              @click="closeUploadModal"
-              :disabled="uploadLoading"
-            >
-              ✕
-            </button>
-            <div class="grid gap-6 p-6 md:grid-cols-[1.1fr_0.9fr]">
-              <div class="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/70">
-                    Wallpaper Upload
-                  </p>
-                  <h3 class="mt-2 text-2xl font-semibold">上传新壁纸</h3>
-                  <p class="mt-1 text-sm text-white/60">
-                    选择图片、设置分类与标签，支持批量标签输入（逗号或回车）
-                  </p>
-                </div>
-
-                <div class="space-y-3">
-                  <label class="text-sm text-white/60">壁纸图片</label>
-                  <div
-                    v-if="uploadForm.previewUrl"
-                    class="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20"
-                  >
-                    <img :src="uploadForm.previewUrl" alt="预览" class="h-64 w-full object-cover" />
-                    <button
-                      type="button"
-                      class="btn btn-error btn-xs absolute right-3 top-3"
-                      @click="removeUploadFile"
-                      :disabled="uploadLoading"
-                    >
-                      移除
-                    </button>
-                  </div>
-                  <label
-                    v-else
-                    class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/20 bg-gradient-to-br from-white/5 to-white/10 p-6 text-white/70 transition hover:border-emerald-300/70 hover:text-white"
-                  >
-                    <iconify-icon
-                      icon="mdi:cloud-upload"
-                      class="text-3xl text-white/80"
-                    ></iconify-icon>
-                    <div class="text-center text-sm">
-                      <p>点击或拖拽图片到此处</p>
-                      <p class="mt-1 text-xs text-white/40">
-                        支持 JPG / PNG / WEBP，建议 4K+ 清晰度
-                      </p>
-                    </div>
-                    <input
-                      ref="uploadFileInput"
-                      type="file"
-                      accept="image/*"
-                      class="hidden"
-                      @change="handleUploadFileChange"
-                    />
-                  </label>
-                  <p v-if="uploadErrors.file" class="text-xs text-red-300">
-                    {{ uploadErrors.file }}
-                  </p>
-                </div>
-
-                <div class="space-y-2">
-                  <label class="text-sm text-white/60">标签（最多 {{ uploadMaxTags }} 个）</label>
-                  <div class="flex gap-2">
-                    <input
-                      v-model="uploadForm.tagsInput"
-                      type="text"
-                      placeholder="输入标签后按回车或逗号"
-                      class="input flex-1 border-white/10 bg-slate-900/60 text-white placeholder:text-white/30 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                      :disabled="uploadLoading"
-                      @keydown.enter.prevent="addUploadTagFromInput"
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-outline border-white/20 text-white/80 hover:border-emerald-300/70 hover:bg-emerald-300/10 hover:text-white"
-                      @click="addUploadTagFromInput"
-                      :disabled="uploadLoading"
-                    >
-                      添加
-                    </button>
-                  </div>
-                  <div class="flex min-h-[34px] flex-wrap gap-2">
-                    <span
-                      v-for="tag in uploadTags"
-                      :key="tag"
-                      class="badge badge-lg gap-1 border border-white/10 bg-white/10 text-white"
-                    >
-                      #{{ tag }}
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs btn-circle text-white/70 hover:text-white"
-                        @click="removeUploadTag(tag)"
-                        :disabled="uploadLoading"
-                      >
-                        ×
-                      </button>
-                    </span>
-                    <span v-if="uploadTags.length === 0" class="text-xs text-white/40"
-                      >例如：4K, 星空, 极简</span
-                    >
-                  </div>
-                  <p v-if="uploadErrors.tags" class="text-xs text-red-300">
-                    {{ uploadErrors.tags }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="space-y-5 rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div class="form-control">
-                  <label class="label text-sm text-white/60">分类</label>
-                  <select
-                    v-model="uploadForm.category"
-                    class="select border-white/10 bg-slate-900/60 text-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="uploadLoading"
-                  >
-                    <option
-                      v-for="option in categoryOptions"
-                      :key="option.value"
-                      :value="option.value"
-                      class="bg-slate-900"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                  <p v-if="uploadErrors.category" class="mt-1 text-xs text-red-300">
-                    {{ uploadErrors.category }}
-                  </p>
-                </div>
-
-                <div v-if="uploadLoading" class="space-y-2">
-                  <div class="flex justify-between text-xs text-white/70">
-                    <span>上传进度</span>
-                    <span>{{ uploadProgress }}%</span>
-                  </div>
-                  <div class="h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      class="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
-                      :style="{ width: uploadProgress + '%' }"
-                    ></div>
-                  </div>
-                </div>
-
-                <div class="flex flex-col gap-3 md:flex-row md:justify-end">
-                  <button
-                    type="button"
-                    class="btn btn-ghost border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
-                    @click="closeUploadModal"
-                    :disabled="uploadLoading"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="button"
-                    class="btn border-none bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 text-slate-900 hover:from-emerald-300 hover:via-teal-300 hover:to-cyan-300"
-                    :class="{ loading: uploadLoading }"
-                    :disabled="uploadLoading"
-                    @click="submitWallpaperUpload"
-                  >
-                    开始上传
-                  </button>
-                </div>
-              </div>
-            </div>
+    <!-- 壁纸预览弹窗 -->
+    <dialog ref="previewModalRef" class="wb-dialog">
+      <div class="wb-dialog-box max-w-5xl">
+        <button class="wb-btn-ghost wb-btn-sm absolute right-4 top-4" @click="closePreview">
+          ✕
+        </button>
+        <div v-if="previewWallpaper" class="grid gap-6 md:grid-cols-2">
+          <div class="overflow-hidden rounded-control border border-line bg-inset">
+            <img
+              :src="getWallpaperImage(previewWallpaper.fileUrl)"
+              :alt="`壁纸 #${previewWallpaper.id}`"
+              class="h-full w-full object-cover"
+              @error="handleImageError"
+            />
           </div>
-        </div>
-      </transition>
-    </Teleport>
-
-    <!-- 编辑壁纸弹窗 -->
-    <Teleport to="body">
-      <transition name="fade">
-        <div
-          v-if="editWallpaper"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          @click.self="closeEditModal"
-        >
-          <div
-            class="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-800/90 text-white shadow-2xl"
-          >
-            <button
-              class="btn btn-sm btn-circle absolute right-4 top-4 border-white/15 bg-white/10 text-white hover:bg-white/20"
-              @click="closeEditModal"
-              :disabled="editLoading"
-            >
-              ✕
-            </button>
-            <div class="space-y-6 p-6">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/70">
-                  Edit Wallpaper
+          <div class="space-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-faint">Wallpaper Detail</p>
+              <h3 class="mt-2 text-2xl font-semibold text-fg">壁纸 #{{ previewWallpaper.id }}</h3>
+              <p class="mt-1 text-sm text-muted">
+                {{ formatStatus(previewWallpaper.status) }} ·
+                {{ formatDateTime(previewWallpaper.createdAt) }}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="wb-chip">{{ getCategoryLabel(previewWallpaper.category) }}</span>
+              <span class="wb-chip"
+                >{{ previewWallpaper.width }} × {{ previewWallpaper.height }}</span
+              >
+              <span class="wb-chip">{{ formatFileSize(previewWallpaper.fileSize) }}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 text-center text-sm text-muted">
+              <div class="rounded-control border border-line bg-inset p-3">
+                <p class="text-xs text-faint">浏览</p>
+                <p class="text-lg font-semibold text-fg">{{ previewWallpaper.viewCount || 0 }}</p>
+              </div>
+              <div class="rounded-control border border-line bg-inset p-3">
+                <p class="text-xs text-faint">点赞</p>
+                <p class="text-lg font-semibold text-fg">{{ previewWallpaper.likeCount || 0 }}</p>
+              </div>
+              <div class="rounded-control border border-line bg-inset p-3">
+                <p class="text-xs text-faint">收藏</p>
+                <p class="text-lg font-semibold text-fg">
+                  {{ previewWallpaper.favoriteCount || 0 }}
                 </p>
-                <h3 class="mt-2 text-xl font-semibold">编辑壁纸 #{{ editWallpaper.id }}</h3>
-              </div>
-
-              <!-- 预览 -->
-              <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-                <img
-                  :src="getWallpaperImage(editWallpaper.thumbnailUrl || editWallpaper.fileUrl)"
-                  :alt="`壁纸 #${editWallpaper.id}`"
-                  class="h-48 w-full object-cover"
-                />
-              </div>
-
-              <div class="space-y-4">
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-semibold text-white/80">标签</span>
-                    <span class="label-text-alt text-white/40">逗号分隔</span>
-                  </label>
-                  <input
-                    v-model="editForm.tagsInput"
-                    type="text"
-                    placeholder="例如：4K, 星空, 极简"
-                    class="input w-full rounded-xl border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40"
-                    :disabled="editLoading"
-                  />
-                </div>
-              </div>
-
-              <div class="flex justify-end gap-3">
-                <button
-                  class="btn btn-ghost rounded-xl border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
-                  @click="closeEditModal"
-                  :disabled="editLoading"
-                >
-                  取消
-                </button>
-                <button
-                  class="btn rounded-xl border-none bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 text-slate-900 hover:from-emerald-300 hover:via-teal-300 hover:to-cyan-300"
-                  :class="{ loading: editLoading }"
-                  :disabled="editLoading"
-                  @click="submitEdit"
-                >
-                  保存修改
-                </button>
               </div>
             </div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
-
-    <Teleport to="body">
-      <transition name="fade">
-        <div
-          v-if="previewWallpaper"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-        >
-          <div
-            class="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 text-white shadow-2xl"
-          >
-            <button
-              class="btn btn-sm btn-circle absolute right-4 top-4 border-white/20 bg-white/10 text-white hover:bg-white/20"
-              @click="closePreview"
+            <div v-if="previewWallpaper.tags?.length" class="space-y-2">
+              <p class="text-xs uppercase tracking-wide text-faint">Tags</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="(tag, index) in previewWallpaper.tags"
+                  :key="getTagKey(tag, index)"
+                  class="wb-chip"
+                >
+                  #{{ getTagLabel(tag) }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="text-xs text-faint">暂无标签</div>
+            <div
+              v-if="previewWallpaper.uploader"
+              class="flex items-center gap-3 rounded-control border border-line bg-inset p-3"
             >
-              ✕
-            </button>
-            <div class="grid gap-6 p-6 md:grid-cols-2">
-              <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+              <div class="h-10 w-10 overflow-hidden rounded-full ring-1 ring-line">
                 <img
-                  :src="getWallpaperImage(previewWallpaper.fileUrl)"
-                  :alt="`壁纸 #${previewWallpaper.id}`"
+                  :src="getUploaderAvatar(previewWallpaper.uploader.avatarUrl)"
+                  :alt="previewWallpaper.uploader.username"
                   class="h-full w-full object-cover"
-                  @error="handleImageError"
+                  @error="handleAvatarError"
                 />
               </div>
-              <div class="space-y-4">
-                <div>
-                  <p class="text-xs uppercase tracking-[0.3em] text-white/40">Wallpaper Detail</p>
-                  <h3 class="mt-2 text-2xl font-semibold">壁纸 #{{ previewWallpaper.id }}</h3>
-                  <p class="mt-1 text-sm text-white/70">
-                    {{ formatStatus(previewWallpaper.status) }} ·
-                    {{ formatDateTime(previewWallpaper.createdAt) }}
-                  </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <span class="badge border-none bg-white/15 text-white">{{
-                    getCategoryLabel(previewWallpaper.category)
-                  }}</span>
-                  <span class="badge border-none bg-white/15 text-white"
-                    >{{ previewWallpaper.width }} × {{ previewWallpaper.height }}</span
-                  >
-                  <span class="badge border-none bg-white/15 text-white">{{
-                    formatFileSize(previewWallpaper.fileSize)
-                  }}</span>
-                </div>
-                <div class="grid grid-cols-3 gap-3 text-center text-sm text-white/70">
-                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p class="text-xs text-white/50">浏览</p>
-                    <p class="text-lg font-semibold text-white">
-                      {{ previewWallpaper.viewCount || 0 }}
-                    </p>
-                  </div>
-                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p class="text-xs text-white/50">点赞</p>
-                    <p class="text-lg font-semibold text-white">
-                      {{ previewWallpaper.likeCount || 0 }}
-                    </p>
-                  </div>
-                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p class="text-xs text-white/50">收藏</p>
-                    <p class="text-lg font-semibold text-white">
-                      {{ previewWallpaper.favoriteCount || 0 }}
-                    </p>
-                  </div>
-                </div>
-                <div v-if="previewWallpaper.tags?.length" class="space-y-2">
-                  <p class="text-xs uppercase tracking-[0.3em] text-white/50">Tags</p>
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      v-for="(tag, index) in previewWallpaper.tags"
-                      :key="getTagKey(tag, index)"
-                      class="badge border-none bg-gradient-to-r from-purple-500/40 to-pink-500/40 text-white"
-                    >
-                      #{{ getTagLabel(tag) }}
-                    </span>
-                  </div>
-                </div>
-                <div v-else class="text-xs text-white/50">暂无标签</div>
-                <div
-                  v-if="previewWallpaper.uploader"
-                  class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
-                >
-                  <div class="avatar">
-                    <div class="h-10 w-10 overflow-hidden rounded-full ring-2 ring-white/20">
-                      <img
-                        :src="getUploaderAvatar(previewWallpaper.uploader.avatarUrl)"
-                        :alt="previewWallpaper.uploader.username"
-                        class="h-full w-full object-cover"
-                        @error="handleAvatarError"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold">{{ previewWallpaper.uploader.username }}</p>
-                    <p class="text-xs text-white/60">上传者</p>
-                  </div>
-                </div>
-                <div class="flex flex-wrap gap-3">
-                  <button
-                    class="btn flex-1 border-none bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                    @click="previewWallpaper && openInNewTab(previewWallpaper)"
-                  >
-                    <iconify-icon icon="mdi:arrow-top-right-bold-box"></iconify-icon>
-                    打开原图
-                  </button>
-                  <button
-                    class="btn flex-1 border-white/20 bg-white/10 text-white hover:bg-white/20"
-                    @click="previewWallpaper && copyWallpaperUrl(previewWallpaper)"
-                  >
-                    <iconify-icon icon="mdi:link-variant"></iconify-icon>
-                    复制链接
-                  </button>
-                </div>
+              <div>
+                <p class="text-sm font-semibold text-fg">
+                  {{ previewWallpaper.uploader.username }}
+                </p>
+                <p class="text-xs text-faint">上传者</p>
               </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button
+                class="wb-btn-primary flex-1"
+                @click="previewWallpaper && openInNewTab(previewWallpaper)"
+              >
+                <i class="i-[mdi--arrow-top-right-bold-box]" aria-hidden="true"></i>
+                打开原图
+              </button>
+              <button
+                class="wb-btn flex-1"
+                @click="previewWallpaper && copyWallpaperUrl(previewWallpaper)"
+              >
+                <i class="i-[mdi--link-variant]" aria-hidden="true"></i>
+                复制链接
+              </button>
             </div>
           </div>
         </div>
-      </transition>
-    </Teleport>
+      </div>
+    </dialog>
   </div>
 </template>
 
@@ -833,7 +657,9 @@ import adminService, {
   type AdminWallpaperTag,
 } from "@/services/admin"
 import wallpaperService from "@/services/wallpaper"
+import { confirmAction } from "@/composables/useConfirm"
 import type { ApiResponse } from "@/config/api"
+import Pagination from "@/components/Pagination.vue"
 
 interface PaginationMeta {
   page: number
@@ -852,7 +678,9 @@ const actionLoadingId = ref<number | null>(null)
 const selectedIds = ref<Set<number>>(new Set())
 const batchLoading = ref(false)
 const notification = ref<{ type: "success" | "error"; text: string } | null>(null)
-const showUploadModal = ref(false)
+const uploadModalRef = ref<HTMLDialogElement | null>(null)
+const editModalRef = ref<HTMLDialogElement | null>(null)
+const previewModalRef = ref<HTMLDialogElement | null>(null)
 const uploadLoading = ref(false)
 const uploadProgress = ref(0)
 
@@ -944,8 +772,8 @@ const formatDateTime = (date: string) => {
 }
 
 const formatStatus = (status?: number) => {
-  if (status === 1) return "已通过"
-  return "已驳回"
+  if (status === 1) return "已发布"
+  return "未发布"
 }
 
 const getCategoryLabel = (category: AdminWallpaper["category"]) => {
@@ -1030,10 +858,12 @@ const resetFilters = () => {
 
 const openPreview = (wallpaper: AdminWallpaper) => {
   previewWallpaper.value = wallpaper
+  previewModalRef.value?.showModal()
 }
 
 const closePreview = () => {
   previewWallpaper.value = null
+  previewModalRef.value?.close()
 }
 
 const openInNewTab = (wallpaper: AdminWallpaper) => {
@@ -1065,7 +895,12 @@ const copyWallpaperId = (wallpaper: AdminWallpaper) => {
 }
 
 const confirmDelete = async (wallpaper: AdminWallpaper) => {
-  const confirmed = window.confirm(`确认删除壁纸 #${wallpaper.id} ? 删除后不可恢复。`)
+  const confirmed = await confirmAction({
+    title: "删除壁纸",
+    message: `确认删除壁纸 #${wallpaper.id} ? 删除后不可恢复。`,
+    confirmText: "删除",
+    danger: true,
+  })
   if (!confirmed) return
 
   try {
@@ -1093,36 +928,13 @@ const pageRange = computed(() => {
   return { start, end }
 })
 
-const visiblePages = computed(() => {
-  const totalPages = pagination.value.pages || 0
-  if (totalPages === 0) return [1]
-
-  const current = pagination.value.page
-  const windowSize = 5
-  let start = Math.max(1, current - 2)
-  let end = Math.min(totalPages, current + 2)
-
-  const span = end - start + 1
-  if (span < windowSize) {
-    const remaining = windowSize - span
-    start = Math.max(1, start - remaining)
-    end = Math.min(totalPages, end + (windowSize - (end - start + 1)))
-  }
-
-  const pages: number[] = []
-  for (let i = start; i <= end; i += 1) {
-    pages.push(i)
-  }
-  return pages
-})
-
 const openUploadModal = () => {
   resetUploadForm()
-  showUploadModal.value = true
+  uploadModalRef.value?.showModal()
 }
 
 const closeUploadModal = () => {
-  showUploadModal.value = false
+  uploadModalRef.value?.close()
   resetUploadForm()
 }
 
@@ -1144,9 +956,9 @@ const resetUploadForm = () => {
   }
 }
 
-const handleUploadFileChange = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
+const uploadDragOver = ref(false)
+
+const applyUploadFile = (file?: File) => {
   if (!file) {
     uploadErrors.file = "请选择要上传的图片"
     return
@@ -1161,6 +973,15 @@ const handleUploadFileChange = (event: Event) => {
   uploadForm.file = file
   uploadForm.previewUrl = URL.createObjectURL(file)
   uploadErrors.file = ""
+}
+
+const handleUploadFileChange = (event: Event) => {
+  applyUploadFile((event.target as HTMLInputElement).files?.[0])
+}
+
+const onUploadDrop = (e: DragEvent) => {
+  uploadDragOver.value = false
+  applyUploadFile(e.dataTransfer?.files?.[0])
 }
 
 const removeUploadFile = () => {
@@ -1313,11 +1134,31 @@ const isAllSelected = computed(
   () => wallpapers.value.length > 0 && selectedIds.value.size === wallpapers.value.length,
 )
 
+// 单卡推荐切换：复用批量接口传单个 id
+const toggleFeatured = async (wallpaper: AdminWallpaper) => {
+  if (actionLoadingId.value === wallpaper.id) return
+  actionLoadingId.value = wallpaper.id
+  try {
+    await adminService.adminBatchSetFeatured([wallpaper.id], !wallpaper.isFeatured)
+    wallpaper.isFeatured = !wallpaper.isFeatured
+    showNotification(wallpaper.isFeatured ? "已设为推荐" : "已取消推荐")
+  } catch (error) {
+    console.error("切换推荐失败:", error)
+    showNotification("切换推荐失败", "error")
+  } finally {
+    actionLoadingId.value = null
+  }
+}
+
 // 批量设置推荐
 const batchSetFeatured = async (isFeatured: boolean) => {
   if (!selectedIds.value.size) return
   const action = isFeatured ? "设为推荐" : "取消推荐"
-  const confirmed = window.confirm(`确认将 ${selectedIds.value.size} 个壁纸${action}？`)
+  const confirmed = await confirmAction({
+    title: "批量操作",
+    message: `确认将 ${selectedIds.value.size} 个壁纸${action}？`,
+    confirmText: "确认",
+  })
   if (!confirmed) return
 
   try {
@@ -1337,7 +1178,12 @@ const batchSetFeatured = async (isFeatured: boolean) => {
 
 const batchDeleteSelected = async () => {
   if (!selectedIds.value.size) return
-  const confirmed = window.confirm(`确认删除 ${selectedIds.value.size} 个壁纸？删除后不可恢复。`)
+  const confirmed = await confirmAction({
+    title: "批量删除",
+    message: `确认删除 ${selectedIds.value.size} 个壁纸？删除后不可恢复。`,
+    confirmText: "删除",
+    danger: true,
+  })
   if (!confirmed) return
 
   try {
@@ -1362,11 +1208,13 @@ const openEditModal = (wallpaper: AdminWallpaper) => {
     .map((tag) => getTagLabel(tag))
     .filter(Boolean)
     .join(", ")
+  editModalRef.value?.showModal()
 }
 
 const closeEditModal = () => {
   editWallpaper.value = null
   editForm.tagsInput = ""
+  editModalRef.value?.close()
 }
 
 const submitEdit = async () => {
@@ -1393,15 +1241,3 @@ onMounted(() => {
   loadWallpapers()
 })
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

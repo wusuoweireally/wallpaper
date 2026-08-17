@@ -3,13 +3,15 @@ import App from "./App.vue"
 import router from "./router"
 import { useUserStore } from "./stores/user"
 import { createPinia } from "pinia"
-import { applyTheme, resolveInitialTheme } from "./utils/theme"
+import { applyTheme, resolveInitialTheme, watchSystemTheme } from "./utils/theme"
 
 import "./style.css"
 
 async function bootstrap() {
   const initialTheme = resolveInitialTheme()
   applyTheme(initialTheme)
+  // 未手动选择过主题时跟随系统深浅色变化
+  watchSystemTheme()
 
   const app = createApp(App)
   const pinia = createPinia()
@@ -18,8 +20,9 @@ async function bootstrap() {
 
   const userStore = useUserStore()
 
-  // 在注册路由前初始化用户状态，确保鉴权状态准确
-  await userStore.initializeAuth()
+  // 同步恢复本地登录态（路由守卫立即可用），服务端校验放后台进行，避免阻塞首屏渲染
+  userStore.restoreFromStorage()
+  void userStore.initializeAuth()
 
   // 统一处理登录过期事件（由 axios 拦截器触发）
   let handlingAuthExpired = false
@@ -35,6 +38,13 @@ async function bootstrap() {
     })
 
     handlingAuthExpired = false
+  })
+
+  // Esc 关闭 wb-drop 下拉：focus-within 方案靠失焦收起，键盘用户需要手动释放焦点
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return
+    const el = document.activeElement as HTMLElement | null
+    if (el?.closest(".wb-drop")) el.blur()
   })
 
   app.use(router)

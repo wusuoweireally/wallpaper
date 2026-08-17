@@ -1,173 +1,172 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-slate-900">
-    <div class="mx-auto max-w-6xl px-4 py-8">
+  <div class="wb-page">
+    <div class="wb-container py-5">
       <!-- Header -->
-      <div class="mb-6 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100">发布新帖子</h1>
-            <p class="mt-1 text-sm text-gray-600 dark:text-slate-400">
-              把灵感、案例或技巧写下来，让更多壁纸爱好者看到你的创意
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <button class="btn btn-ghost" @click="router.back()">取消</button>
-            <button
-              class="btn btn-primary"
-              @click="publishPost"
-              :disabled="isSubmitting || !isFormValid"
-            >
-              {{ isSubmitting ? "发布中..." : "发布帖子" }}
-            </button>
-          </div>
+      <div class="wb-page-head mb-5 flex items-center justify-between">
+        <div>
+          <h1 class="wb-page-title">发布新帖子</h1>
+          <p class="mt-0.5 text-xs text-muted">
+            把灵感、案例或技巧写下来，让更多壁纸爱好者看到你的创意
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <button class="wb-btn-ghost" @click="router.back()">取消</button>
+          <button
+            class="wb-btn-primary"
+            @click="publishPost"
+            :disabled="isSubmitting || !isFormValid"
+          >
+            {{ isSubmitting ? "发布中…" : "发布帖子" }}
+          </button>
         </div>
       </div>
 
       <!-- 草稿恢复提示 -->
       <div
         v-if="hasRestoredDraft"
-        class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-700/50 dark:bg-amber-900/20"
+        class="mb-6 flex items-center justify-between rounded-control border border-warning/30 bg-[color:var(--wb-warning-subtle)] p-4"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i class="i-[mdi--file-restore] text-amber-600 dark:text-amber-400"></i>
-            <span class="text-sm font-medium text-amber-800 dark:text-amber-200">
-              已恢复上次未发布的草稿
-            </span>
-          </div>
-          <button
-            class="btn btn-ghost btn-xs text-amber-600 hover:text-amber-800 dark:text-amber-400"
-            @click="clearDraft"
-          >
-            清除草稿
-          </button>
+        <div class="flex items-center gap-2">
+          <i class="i-[mdi--file-restore] text-[color:var(--wb-warning)]"></i>
+          <span class="text-sm font-medium text-[color:var(--wb-warning)]">
+            已恢复上次未发布的草稿
+          </span>
         </div>
+        <button class="wb-btn-ghost wb-btn-xs text-[color:var(--wb-warning)]" @click="clearDraft">
+          清除草稿
+        </button>
       </div>
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Main Content -->
         <div class="space-y-6 lg:col-span-2">
           <!-- Title -->
-          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
-              标题 <span class="text-red-500">*</span>
+          <div class="wb-card p-6">
+            <label class="mb-2 block text-sm font-semibold text-fg">
+              标题 <span class="text-error">*</span>
             </label>
             <input
               v-model="formData.title"
               type="text"
               placeholder="请输入帖子标题，建议不超过50字"
-              class="input-bordered input w-full"
+              class="wb-input w-full"
               maxlength="100"
               @input="validateTitle"
             />
-            <div class="mt-2 flex justify-between text-xs text-gray-500 dark:text-slate-400">
-              <span v-if="errors.title" class="text-red-500">{{ errors.title }}</span>
+            <div class="mt-2 flex justify-between text-xs text-faint">
+              <span v-if="errors.title" class="text-error">{{ errors.title }}</span>
               <span class="ml-auto">{{ formData.title.length }}/100</span>
             </div>
           </div>
 
           <!-- Category -->
-          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
-              分类 <span class="text-red-500">*</span>
+          <div class="wb-card p-6">
+            <label class="mb-2 block text-sm font-semibold text-fg">
+              分类 <span class="text-error">*</span>
             </label>
-            <select
-              v-model="formData.category"
-              class="select-bordered select w-full"
-              @change="validateCategory"
-            >
+            <select v-model="formData.category" class="wb-input w-full" @change="validateCategory">
               <option value="">请选择分类</option>
-              <option value="tech_discussion">💡 技术讨论</option>
-              <option value="experience_sharing">✨ 经验分享</option>
-              <option value="q_a">❓ 问答求助</option>
-              <option value="resource_sharing">🎁 资源分享</option>
+              <option value="tech_discussion">技术讨论</option>
+              <option value="experience_sharing">经验分享</option>
+              <option value="q_a">问答求助</option>
+              <option value="resource_sharing">资源分享</option>
             </select>
-            <div class="mt-2 text-xs text-red-500" v-if="errors.category">
+            <div class="mt-2 text-xs text-error" v-if="errors.category">
               {{ errors.category }}
             </div>
           </div>
 
           <!-- Content -->
-          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
-            <label class="mb-2 block text-sm font-semibold text-gray-900 dark:text-slate-100">
-              内容 <span class="text-red-500">*</span>
+          <div class="wb-card p-6">
+            <label class="mb-2 block text-sm font-semibold text-fg">
+              内容 <span class="text-error">*</span>
             </label>
             <RichTextEditor
               v-model="formData.content"
-              placeholder="请输入帖子内容，支持富文本格式..."
+              placeholder="请输入帖子内容，空行分段会更易读…"
               :maxlength="10000"
               height="400px"
               @change="validateContent"
             />
-            <div class="mt-2 text-xs text-red-500" v-if="errors.content">{{ errors.content }}</div>
+            <div class="mt-2 text-xs text-error" v-if="errors.content">{{ errors.content }}</div>
+          </div>
+
+          <!-- Tags -->
+          <div class="wb-card p-6">
+            <label class="mb-2 block text-sm font-semibold text-fg">标签</label>
+            <input
+              v-model="formData.tags"
+              type="text"
+              placeholder="用逗号分隔，最多 5 个，如：风景, 4K, 摄影后期"
+              class="wb-input w-full"
+            />
+            <p class="mt-2 text-xs text-faint">合适的标签能帮帖子被更多人发现</p>
           </div>
         </div>
 
         <!-- Sidebar -->
         <div class="space-y-6">
           <!-- Publishing Guide -->
-          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+          <div class="wb-card p-5">
             <div class="mb-4 flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                <span class="text-lg text-orange-600 dark:text-orange-400">💡</span>
-              </div>
-              <h3 class="font-bold text-gray-900 dark:text-slate-100">发布指南</h3>
+              <i class="i-[mdi--lightbulb-on-outline] text-lg text-warning"></i>
+              <h3 class="font-semibold text-fg">发布指南</h3>
             </div>
-            <ul class="space-y-3 text-sm">
+            <ul class="space-y-3 text-sm text-muted">
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-blue-600 dark:text-blue-400">✓</span>
-                <span class="text-gray-700 dark:text-slate-300">标题突出主题，便于检索</span>
+                <i class="i-[mdi--check] text-success" aria-hidden="true"></i>
+                <span>标题突出主题，便于检索</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-indigo-600 dark:text-indigo-400">✓</span>
-                <span class="text-gray-700 dark:text-slate-300">内容可包含创作思路、配色方案或技术要点</span>
+                <i class="i-[mdi--check] text-success" aria-hidden="true"></i>
+                <span>内容可包含创作思路、配色方案或技术要点</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-purple-600 dark:text-purple-400">✓</span>
-                <span class="text-gray-700 dark:text-slate-300">标签最多 5 个，帮助系统推荐给合适的人</span>
+                <i class="i-[mdi--check] text-success" aria-hidden="true"></i>
+                <span>标签最多 5 个，帮助系统推荐给合适的人</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="mt-0.5 text-amber-600 dark:text-amber-400">✓</span>
-                <span class="text-gray-700 dark:text-slate-300">随时预览或保存草稿，稍后继续编辑</span>
+                <i class="i-[mdi--check] text-success" aria-hidden="true"></i>
+                <span>随时预览或保存草稿，稍后继续编辑</span>
               </li>
             </ul>
             <div class="mt-5 flex flex-col gap-2">
-              <button class="btn btn-outline btn-sm" @click="previewPost" :disabled="!hasContent">
+              <button class="wb-btn wb-btn-sm" @click="previewPost" :disabled="!hasContent">
                 预览帖子
               </button>
               <button
-                class="btn btn-outline btn-sm"
+                class="wb-btn wb-btn-sm"
                 @click="saveDraft"
                 :disabled="isSubmitting || !hasContent"
               >
                 存为草稿
               </button>
-              <button class="btn btn-ghost btn-sm" @click="router.back()">返回上一页</button>
+              <button class="wb-btn-ghost wb-btn-sm" @click="router.back()">返回上一页</button>
             </div>
           </div>
 
           <!-- Live Preview -->
-          <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-            <h3 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-slate-100">
-              <span class="text-blue-600 dark:text-blue-400">👁</span>
+          <div class="wb-card p-5">
+            <h3 class="mb-4 flex items-center gap-2 font-semibold text-fg">
+              <i class="i-[mdi--eye-outline]"></i>
               实时预览
             </h3>
-            <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700 p-4">
-              <h4 class="text-lg font-bold text-gray-900 dark:text-slate-100">
+            <div class="rounded-control border border-line bg-subtle p-4">
+              <h4 class="text-lg font-bold text-fg">
                 {{ formData.title || "请输入标题" }}
               </h4>
-              <div class="mt-2 text-sm text-gray-600 dark:text-slate-400">
-                <span class="inline-block rounded bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs text-blue-700 dark:text-blue-300">
+              <div class="mt-2 text-sm text-muted">
+                <span class="wb-chip">
                   {{ getCategoryName(formData.category) }}
                 </span>
               </div>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
-                class="mt-3 line-clamp-3 text-sm text-gray-700 dark:text-slate-300"
+                class="mt-3 line-clamp-3 text-sm text-muted"
                 v-if="formData.content"
                 v-html="sanitizeHtml(formData.content)"
               ></div>
-              <div class="mt-3 text-xs text-gray-400 dark:text-slate-500" v-else>预览内容将在这里显示</div>
+              <div class="mt-3 text-xs text-faint" v-else>预览内容将在这里显示</div>
             </div>
           </div>
         </div>
@@ -175,17 +174,17 @@
     </div>
 
     <!-- Preview Modal -->
-    <dialog ref="previewModal" class="modal">
-      <div class="modal-box max-w-4xl">
+    <dialog ref="previewModal" class="wb-dialog">
+      <div class="wb-dialog-box max-w-4xl">
         <h3 class="mb-4 text-lg font-bold">帖子预览</h3>
-        <div class="prose-sm prose max-w-none">
-          <h2>{{ formData.title || "无标题" }}</h2>
-          <div class="badge badge-outline">{{ getCategoryName(formData.category) }}</div>
+        <div class="custom-prose max-w-none">
+          <h2 class="text-xl font-semibold">{{ formData.title || "无标题" }}</h2>
+          <div class="wb-chip mt-2">{{ getCategoryName(formData.category) }}</div>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <div class="mt-4" v-html="sanitizeHtml(formData.content) || '<p>无内容</p>'"></div>
         </div>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="closePreview">关闭</button>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="wb-btn-ghost" @click="closePreview">关闭</button>
         </div>
       </div>
     </dialog>
@@ -199,9 +198,11 @@ import { forumService, type CreatePostDto } from "@/services/forum"
 import { useUserStore } from "@/stores/user"
 import RichTextEditor from "@/components/RichTextEditor.vue"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { useGlobalToast } from "@/composables/useToast"
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 const isSubmitting = ref(false)
 const hasRestoredDraft = ref(false)
@@ -214,6 +215,7 @@ const formData = reactive<
 >({
   title: "",
   content: "",
+  tags: "",
   category: "" as CreatePostDto["category"] | "",
 })
 
@@ -280,7 +282,7 @@ const getCategoryName = (category: string): string => {
 
 const saveDraft = () => {
   localStorage.setItem("forum_post_draft", JSON.stringify(formData))
-  alert("草稿已保存")
+  toast.success("草稿已保存")
 }
 
 const previewPost = () => {
@@ -297,12 +299,12 @@ const publishPost = async () => {
   validateContent()
 
   if (!isFormValid.value) {
-    alert("请填写所有必填字段")
+    toast.warning("请填写所有必填字段")
     return
   }
 
   if (!userStore.isLoggedIn) {
-    alert("请先登录后再发布帖子")
+    toast.error("请先登录后再发布帖子")
     router.push("/auth/login")
     return
   }
@@ -314,18 +316,25 @@ const publishPost = async () => {
       title: formData.title.trim(),
       content: formData.content.trim(),
       category: formData.category as CreatePostDto["category"],
+      // 逗号分隔，最多取 5 个（与后端/列表筛选约定一致）
+      tags: formData.tags
+        .split(/[,，]/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 5)
+        .join(","),
     }
 
     const newPost = await forumService.createPost(postData)
 
     localStorage.removeItem("forum_post_draft")
 
-    alert("帖子发布成功！")
+    toast.success("帖子发布成功")
     router.push(`/forums/post/${newPost.id}`)
   } catch (error: unknown) {
     const err = error as Error & { message?: string }
     console.error("发布帖子失败:", err)
-    alert(err.message || "发布帖子失败，请稍后重试")
+    toast.error(err.message || "发布帖子失败，请稍后重试")
   } finally {
     isSubmitting.value = false
   }
@@ -341,6 +350,7 @@ const restoreDraft = () => {
         formData.title = draft.title || ""
         formData.content = draft.content || ""
         formData.category = draft.category || ""
+        formData.tags = draft.tags || ""
         hasRestoredDraft.value = true
       }
     }
@@ -354,6 +364,7 @@ const clearDraft = () => {
   formData.title = ""
   formData.content = ""
   formData.category = ""
+  formData.tags = ""
   hasRestoredDraft.value = false
 }
 

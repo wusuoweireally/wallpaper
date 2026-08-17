@@ -1,114 +1,42 @@
 <template>
-  <div
-    class="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100"
-  >
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute left-1/2 top-[-15%] h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-purple-200/50 blur-[200px] dark:bg-purple-900/30"
-      ></div>
-      <div
-        class="absolute left-[10%] top-1/2 h-[22rem] w-[22rem] -translate-y-1/2 rounded-full bg-sky-200/40 blur-[220px] dark:bg-sky-900/30"
-      ></div>
-      <div
-        class="absolute bottom-[-10%] right-[-5%] h-[28rem] w-[28rem] rounded-full bg-pink-100/60 blur-[200px] dark:bg-fuchsia-900/30"
-      ></div>
-    </div>
-
-    <main class="relative mx-auto max-w-7xl space-y-10 px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-      <!-- Hero -->
-      <section
-        class="grid items-center gap-8 rounded-[2.5rem] bg-gradient-to-br from-white/90 via-white/80 to-white/60 p-8 shadow-2xl ring-1 ring-black/5 sm:p-10 lg:grid-cols-[1.25fr_0.75fr] dark:from-slate-900/80 dark:via-slate-900/70 dark:to-slate-900/60 dark:ring-white/10"
-      >
-        <div class="space-y-6">
-          <span
-            class="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-sky-200/70 dark:bg-sky-900/40 dark:text-sky-100 dark:ring-sky-800"
-          >
-            社区论坛
-          </span>
-          <div class="space-y-3">
-            <h1 class="text-3xl font-bold tracking-tight sm:text-4xl dark:text-slate-100">
-              创意灵感
-              <span
-                class="bg-gradient-to-r from-purple-600 to-sky-500 bg-clip-text text-transparent"
-                >集散地</span
-              >
-            </h1>
-            <p class="max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
-              分享壁纸创作经验、技术讨论与资源。按分类与热度筛选，内容来自社区真实发帖。
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-500 to-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:scale-[1.02]"
-              @click="handleCreatePost"
-            >
-              <span class="text-lg leading-none">+</span>
-              立即发帖
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-6 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-600"
-              @click="handleScrollToContent"
-            >
-              浏览讨论
-            </button>
-          </div>
+  <div class="wb-page">
+    <main class="wb-container-gallery space-y-4 py-5">
+      <section class="wb-page-head flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 class="wb-page-title">论坛</h1>
+          <p class="mt-0.5 max-w-xl text-xs text-muted">
+            分享壁纸创作经验、技术讨论与资源
+            <span class="ml-2 tabular-nums text-faint">
+              {{ heroStats[0].value }} 帖 · {{ heroStats[1].value }} 热度 ·
+              {{ heroStats[2].value }} 互动
+            </span>
+          </p>
         </div>
-
-        <div class="grid grid-cols-3 gap-3 sm:grid-cols-1 sm:gap-3 lg:grid-cols-1">
-          <div
-            v-for="stat in heroStats"
-            :key="stat.label"
-            class="rounded-2xl border border-slate-100 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
-          >
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ stat.label }}</p>
-            <p class="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-50">
-              {{ stat.value }}
-            </p>
-            <p class="mt-0.5 text-xs text-slate-400">{{ stat.hint }}</p>
-          </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="wb-btn-primary h-8" @click="handleCreatePost">发帖</button>
+          <button type="button" class="wb-btn h-8" @click="handleScrollToContent">浏览讨论</button>
         </div>
       </section>
 
       <!-- 主内容 -->
-      <div id="forum-content" class="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div id="forum-content" class="grid gap-6 lg:grid-cols-[1fr_18rem]">
         <!-- 左：讨论区 -->
-        <section
-          class="space-y-5 rounded-[2.25rem] bg-white/85 p-5 shadow-2xl ring-1 ring-black/5 sm:p-7 dark:bg-slate-900/80 dark:ring-white/10"
-        >
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">讨论区</h2>
-              <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                按分类、热度或关键词筛选
-              </p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <div
-                class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 transition focus-within:border-primary/40 focus-within:bg-white focus-within:shadow-[0_0_0_3px] focus-within:shadow-primary/10 sm:flex-initial sm:w-56 dark:border-slate-600 dark:bg-slate-800/60 dark:focus-within:bg-slate-900"
-              >
-                <svg
-                  class="h-4 w-4 shrink-0 text-slate-400"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"
-                  />
-                </svg>
+        <section class="space-y-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <form class="wb-nav-search min-w-0 flex-1 sm:max-w-xs" @submit.prevent>
+                <i class="i-[mdi--magnify] shrink-0 text-base text-faint" aria-hidden="true"></i>
                 <input
                   v-model="searchQuery"
-                  type="text"
-                  placeholder="搜索帖子..."
-                  class="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-100"
+                  type="search"
+                  placeholder="搜索帖子…"
+                  class="h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-fg outline-none placeholder:text-faint"
                   @input="handleSearch"
                 />
-              </div>
+              </form>
               <select
                 v-model="forumStore.filters.sortBy"
-                class="h-10 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-primary/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                class="wb-input h-8 w-auto py-0 text-xs"
                 @change="handleSortChange"
               >
                 <option value="createdAt">最新</option>
@@ -116,14 +44,6 @@
                 <option value="likeCount">点赞</option>
                 <option value="commentCount">评论</option>
               </select>
-              <button
-                type="button"
-                class="inline-flex h-10 items-center gap-1 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-content shadow-md shadow-primary/25 transition hover:brightness-110"
-                @click="handleCreatePost"
-              >
-                <span>+</span>
-                发帖
-              </button>
             </div>
           </div>
 
@@ -134,8 +54,8 @@
               class="rounded-full px-3.5 py-1.5 text-sm font-medium transition"
               :class="
                 forumStore.filters.category === ''
-                  ? 'bg-primary text-primary-content shadow-sm shadow-primary/25'
-                  : 'border border-slate-200 bg-slate-50 text-slate-600 hover:border-primary/40 hover:text-primary dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  ? 'bg-primary-fill text-primary-content'
+                  : 'border border-line bg-subtle text-muted hover:border-primary/40 hover:text-primary'
               "
               @click="handleCategoryChange('')"
             >
@@ -148,38 +68,27 @@
               class="rounded-full px-3.5 py-1.5 text-sm font-medium transition"
               :class="
                 forumStore.filters.category === category.value
-                  ? 'bg-primary text-primary-content shadow-sm shadow-primary/25'
-                  : 'border border-slate-200 bg-slate-50 text-slate-600 hover:border-primary/40 hover:text-primary dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  ? 'bg-primary-fill text-primary-content'
+                  : 'border border-line bg-subtle text-muted hover:border-primary/40 hover:text-primary'
               "
               @click="handleCategoryChange(category.value)"
             >
-              {{ category.emoji || "" }} {{ category.label }}
+              {{ category.label }}
             </button>
           </div>
 
           <!-- 列表 -->
           <div
             v-if="forumStore.loading"
-            class="flex min-h-[36vh] flex-col items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/50"
+            class="flex min-h-[36vh] flex-col items-center justify-center gap-3"
           >
-            <span
-              class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
-            ></span>
-            <p class="text-sm text-slate-500">正在加载讨论...</p>
+            <span class="wb-spinner wb-spinner-lg"></span>
+            <p class="text-sm text-muted">正在加载讨论…</p>
           </div>
 
-          <div
-            v-else-if="forumStore.error"
-            class="flex flex-wrap items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-          >
+          <div v-else-if="forumStore.error" class="wb-alert-danger">
             <span>{{ forumStore.error }}</span>
-            <button
-              type="button"
-              class="rounded-full border border-red-300 px-3 py-1 text-xs font-medium hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/40"
-              @click="handleRetry"
-            >
-              重试
-            </button>
+            <button type="button" class="wb-btn-ghost wb-btn-xs" @click="handleRetry">重试</button>
           </div>
 
           <div v-else class="space-y-4">
@@ -194,33 +103,22 @@
               @share="handleShare"
             />
 
-            <div
-              v-if="forumStore.filteredPosts.length === 0"
-              class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center dark:border-slate-600 dark:bg-slate-800/40"
-            >
-              <p class="text-base font-semibold text-slate-800 dark:text-slate-200">
+            <div v-if="forumStore.filteredPosts.length === 0" class="wb-empty">
+              <p class="text-base font-semibold text-fg">
                 {{
-                  forumStore.filters.search
-                    ? "没有找到相关帖子"
-                    : "暂时还没有帖子，来分享第一个吧"
+                  forumStore.filters.search ? "没有找到相关帖子" : "暂时还没有帖子，来分享第一个吧"
                 }}
               </p>
-              <p class="mt-1 text-sm text-slate-500">
-                可调整分类/排序，或直接发布新讨论
-              </p>
+              <p class="mt-1 text-sm text-muted">可调整分类/排序，或直接发布新讨论</p>
               <div class="mt-5 flex flex-wrap justify-center gap-3">
-                <button
-                  type="button"
-                  class="rounded-2xl bg-primary px-5 py-2 text-sm font-semibold text-primary-content shadow-md shadow-primary/25"
-                  @click="handleCreatePost"
-                >
+                <button type="button" class="wb-btn-primary" @click="handleCreatePost">
                   发布帖子
                 </button>
                 <button
                   v-if="forumStore.filters.search || forumStore.filters.category"
                   type="button"
-                  class="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-                  @click="forumStore.resetFilters(); searchQuery = ''; fetchPosts(true)"
+                  class="wb-btn"
+                  @click="clearFilters"
                 >
                   清除筛选
                 </button>
@@ -231,82 +129,46 @@
           <!-- 分页 -->
           <div
             v-if="forumStore.filteredPosts.length > 0 && forumStore.postsPagination.totalPages > 1"
-            class="flex flex-wrap items-center justify-center gap-1.5 pt-2"
+            class="pt-2"
           >
-            <button
-              type="button"
-              class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              :disabled="forumStore.postsPagination.currentPage === 1"
-              @click="goToPage(forumStore.postsPagination.currentPage - 1)"
-            >
-              ‹
-            </button>
-            <button
-              v-for="(page, index) in visiblePages"
-              :key="typeof page === 'number' ? `page-${page}` : `ellipsis-${index}`"
-              type="button"
-              class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-sm font-medium transition"
-              :class="
-                page === forumStore.postsPagination.currentPage
-                  ? 'bg-primary text-primary-content shadow-sm shadow-primary/25'
-                  : typeof page === 'string'
-                    ? 'cursor-default text-slate-400'
-                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
-              "
-              :disabled="typeof page === 'string'"
-              @click="typeof page === 'number' ? goToPage(page) : undefined"
-            >
-              {{ page }}
-            </button>
-            <button
-              type="button"
-              class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              :disabled="
-                forumStore.postsPagination.currentPage === forumStore.postsPagination.totalPages
-              "
-              @click="goToPage(forumStore.postsPagination.currentPage + 1)"
-            >
-              ›
-            </button>
+            <Pagination
+              :current-page="forumStore.postsPagination.currentPage"
+              :total-pages="forumStore.postsPagination.totalPages"
+              @change="goToPage"
+            />
           </div>
         </section>
 
         <!-- 右：侧栏 -->
-        <aside class="space-y-5">
-          <div
-            class="rounded-[2rem] bg-white/85 p-5 shadow-2xl ring-1 ring-black/5 dark:bg-slate-900/80 dark:ring-white/10"
-          >
-            <div class="mb-4 flex items-center justify-between">
+        <aside class="space-y-4">
+          <div>
+            <div class="mb-3 flex items-center justify-between">
               <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">热门帖子</h3>
-                <p class="text-xs text-slate-500">按热度排序</p>
+                <h3 class="text-sm font-semibold text-fg">热门帖子</h3>
+                <p class="text-xs text-faint">按热度排序</p>
               </div>
             </div>
             <ul v-if="forumStore.popularPosts.length" class="space-y-2.5">
               <li
                 v-for="(post, index) in forumStore.popularPosts"
                 :key="`popular-${post.id}`"
-                class="cursor-pointer rounded-2xl border border-slate-100 bg-slate-50/80 p-3 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-primary/40"
+                class="cursor-pointer rounded-control border border-line bg-subtle p-3 transition hover:border-primary/40 hover:bg-primary/5"
                 @click="$router.push(`/forums/post/${post.id}`)"
               >
                 <div class="flex items-start gap-3">
                   <span
-                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold"
                     :class="
-                      index < 3
-                        ? 'bg-primary text-primary-content'
-                        : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                      index < 3 ? 'bg-primary-fill text-primary-content' : 'bg-inset text-muted'
                     "
                   >
                     {{ index + 1 }}
                   </span>
                   <div class="min-w-0 flex-1">
-                    <p
-                      class="line-clamp-2 text-sm font-medium text-slate-800 dark:text-slate-200"
-                    >
+                    <p class="line-clamp-2 text-sm font-medium text-fg">
                       {{ post.title }}
                     </p>
-                    <div class="mt-1.5 flex gap-3 text-xs text-slate-400">
+                    <div class="mt-1.5 flex gap-3 text-xs text-faint">
                       <span>阅 {{ formatNumber(post.viewCount) }}</span>
                       <span>赞 {{ formatNumber(post.likeCount) }}</span>
                     </div>
@@ -314,31 +176,17 @@
                 </div>
               </li>
             </ul>
-            <p v-else class="py-6 text-center text-sm text-slate-400">暂无热门帖子</p>
+            <p v-else class="py-6 text-center text-sm text-faint">暂无热门帖子</p>
           </div>
 
-          <div
-            class="rounded-[2rem] bg-white/85 p-5 shadow-2xl ring-1 ring-black/5 dark:bg-slate-900/80 dark:ring-white/10"
-          >
-            <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">快速发帖</h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              有灵感就写下标题，可先存草稿再完善。
-            </p>
-            <div class="mt-4 space-y-2">
-              <button
-                type="button"
-                class="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-primary-content shadow-md shadow-primary/25 transition hover:brightness-110"
-                @click="handleCreatePost"
-              >
+          <div class="rounded-tile border border-line p-4">
+            <h3 class="text-sm font-semibold text-fg">快速发帖</h3>
+            <p class="mt-1 text-xs text-muted">有灵感就写下标题，可先存草稿再完善。</p>
+            <div class="mt-3 space-y-2">
+              <button type="button" class="wb-btn-primary w-full" @click="handleCreatePost">
                 去创作
               </button>
-              <button
-                type="button"
-                class="flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                @click="forumStore.resetFilters(); searchQuery = ''; fetchPosts(true)"
-              >
-                重置筛选
-              </button>
+              <button type="button" class="wb-btn w-full" @click="clearFilters">重置筛选</button>
             </div>
           </div>
         </aside>
@@ -354,7 +202,9 @@ import { useForumStore } from "@/stores/forum"
 import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import PostCard from "@/components/PostCard.vue"
+import Pagination from "@/components/Pagination.vue"
 import type { Post, PostCategory } from "@/stores/forum"
+import { formatNumber } from "@/utils/format"
 
 defineOptions({ name: "ForumIndex" })
 
@@ -365,15 +215,6 @@ const userStore = useUserStore()
 const searchQuery = ref("")
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 type CategoryFilter = PostCategory["value"] | ""
-
-function formatNumber(num: number) {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + "w"
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "k"
-  }
-  return num.toString()
-}
 
 const heroStats = computed(() => [
   {
@@ -399,35 +240,6 @@ const heroStats = computed(() => [
     ),
   },
 ])
-
-const visiblePages = computed(() => {
-  const current = forumStore.postsPagination.currentPage
-  const total = forumStore.postsPagination.totalPages
-  const delta = 2
-  const range: number[] = []
-  const rangeWithDots: (number | string)[] = []
-  let l: number | undefined
-
-  for (let i = 1; i <= total; i += 1) {
-    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
-      range.push(i)
-    }
-  }
-
-  range.forEach((i) => {
-    if (l) {
-      if (i - l === 2) {
-        rangeWithDots.push(l + 1)
-      } else if (i - l !== 1) {
-        rangeWithDots.push("...")
-      }
-    }
-    rangeWithDots.push(i)
-    l = i
-  })
-
-  return rangeWithDots
-})
 
 const fetchPosts = async (reset = false) => {
   if (reset) {
@@ -461,6 +273,18 @@ const fetchPosts = async (reset = false) => {
   }
 }
 
+/** 筛选/页码变化时同步到 URL（省略默认值），便于分享与后退还原 */
+const syncQuery = () => {
+  const query: Record<string, string> = {}
+  const { category, sortBy, search } = forumStore.filters
+  if (category) query.category = category
+  if (sortBy && sortBy !== "createdAt") query.sort = sortBy
+  if (search) query.search = search
+  const page = forumStore.postsPagination.currentPage
+  if (page > 1) query.page = String(page)
+  router.replace({ query })
+}
+
 const normalizeCategory = (value: unknown): CategoryFilter => {
   if (typeof value !== "string" || value === "") {
     return ""
@@ -481,6 +305,7 @@ const handleSearch = () => {
   searchTimeout.value = setTimeout(() => {
     forumStore.updateFilters({ search: searchQuery.value })
     fetchPosts(true)
+    syncQuery()
   }, 500)
 }
 
@@ -488,10 +313,19 @@ const handleCategoryChange = (category: CategoryFilter) => {
   const newCategory = forumStore.filters.category === category ? "" : category
   forumStore.updateFilters({ category: newCategory })
   fetchPosts(true)
+  syncQuery()
 }
 
 const handleSortChange = () => {
   fetchPosts(true)
+  syncQuery()
+}
+
+const clearFilters = () => {
+  forumStore.resetFilters()
+  searchQuery.value = ""
+  fetchPosts(true)
+  syncQuery()
 }
 
 const handleScrollToContent = () => {
@@ -505,6 +339,7 @@ const goToPage = (page: number) => {
   if (page >= 1 && page <= forumStore.postsPagination.totalPages) {
     forumStore.setPostsPagination({ currentPage: page })
     fetchPosts()
+    syncQuery()
   }
 }
 
@@ -529,37 +364,42 @@ const handleEdit = (post: Post) => {
   router.push(`/forums/edit/${post.id}`)
 }
 
-const handleDelete = async (post: Post) => {
-  try {
-    await forumService.deletePost(post.id)
-    forumStore.setPosts(forumStore.posts.filter((p) => p.id !== post.id))
-  } catch (error) {
-    console.error("删除帖子失败:", error)
-  }
+/** PostCard 内已确认并调删除 API，这里只同步 store 移除卡片 */
+const handleDelete = (post: Post) => {
+  forumStore.setPosts(forumStore.posts.filter((p) => p.id !== post.id))
 }
 
 const handleShare = (post: Post) => {
   const shareUrl = `${window.location.origin}/forums/post/${post.id}`
   if (navigator.share) {
-    navigator.share({
-      title: post.title,
-      text: post.summary || post.title,
-      url: shareUrl,
-    })
+    navigator
+      .share({
+        title: post.title,
+        text: post.summary || post.title,
+        url: shareUrl,
+      })
+      .catch(() => {})
   } else {
     navigator.clipboard.writeText(shareUrl)
-    alert("链接已复制到剪贴板")
+    // PostCard 内已 toast，此处不再弹窗
   }
 }
 
 onMounted(() => {
-  const route = router.currentRoute.value
-  if (route.query.category) {
-    forumStore.updateFilters({ category: normalizeCategory(route.query.category) })
+  const query = router.currentRoute.value.query
+  if (query.category) {
+    forumStore.updateFilters({ category: normalizeCategory(query.category) })
   }
-  if (route.query.search) {
-    searchQuery.value = route.query.search as string
-    forumStore.updateFilters({ search: route.query.search as string })
+  if (query.search) {
+    searchQuery.value = query.search as string
+    forumStore.updateFilters({ search: query.search as string })
+  }
+  if (typeof query.sort === "string" && query.sort) {
+    forumStore.updateFilters({ sortBy: query.sort })
+  }
+  const page = Number(query.page) || 1
+  if (page > 1) {
+    forumStore.setPostsPagination({ currentPage: page })
   }
   fetchPosts()
 })
@@ -571,20 +411,33 @@ onUnmounted(() => {
   }
 })
 
+// 浏览器前进/后退等外部 query 变化时还原筛选并刷新
 watch(
   () => router.currentRoute.value.query,
-  (newQuery) => {
-    if (newQuery.category !== forumStore.filters.category) {
-      forumStore.updateFilters({
-        category: normalizeCategory(newQuery.category),
-      })
-      fetchPosts(true)
+  (query) => {
+    let changed = false
+    const category = normalizeCategory(query.category)
+    if (category !== forumStore.filters.category) {
+      forumStore.updateFilters({ category })
+      changed = true
     }
-    if (newQuery.search !== forumStore.filters.search) {
-      searchQuery.value = (newQuery.search as string) || ""
-      forumStore.updateFilters({ search: (newQuery.search as string) || "" })
-      fetchPosts(true)
+    const search = (query.search as string) || ""
+    if (search !== forumStore.filters.search) {
+      searchQuery.value = search
+      forumStore.updateFilters({ search })
+      changed = true
     }
+    const sort = typeof query.sort === "string" ? query.sort : ""
+    if (sort && sort !== forumStore.filters.sortBy) {
+      forumStore.updateFilters({ sortBy: sort })
+      changed = true
+    }
+    const page = Number(query.page) || 1
+    if (page !== forumStore.postsPagination.currentPage) {
+      forumStore.setPostsPagination({ currentPage: page })
+      changed = true
+    }
+    if (changed) fetchPosts()
   },
 )
 </script>

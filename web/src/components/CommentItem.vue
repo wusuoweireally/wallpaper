@@ -4,16 +4,12 @@
     <div class="flex gap-3">
       <!-- 用户头像 -->
       <div class="flex-shrink-0">
-        <div class="avatar">
-          <div class="h-8 w-8 overflow-hidden rounded-full border border-base-200 bg-base-100">
-            <img
-              :src="avatarSrc"
-              :alt="comment.author?.username || '用户头像'"
-              class="h-full w-full object-cover"
-              @error="handleAvatarError"
-            />
-          </div>
-        </div>
+        <img
+          :src="avatarSrc"
+          :alt="comment.author?.username || '用户头像'"
+          class="h-8 w-8 overflow-hidden rounded-full object-cover ring-1 ring-line"
+          @error="handleAvatarError"
+        />
       </div>
 
       <!-- 评论主体 -->
@@ -23,13 +19,13 @@
           <span class="text-sm font-semibold">
             {{ comment.author?.username || "未知用户" }}
           </span>
-          <span class="text-xs text-gray-500">
+          <span class="text-xs text-faint">
             {{ formatTime(comment.createdAt) }}
           </span>
           <!-- 编辑标识 -->
           <span
             v-if="comment.updatedAt && comment.updatedAt !== comment.createdAt"
-            class="text-xs text-gray-400"
+            class="text-xs text-faint"
           >
             (已编辑)
           </span>
@@ -38,32 +34,43 @@
         <!-- 评论内容 -->
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div
-          class="mb-2 whitespace-pre-wrap break-words text-sm text-gray-800"
+          class="mb-2 whitespace-pre-wrap break-words text-sm text-fg"
           v-html="formatContent(comment.content)"
         ></div>
 
         <!-- 评论操作 -->
         <div class="flex items-center gap-3 text-xs">
           <!-- 回复按钮 -->
-          <button class="btn btn-ghost btn-xs hover:text-primary" @click="handleReply">
-            💬 回复
+          <button class="wb-btn-ghost wb-btn-xs hover:text-primary" @click="handleReply">
+            <i class="i-[mdi--comment-outline] text-sm" aria-hidden="true"></i>
+            回复
           </button>
 
-          <!-- 点赞按钮 -->
+          <!-- 点赞按钮：统一主题色 -->
           <button
-            class="btn btn-ghost btn-xs hover:text-green-500"
-            :class="{ 'text-green-500': comment.isLiked }"
+            class="wb-btn-ghost wb-btn-xs hover:text-primary"
+            :class="{ 'text-primary': comment.isLiked }"
             @click="handleLike"
             :disabled="loading"
           >
-            <span :class="comment.isLiked ? 'text-green-500' : 'text-gray-400'"> 👍 </span>
+            <i
+              class="text-sm"
+              :class="
+                comment.isLiked
+                  ? 'i-[mdi--thumb-up] text-primary'
+                  : 'i-[mdi--thumb-up-outline] text-faint'
+              "
+              aria-hidden="true"
+            ></i>
             {{ comment.likeCount > 0 ? comment.likeCount : "" }}
           </button>
 
           <!-- 作者操作 -->
-          <div v-if="isAuthor" class="dropdown dropdown-left">
-            <label tabindex="0" class="btn btn-ghost btn-xs btn-circle"> ⋮ </label>
-            <ul tabindex="0" class="dropdown-content menu w-24 rounded-box bg-base-100 p-2 shadow">
+          <div v-if="isAuthor" class="wb-drop wb-drop-left">
+            <label tabindex="0" class="wb-btn-ghost wb-btn-xs">
+              <i class="i-[mdi--dots-horizontal] text-sm" aria-hidden="true"></i>
+            </label>
+            <ul tabindex="0" class="wb-drop-panel w-24 bg-surface p-2 shadow">
               <li>
                 <a @click="handleEdit">编辑</a>
               </li>
@@ -75,8 +82,9 @@
         </div>
 
         <!-- 回复框 -->
-        <div v-if="showReplyForm" class="border-primary/20 mt-3 border-l-2 pl-4">
+        <div v-if="showReplyForm" class="mt-3 border-l-2 border-primary/20 pl-4">
           <CommentReplyForm
+            ref="replyFormRef"
             :parent-id="comment.id"
             @submit="handleReplySubmit"
             @cancel="showReplyForm = false"
@@ -101,26 +109,26 @@
     </div>
 
     <!-- 编辑模态框 -->
-    <dialog ref="editModal" class="modal">
-      <div class="modal-box w-11/12 max-w-lg">
+    <dialog ref="editModal" class="wb-dialog">
+      <div class="wb-dialog-box w-11/12 max-w-lg">
         <h3 class="mb-4 text-lg font-bold">编辑评论</h3>
-        <div class="form-control">
+        <div class="">
           <textarea
             v-model="editContent"
-            class="textarea-bordered textarea h-32"
-            placeholder="请输入评论内容..."
+            class="wb-input h-32"
+            placeholder="请输入评论内容…"
             maxlength="1000"
           ></textarea>
-          <div class="mt-1 text-right text-xs text-gray-500">{{ editContent.length }}/1000</div>
+          <div class="mt-1 text-right text-xs text-faint">{{ editContent.length }}/1000</div>
         </div>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="closeEditModal">取消</button>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="wb-btn-ghost" @click="closeEditModal">取消</button>
           <button
-            class="btn btn-primary"
+            class="wb-btn-primary"
             @click="handleEditSubmit"
             :disabled="!editContent.trim() || editLoading"
           >
-            {{ editLoading ? "保存中..." : "保存" }}
+            {{ editLoading ? "保存中…" : "保存" }}
           </button>
         </div>
       </div>
@@ -138,6 +146,8 @@ import CommentReplyForm from "./CommentReplyForm.vue"
 import { resolveAvatarUrl } from "@/utils/avatar"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
+import { confirmAction } from "@/composables/useConfirm"
+import { formatTime } from "@/utils/format"
 
 // 组件属性
 interface Props {
@@ -160,6 +170,7 @@ const emit = defineEmits<{
 
 // 组件引用
 const editModal = ref<HTMLDialogElement>()
+const replyFormRef = ref<InstanceType<typeof CommentReplyForm>>()
 
 // 响应式数据
 const loading = ref(false)
@@ -223,9 +234,13 @@ const handleEdit = () => {
 }
 
 const handleDelete = async () => {
-  if (!confirm("确定要删除这条评论吗？")) {
-    return
-  }
+  const ok = await confirmAction({
+    title: "删除评论",
+    message: "确定要删除这条评论吗？",
+    confirmText: "删除",
+    danger: true,
+  })
+  if (!ok) return
 
   try {
     loading.value = true
@@ -247,9 +262,11 @@ const handleReplySubmit = async (content: string) => {
       parentId: props.comment.id,
     })
 
+    replyFormRef.value?.clear()
     showReplyForm.value = false
     emit("refresh")
   } catch (error) {
+    // 失败保留输入内容，便于直接重试
     console.error("回复评论失败:", error)
     toast.error("回复失败，请重试")
   }
@@ -300,34 +317,13 @@ const handleNestedReply = (reply: Comment) => {
 }
 
 // 辅助函数
-const formatTime = (timeStr: string) => {
-  const date = new Date(timeStr)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (minutes < 1) return "刚刚"
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-
-  return date.toLocaleDateString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  })
-}
-
 const formatContent = (content: string) => {
   // 简单的换行和链接处理，然后清理HTML以确保安全
   const formatted = content
     .replace(/\n/g, "<br>")
     .replace(
       /(https?:\/\/[^\s]+)/g,
-      '<a href="$1" target="_blank" class="text-blue-500 hover:underline">$1</a>',
+      '<a href="$1" target="_blank" class="text-primary hover:underline">$1</a>',
     )
     .replace(/@(\w+)/g, '<span class="text-primary font-semibold">@$1</span>')
 
@@ -342,7 +338,7 @@ const formatContent = (content: string) => {
 }
 
 .comment-reply {
-  border-left: 2px solid rgba(148, 163, 184, 0.4);
+  border-left: 2px solid var(--wb-border);
   padding-left: 1rem;
 }
 

@@ -1,379 +1,221 @@
 <template>
-  <div class="relative min-h-screen bg-[#f5f6fa] dark:bg-slate-900">
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#dceafe] opacity-60 blur-3xl dark:bg-blue-900/20"
-      ></div>
-      <div
-        class="absolute right-[-80px] top-16 h-80 w-80 rounded-full bg-[#fde2c5] opacity-70 blur-3xl dark:bg-orange-900/20"
-      ></div>
-      <div
-        class="absolute left-1/3 top-52 h-56 w-56 rounded-full bg-[#e8e7ff] opacity-60 blur-3xl dark:bg-purple-900/20"
-      ></div>
-    </div>
-    <div class="relative mx-auto max-w-6xl space-y-8 px-4 py-10">
-      <div
-        class="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-900/50"
-      >
-        <div
-          class="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"
-        ></div>
-        <div class="relative">
-          <div
-            class="h-2 w-full bg-gradient-to-r from-slate-900 via-indigo-600 to-emerald-500"
-          ></div>
-          <div
-            class="flex flex-col gap-5 p-7 lg:flex-row lg:items-center lg:justify-between lg:p-10"
-          >
-            <div class="space-y-3">
-              <div
-                class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 py-1.5 dark:border-emerald-700/50 dark:from-emerald-500/20 dark:to-teal-500/20"
-              >
-                <i class="i-[mdi--pencil-circle] text-emerald-600 dark:text-emerald-400"></i>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-300">
-                  Update
-                </p>
-              </div>
-              <h1
-                class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-4xl font-bold text-transparent dark:from-slate-100 dark:to-slate-400"
-              >
-                编辑帖子
-              </h1>
-              <p class="max-w-xl text-base text-slate-600 dark:text-slate-400">
-                修正、补充或更新内容，保存后会记录最新编辑时间。
-              </p>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <button
-                class="btn btn-ghost shadow-sm transition-all hover:bg-slate-100 hover:shadow-md dark:hover:bg-slate-700"
-                @click="handleCancel"
-              >
-                <i class="i-[mdi--close] text-lg"></i>
-                取消
-              </button>
-              <button
-                class="group btn btn-outline border-amber-300 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-50 hover:shadow-md dark:border-amber-700/50 dark:hover:bg-amber-900/20"
-                @click="resetToOriginal"
-                :disabled="!hasChanges"
-              >
-                <i
-                  class="i-[mdi--restore] text-lg transition-transform duration-500 group-hover:rotate-180"
-                ></i>
-                恢复原始
-              </button>
-              <button
-                class="group btn btn-outline border-slate-300 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 hover:shadow-md dark:border-slate-600 dark:hover:bg-slate-700"
-                @click="previewPost"
-                :disabled="!hasContent"
-              >
-                <i class="i-[mdi--eye] text-lg transition-transform group-hover:scale-110"></i>
-                预览
-              </button>
-              <button
-                class="group btn btn-primary relative overflow-hidden shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 hover:shadow-emerald-500/40"
-                @click="submitUpdate"
-                :disabled="isSubmitting || !isFormValid"
-              >
-                <span
-                  class="absolute inset-0 -translate-x-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-700 group-hover:translate-x-full dark:from-white/0 dark:via-white/10 dark:to-white/0"
-                ></span>
-                <i
-                  class="i-[mdi--content-save] relative z-10 text-lg transition-transform group-hover:-translate-y-0.5"
-                  v-if="!isSubmitting"
-                ></i>
-                <span class="loading loading-spinner loading-sm relative z-10" v-else></span>
-                <span class="relative z-10 font-medium">{{
-                  isSubmitting ? "更新中..." : "保存修改"
-                }}</span>
-              </button>
-            </div>
+  <div class="wb-page">
+    <div class="wb-container space-y-6 py-5">
+      <!-- 头部：标题 + 操作按钮 -->
+      <div class="wb-page-head">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="space-y-1">
+            <h1 class="wb-page-title">编辑帖子</h1>
+            <p class="max-w-xl text-xs text-muted">
+              修正、补充或更新内容，保存后会记录最新编辑时间。
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button class="wb-btn-ghost" @click="handleCancel">
+              <i class="i-[mdi--close] text-lg"></i>
+              取消
+            </button>
+            <button class="wb-btn" @click="resetToOriginal" :disabled="!hasChanges">
+              <i class="i-[mdi--restore] text-lg"></i>
+              恢复原始
+            </button>
+            <button class="wb-btn" @click="previewPost" :disabled="!hasContent">
+              <i class="i-[mdi--eye] text-lg"></i>
+              预览
+            </button>
+            <button
+              class="wb-btn-primary"
+              @click="submitUpdate"
+              :disabled="isSubmitting || !isFormValid"
+            >
+              <i class="i-[mdi--content-save] text-lg" v-if="!isSubmitting"></i>
+              <span class="wb-spinner" v-else></span>
+              <span class="font-medium">{{ isSubmitting ? "更新中…" : "保存修改" }}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <div
-        v-if="loading"
-        class="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-200/70 bg-white/90 shadow dark:border-slate-700/70 dark:bg-slate-800/90"
-      >
-        <div class="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
-          <span class="loading loading-spinner loading-lg text-primary"></span>
-          <p class="text-sm">正在加载帖子...</p>
+      <div v-if="loading" class="flex min-h-[40vh] items-center justify-center">
+        <div class="flex flex-col items-center gap-3 text-muted">
+          <span class="wb-spinner wb-spinner-lg"></span>
+          <p class="text-sm">正在加载帖子…</p>
         </div>
       </div>
 
-      <div
-        v-else-if="error"
-        class="border-error/30 bg-error/5 rounded-2xl border p-6 text-error shadow dark:bg-error/10"
-      >
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <i class="i-[mdi--alert-circle] text-2xl"></i>
-            <span>{{ error }}</span>
-          </div>
-          <button class="btn btn-sm" @click="router.back()">返回</button>
-        </div>
+      <div v-else-if="error" class="wb-alert-danger">
+        <i class="i-[mdi--alert-circle] text-2xl"></i>
+        <span>{{ error }}</span>
+        <button class="wb-btn-ghost wb-btn-sm" @click="router.back()">返回</button>
       </div>
 
       <div v-else-if="originalPost" class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div
-          class="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/50 backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-800 dark:shadow-slate-900/50"
-        >
-          <div
-            class="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-gradient-to-br from-emerald-100/40 to-teal-100/40 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"
-          ></div>
-          <div class="relative space-y-7">
-            <div class="grid gap-5 md:grid-cols-2">
-              <div class="form-control group">
-                <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-[mdi--format-title] text-blue-600 dark:text-blue-400"></i>
-                    标题 <span class="text-error">*</span>
-                  </span>
-                </label>
-                <input
-                  v-model="formData.title"
-                  type="text"
-                  placeholder="请输入帖子标题，建议不超过50字"
-                  class="input-bordered input w-full transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
-                  :class="{ 'input-error': errors.title }"
-                  @input="validateTitle"
-                  maxlength="100"
-                />
-                <label class="label mt-1">
-                  <span class="label-text-alt text-error" v-if="errors.title">{{
-                    errors.title
-                  }}</span>
-                  <span class="label-text-alt ml-auto text-slate-500 dark:text-slate-400"
-                    >{{ (formData.title || "").length }}/100</span
-                  >
-                </label>
-              </div>
-
-              <div class="form-control group">
-                <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-[mdi--shape-outline] text-indigo-600 dark:text-indigo-400"></i>
-                    分类 <span class="text-error">*</span>
-                  </span>
-                </label>
-                <select
-                  v-model="formData.category"
-                  class="select-bordered select w-full cursor-pointer transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
-                  :class="{ 'select-error': errors.category }"
-                  @change="validateCategory"
-                >
-                  <option value="" disabled>请选择分类</option>
-                  <option value="tech_discussion">💡 技术讨论</option>
-                  <option value="experience_sharing">✨ 经验分享</option>
-                  <option value="q_a">❓ 问答求助</option>
-                  <option value="resource_sharing">🎁 资源分享</option>
-                </select>
-                <label class="label mt-1">
-                  <span class="label-text-alt text-error" v-if="errors.category">{{
-                    errors.category
-                  }}</span>
-                </label>
+        <!-- 表单 -->
+        <div class="wb-card space-y-7 p-6">
+          <div class="grid gap-5 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-fg">
+                标题 <span class="text-error">*</span>
+              </label>
+              <input
+                v-model="formData.title"
+                type="text"
+                placeholder="请输入帖子标题，建议不超过50字"
+                class="wb-input w-full"
+                :class="{ 'has-error': errors.title }"
+                @input="validateTitle"
+                maxlength="100"
+              />
+              <div class="mt-1 flex justify-between text-xs">
+                <span class="text-error" v-if="errors.title">{{ errors.title }}</span>
+                <span class="ml-auto text-faint">{{ (formData.title || "").length }}/100</span>
               </div>
             </div>
 
-            <div class="form-control group">
-              <label class="label mb-2">
-                <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                  <i class="i-[mdi--text] text-emerald-600 dark:text-emerald-400"></i>
-                  内容 <span class="text-error">*</span>
-                </span>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-fg">
+                分类 <span class="text-error">*</span>
               </label>
-              <div
-                class="overflow-hidden rounded-2xl border border-slate-200 transition-colors focus-within:border-slate-900 dark:border-slate-600 dark:focus-within:border-slate-400"
+              <select
+                v-model="formData.category"
+                class="wb-input w-full cursor-pointer"
+                :class="{ 'has-error': errors.category }"
+                @change="validateCategory"
               >
-                <RichTextEditor
-                  v-model="formData.content"
-                  placeholder="请输入帖子内容，支持富文本格式..."
-                  :maxlength="10000"
-                  height="400px"
-                  @change="validateContent"
-                />
+                <option value="" disabled>请选择分类</option>
+                <option value="tech_discussion">技术讨论</option>
+                <option value="experience_sharing">经验分享</option>
+                <option value="q_a">问答求助</option>
+                <option value="resource_sharing">资源分享</option>
+              </select>
+              <div class="mt-1 text-xs text-error" v-if="errors.category">
+                {{ errors.category }}
               </div>
-              <label class="label mt-1">
-                <span class="label-text-alt text-error" v-if="errors.content">{{
-                  errors.content
-                }}</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-fg">
+              内容 <span class="text-error">*</span>
+            </label>
+            <div
+              class="overflow-hidden rounded-control border border-line transition-colors focus-within:border-primary"
+            >
+              <RichTextEditor
+                v-model="formData.content"
+                placeholder="请输入帖子内容，空行分段会更易读…"
+                :maxlength="10000"
+                height="400px"
+                @change="validateContent"
+              />
+            </div>
+            <div class="mt-1 text-xs text-error" v-if="errors.content">
+              {{ errors.content }}
+            </div>
+          </div>
+
+          <div class="grid gap-5 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-fg">
+                摘要 <span class="text-xs font-normal text-faint">(可选)</span>
               </label>
+              <textarea
+                v-model="formData.summary"
+                placeholder="请输入帖子摘要，有助于其他用户快速了解内容"
+                class="wb-input h-28 w-full resize-none"
+                maxlength="200"
+              ></textarea>
+              <div class="mt-1 text-xs text-faint">{{ (formData.summary || "").length }}/200</div>
             </div>
 
-            <div class="grid gap-5 md:grid-cols-2">
-              <div class="form-control group">
-                <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-[mdi--text-short] text-amber-600 dark:text-amber-400"></i>
-                    摘要 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
-                  </span>
-                </label>
-                <textarea
-                  v-model="formData.summary"
-                  placeholder="请输入帖子摘要，有助于其他用户快速了解内容"
-                  class="textarea-bordered textarea h-28 w-full resize-none transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
-                  maxlength="200"
-                ></textarea>
-                <label class="label mt-1">
-                  <span class="label-text-alt text-slate-500 dark:text-slate-400"
-                    >{{ (formData.summary || "").length }}/200</span
-                  >
-                </label>
-              </div>
-
-              <div class="form-control group">
-                <label class="label mb-2">
-                  <span class="label-text flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-                    <i class="i-[mdi--tag-outline] text-purple-600 dark:text-purple-400"></i>
-                    标签 <span class="text-xs text-slate-500 dark:text-slate-400">(可选)</span>
-                  </span>
-                </label>
-                <div class="mb-3 flex flex-wrap gap-2">
-                  <div
-                    v-for="(tag, index) in tagList"
-                    :key="index"
-                    class="group badge gap-2 border border-slate-300 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                  >
-                    #{{ tag }}
-                    <button
-                      @click="removeTag(index)"
-                      class="btn btn-ghost btn-xs h-4 w-4 p-0 opacity-0 transition-opacity hover:text-rose-600 group-hover:opacity-100"
-                    >
-                      <i class="i-[mdi--close] text-xs"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <input
-                    v-model="newTag"
-                    type="text"
-                    placeholder="添加标签（按回车确认）"
-                    class="input-bordered input input-sm flex-1 transition-all hover:border-slate-400 focus:border-slate-900 dark:hover:border-slate-600 dark:focus:border-slate-400"
-                    @keydown.enter.prevent="addTag"
-                    maxlength="20"
-                  />
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-fg">
+                标签 <span class="text-xs font-normal text-faint">(可选)</span>
+              </label>
+              <div class="mb-3 flex flex-wrap gap-2">
+                <span v-for="(tag, index) in tagList" :key="index" class="wb-chip gap-2">
+                  #{{ tag }}
                   <button
-                    @click="addTag"
-                    class="btn btn-primary btn-sm shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:hover:scale-100"
-                    :disabled="!newTag.trim()"
+                    @click="removeTag(index)"
+                    class="wb-btn-ghost wb-btn-xs h-4 w-4 p-0 hover:text-error"
                   >
-                    <i class="i-[mdi--plus]"></i>
-                    添加
+                    <i class="i-[mdi--close] text-xs"></i>
                   </button>
-                </div>
+                </span>
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="newTag"
+                  type="text"
+                  placeholder="添加标签（按回车确认）"
+                  class="wb-input flex-1"
+                  @keydown.enter.prevent="addTag"
+                  maxlength="20"
+                />
+                <button @click="addTag" class="wb-btn-primary wb-btn-sm" :disabled="!newTag.trim()">
+                  <i class="i-[mdi--plus]"></i>
+                  添加
+                </button>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- 侧栏 -->
         <div class="space-y-5">
-          <div
-            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl dark:border-slate-700/80 dark:bg-slate-800 dark:shadow-slate-900/30"
-          >
-            <div
-              class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-amber-200/30 to-orange-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150 dark:from-amber-900/20 dark:to-orange-900/20"
-            ></div>
-            <div class="relative">
-              <div class="mb-4 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div
-                    class="rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2 shadow-md shadow-amber-500/30"
-                  >
-                    <i class="i-[mdi--information] text-lg text-white"></i>
-                  </div>
-                  <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">编辑说明</h3>
-                </div>
-                <span
-                  class="badge badge-sm font-medium"
-                  :class="
-                    hasChanges
-                      ? 'border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-300'
-                      : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                  "
-                >
-                  {{ hasChanges ? "⚠️ 有未保存更改" : "✓ 已保存" }}
-                </span>
-              </div>
-              <ul class="space-y-2.5 text-sm">
-                <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
-                >
-                  <span class="text-emerald-600 dark:text-emerald-400">✓</span>
-                  <span class="text-slate-700 dark:text-slate-300">帖子最后编辑时间将同步更新</span>
-                </li>
-                <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
-                >
-                  <span class="text-blue-600 dark:text-blue-400">✓</span>
-                  <span class="text-slate-700 dark:text-slate-300">修改范围较大时，可在开头写一段 "更新日志"</span>
-                </li>
-                <li
-                  class="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-white/60 dark:hover:bg-slate-700/50"
-                >
-                  <span class="text-indigo-600 dark:text-indigo-400">✓</span>
-                  <span class="text-slate-700 dark:text-slate-300">保持格式整洁，去除外部水印或广告</span>
-                </li>
-              </ul>
-              <div class="mt-5 flex flex-col gap-2">
-                <button
-                  class="btn btn-outline btn-sm shadow-md transition-all hover:scale-105 hover:shadow-lg"
-                  @click="previewPost"
-                  :disabled="!hasContent"
-                >
-                  <i class="i-[mdi--eye] text-base"></i>
-                  预览效果
-                </button>
-                <button
-                  class="btn btn-ghost btn-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-                  @click="handleCancel"
-                >
-                  <i class="i-[mdi--arrow-left] text-base"></i>
-                  返回详情页
-                </button>
-              </div>
+          <div class="wb-card p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-base font-semibold text-fg">编辑说明</h3>
+              <span
+                class="wb-chip font-medium"
+                :class="hasChanges ? 'border-warning/40 bg-warning/10 text-warning' : 'text-muted'"
+              >
+                {{ hasChanges ? "有未保存更改" : "已保存" }}
+              </span>
+            </div>
+            <ul class="space-y-2.5 text-sm text-muted">
+              <li>· 帖子最后编辑时间将同步更新</li>
+              <li>· 修改范围较大时，可在开头写一段 "更新日志"</li>
+              <li>· 保持格式整洁，去除外部水印或广告</li>
+            </ul>
+            <div class="mt-5 flex flex-col gap-2">
+              <button class="wb-btn wb-btn-sm" @click="previewPost" :disabled="!hasContent">
+                <i class="i-[mdi--eye] text-base"></i>
+                预览效果
+              </button>
+              <button class="wb-btn-ghost wb-btn-sm" @click="handleCancel">
+                <i class="i-[mdi--arrow-left] text-base"></i>
+                返回详情页
+              </button>
             </div>
           </div>
 
-          <div
-            class="group relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-5 shadow-lg shadow-slate-200/30 transition-all duration-300 hover:shadow-xl dark:border-slate-700/80 dark:from-slate-800 dark:to-slate-900/80 dark:shadow-slate-900/30"
-          >
-            <div
-              class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-200/30 blur-2xl transition-transform duration-500 group-hover:scale-150 dark:from-emerald-900/20 dark:to-teal-900/20"
-            ></div>
-            <div class="relative">
-              <div class="mb-4 flex items-center justify-between">
-                <h3 class="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                  <i class="i-[mdi--eye-outline] text-emerald-600 dark:text-emerald-400"></i>
-                  实时预览
-                </h3>
-                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-400">{{
-                  getCategoryName(formData.category)
-                }}</span>
-              </div>
-              <div class="space-y-3">
-                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/50">
-                  <p class="line-clamp-2 min-h-[3.5rem] text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {{ formData.title || "请输入标题" }}
-                  </p>
-                  <!-- eslint-disable-next-line vue/no-v-html -->
-                  <p
-                    class="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-slate-600 dark:text-slate-400"
-                    v-if="formData.summary || formData.content"
-                    v-html="sanitizeHtml(formData.summary || formData.content)"
-                  ></p>
-                  <div class="mt-3 flex flex-wrap gap-1.5">
-                    <span
-                      v-for="tag in tagList"
-                      :key="tag"
-                      class="badge badge-ghost badge-xs text-xs"
-                    >
-                      #{{ tag }}
-                    </span>
-                    <span v-if="tagList.length === 0" class="text-xs text-slate-400 dark:text-slate-500"
-                      >添加标签帮助推荐</span
-                    >
-                  </div>
+          <div class="wb-card p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="flex items-center gap-2 text-base font-semibold text-fg">
+                <i class="i-[mdi--eye-outline] text-faint"></i>
+                实时预览
+              </h3>
+              <span class="wb-chip">{{ getCategoryName(formData.category) }}</span>
+            </div>
+            <div class="space-y-3">
+              <div class="rounded-control border border-line bg-surface p-4">
+                <p class="line-clamp-2 min-h-[3.5rem] text-lg font-bold text-fg">
+                  {{ formData.title || "请输入标题" }}
+                </p>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <p
+                  class="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-muted"
+                  v-if="formData.summary || formData.content"
+                  v-html="sanitizeHtml(formData.summary || formData.content)"
+                ></p>
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <span v-for="tag in tagList" :key="tag" class="wb-chip text-xs">
+                    #{{ tag }}
+                  </span>
+                  <span v-if="tagList.length === 0" class="text-xs text-faint"
+                    >添加标签帮助推荐</span
+                  >
                 </div>
               </div>
             </div>
@@ -382,27 +224,27 @@
       </div>
     </div>
 
-    <dialog ref="previewModal" class="modal">
-      <div class="modal-box max-w-4xl">
+    <dialog ref="previewModal" class="wb-dialog">
+      <div class="wb-dialog-box max-w-4xl">
         <h3 class="text-lg font-bold">帖子预览</h3>
         <div class="custom-prose mt-4">
           <h2 class="text-xl font-bold">
             {{ formData.title || "无标题" }}
           </h2>
-          <div class="badge badge-outline mb-4">
+          <div class="wb-chip mb-4">
             {{ getCategoryName(formData.category) }}
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <div
-            class="prose-sm prose mb-4 max-w-none"
+            class="prose mb-4 max-w-none"
             v-html="sanitizeHtml(formData.content) || '<p>无内容</p>'"
           ></div>
-          <p v-if="formData.summary" class="italic text-gray-600">
+          <p v-if="formData.summary" class="italic text-faint">
             {{ formData.summary }}
           </p>
         </div>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="closePreview">关闭</button>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="wb-btn-ghost" @click="closePreview">关闭</button>
         </div>
       </div>
     </dialog>
@@ -413,11 +255,14 @@
 import { ref, computed, reactive, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { forumService, type UpdatePostDto } from "@/services/forum"
+import type { Post } from "@/stores/forum"
 import RichTextEditor from "@/components/RichTextEditor.vue"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { useGlobalToast } from "@/composables/useToast"
 
 const router = useRouter()
 const route = useRoute()
+const toast = useGlobalToast()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -581,7 +426,7 @@ const submitUpdate = async () => {
   validateCategory()
   validateContent()
   if (!isFormValid.value) {
-    alert("请填写所有必填字段")
+    toast.warning("请填写所有必填字段")
     return
   }
   try {
@@ -595,12 +440,12 @@ const submitUpdate = async () => {
       tags: tagList.value.join(","),
     }
     const updatedPost = await forumService.updatePost(id, updateData)
-    alert("帖子更新成功")
+    toast.success("帖子更新成功")
     router.push(`/forums/post/${updatedPost.id}`)
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     console.error("更新帖子失败:", errObj)
-    alert(errObj.message || "更新失败，请稍后重试")
+    toast.error(errObj.message || "更新失败，请稍后重试")
   } finally {
     isSubmitting.value = false
   }

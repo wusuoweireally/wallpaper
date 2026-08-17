@@ -4,13 +4,7 @@ export interface CreateReportDto {
   targetType: "post" | "comment"
   targetId: number
   reason:
-    | "spam"
-    | "inappropriate"
-    | "harassment"
-    | "violence"
-    | "copyright"
-    | "misinformation"
-    | "other"
+    "spam" | "inappropriate" | "harassment" | "violence" | "copyright" | "misinformation" | "other"
   description?: string
 }
 

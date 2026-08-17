@@ -1,159 +1,82 @@
 <template>
-  <div class="min-h-screen bg-base-200">
-    <!-- 顶部横幅 -->
-    <div class="hero bg-base-100 shadow-md">
-      <div class="hero-content text-center">
-        <div class="max-w-2xl">
-          <h1 class="mb-4 text-5xl font-bold">🏷️ 标签库</h1>
-          <p class="mb-6 text-xl">发现和探索不同主题的壁纸标签，找到你喜欢的风格</p>
-          <div class="form-control">
-            <div class="input-group justify-center">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索标签..."
-                class="input-bordered input w-80"
-                @keyup.enter="handleSearch"
-              />
-              <button class="btn btn-primary" @click="handleSearch">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
+  <div class="wb-page">
+    <div class="wb-container-gallery py-5">
+      <header class="wb-page-head flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 class="wb-page-title">标签</h1>
+          <p class="mt-0.5 text-xs text-muted">按主题浏览壁纸</p>
         </div>
-      </div>
-    </div>
+        <form class="wb-nav-search w-full max-w-sm" role="search" @submit.prevent="applyFilters">
+          <i class="i-[mdi--magnify] shrink-0 text-base text-faint" aria-hidden="true"></i>
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="搜索标签…"
+            class="h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-fg outline-none placeholder:text-faint"
+          />
+        </form>
+      </header>
 
-    <div class="container mx-auto px-4 py-8">
-      <!-- 筛选器 -->
-      <div class="card mb-6 bg-base-100 shadow-xl">
-        <div class="card-body">
-          <div class="flex flex-wrap items-end gap-4">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">排序方式</span>
-              </label>
-              <select v-model="sortBy" class="select-bordered select" @change="loadTags(true)">
-                <option value="name">按名称</option>
-                <option value="usageCount">按使用次数</option>
-                <option value="createdAt">按创建时间</option>
-              </select>
-            </div>
-
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">排序方向</span>
-              </label>
-              <select v-model="sortOrder" class="select-bordered select" @change="loadTags(true)">
-                <option value="ASC">升序</option>
-                <option value="DESC">降序</option>
-              </select>
-            </div>
-
-            <div class="form-control ml-auto">
-              <label class="label">
-                <span class="label-text">显示全部标签</span>
-              </label>
-              <button class="btn btn-outline btn-sm" @click="clearFilters">清除筛选</button>
-            </div>
-          </div>
-        </div>
+      <div class="mb-4 flex flex-wrap items-center gap-1.5">
+        <button
+          v-for="opt in sortOptions"
+          :key="opt.value"
+          type="button"
+          class="chip"
+          :class="{ 'chip--on': sortBy === opt.value }"
+          @click="setSort(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+        <button
+          type="button"
+          class="chip"
+          :class="{ 'chip--on': sortOrder === 'DESC' }"
+          @click="toggleOrder"
+        >
+          {{ sortOrder === "DESC" ? "降序" : "升序" }}
+        </button>
+        <button type="button" class="chip chip--ghost" @click="clearFilters">清除</button>
       </div>
 
-      <!-- 标签云 -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <div v-if="loading" class="flex items-center justify-center py-20">
-            <span class="loading loading-spinner loading-lg"></span>
-          </div>
-
-          <div v-else-if="tags.length === 0" class="py-20 text-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="mx-auto h-20 w-20 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-              />
-            </svg>
-            <p class="mt-4 text-gray-500">暂无标签数据</p>
-          </div>
-
-          <div v-else>
-            <!-- 标签云网格 -->
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              <div
-                v-for="tag in tags"
-                :key="tag.id"
-                class="card transform cursor-pointer bg-base-200 transition-all hover:scale-105 hover:bg-primary hover:text-primary-content"
-                @click="goToTagDetail(tag)"
-              >
-                <div class="card-body p-4">
-                  <h3 class="card-title justify-center text-sm">
-                    {{ tag.name }}
-                  </h3>
-                  <p class="text-center text-xs opacity-80">{{ getUsageCount(tag) }} 张壁纸</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 分页 -->
-            <div class="mt-8 flex justify-center">
-              <div class="join">
-                <button
-                  class="btn join-item"
-                  :disabled="currentPage === 1"
-                  @click="changePage(currentPage - 1)"
-                >
-                  上一页
-                </button>
-                <button class="btn join-item" disabled>第 {{ currentPage }} 页</button>
-                <button
-                  class="btn join-item"
-                  :disabled="!hasMore"
-                  @click="changePage(currentPage + 1)"
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div v-if="loading" class="flex justify-center py-20">
+        <span class="wb-spinner wb-spinner-lg text-muted"></span>
       </div>
 
-      <!-- 热门标签 -->
-      <div class="mt-8">
-        <h2 class="mb-4 text-2xl font-bold">🔥 热门标签</h2>
+      <div v-else-if="tags.length === 0" class="wb-empty">
+        <p class="text-muted">暂无标签</p>
+      </div>
+
+      <div v-else class="flex flex-wrap gap-2">
+        <button
+          v-for="tag in tags"
+          :key="tag.id"
+          type="button"
+          class="tag-tile"
+          @click="goToTagDetail(tag)"
+        >
+          <span class="text-sm font-medium text-fg">{{ tag.name }}</span>
+          <span class="text-xs tabular-nums text-faint">{{ getUsageCount(tag) }}</span>
+        </button>
+      </div>
+
+      <div v-if="tags.length && totalPages > 1" class="mt-8 flex justify-center">
+        <Pagination :current-page="currentPage" :total-pages="totalPages" @change="changePage" />
+      </div>
+
+      <section v-if="popularTags.length" class="mt-10">
+        <h2 class="mb-3 text-sm font-semibold text-fg">热门标签</h2>
         <div class="flex flex-wrap gap-2">
           <RouterLink
             v-for="tag in popularTags"
             :key="tag.id"
             :to="`/tag/${tag.id}`"
-            class="badge badge-primary badge-lg transition-colors hover:badge-secondary"
+            class="wb-chip hover:border-primary/40 hover:text-primary"
           >
             {{ tag.name }} ({{ getUsageCount(tag) }})
           </RouterLink>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -162,6 +85,7 @@
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import tagService, { type Tag } from "@/services/tag"
+import Pagination from "@/components/Pagination.vue"
 
 const router = useRouter()
 const loading = ref(true)
@@ -171,17 +95,29 @@ const searchQuery = ref("")
 const sortBy = ref("name")
 const sortOrder = ref<"ASC" | "DESC">("ASC")
 const currentPage = ref(1)
-const hasMore = ref(true)
+const totalPages = ref(1)
+
+const sortOptions = [
+  { value: "name", label: "名称" },
+  { value: "usageCount", label: "使用次数" },
+  { value: "createdAt", label: "创建时间" },
+]
 
 const pageSize = 20
-const loadTags = async (reset = false) => {
-  try {
-    if (reset) {
-      loading.value = true
-      currentPage.value = 1
-      tags.value = []
-    }
 
+/** 筛选/页码同步到 URL（省略默认值），后退/分享可还原 */
+const syncQuery = () => {
+  const query: Record<string, string> = {}
+  if (searchQuery.value) query.q = searchQuery.value
+  if (sortBy.value !== "name") query.sort = sortBy.value
+  if (sortOrder.value !== "ASC") query.order = sortOrder.value
+  if (currentPage.value > 1) query.page = String(currentPage.value)
+  router.replace({ query })
+}
+
+const loadTags = async () => {
+  try {
+    loading.value = true
     const response = await tagService.getTags({
       keyword: searchQuery.value || undefined,
       sortBy: sortBy.value,
@@ -189,18 +125,8 @@ const loadTags = async (reset = false) => {
       page: currentPage.value,
       limit: pageSize,
     })
-
-    if (reset) {
-      tags.value = response.data
-    } else {
-      tags.value.push(...response.data)
-    }
-
-    if (response.pagination) {
-      hasMore.value = response.pagination.page < response.pagination.pages
-    } else {
-      hasMore.value = response.data.length === pageSize
-    }
+    tags.value = response.data
+    totalPages.value = response.pagination?.pages ?? 1
   } catch (error) {
     console.error("加载标签列表失败:", error)
   } finally {
@@ -220,41 +146,36 @@ const loadPopularTags = async () => {
   }
 }
 
-const handleSearch = () => {
-  loadTags(true)
+const applyFilters = () => {
+  currentPage.value = 1
+  loadTags()
+  syncQuery()
+}
+
+const setSort = (value: string) => {
+  sortBy.value = value
+  applyFilters()
+}
+
+const toggleOrder = () => {
+  sortOrder.value = sortOrder.value === "ASC" ? "DESC" : "ASC"
+  applyFilters()
 }
 
 const clearFilters = () => {
   searchQuery.value = ""
   sortBy.value = "name"
   sortOrder.value = "ASC"
-  loadTags(true)
+  currentPage.value = 1
+  loadTags()
+  syncQuery()
 }
 
-const changePage = async (page: number) => {
+const changePage = (page: number) => {
   if (page < 1 || page === currentPage.value) return
   currentPage.value = page
-  try {
-    loading.value = true
-    const response = await tagService.getTags({
-      keyword: searchQuery.value || undefined,
-      sortBy: sortBy.value,
-      sortOrder: sortOrder.value,
-      page,
-      limit: pageSize,
-    })
-    // 分页替换，禁止 push 追加
-    tags.value = response.data
-    if (response.pagination) {
-      hasMore.value = response.pagination.page < response.pagination.pages
-    } else {
-      hasMore.value = response.data.length === pageSize
-    }
-  } catch (error) {
-    console.error("加载标签列表失败:", error)
-  } finally {
-    loading.value = false
-  }
+  loadTags()
+  syncQuery()
 }
 
 const goToTagDetail = (tag: Tag) => {
@@ -266,7 +187,57 @@ const getUsageCount = (tag: Tag) => {
 }
 
 onMounted(() => {
-  loadTags(true)
+  // 从 URL 还原筛选（仅接受合法排序字段）
+  const query = router.currentRoute.value.query
+  if (typeof query.q === "string") searchQuery.value = query.q
+  if (typeof query.sort === "string" && sortOptions.some((o) => o.value === query.sort)) {
+    sortBy.value = query.sort
+  }
+  if (query.order === "ASC" || query.order === "DESC") {
+    sortOrder.value = query.order
+  }
+  const page = Number(query.page) || 1
+  if (page > 1) currentPage.value = page
+  loadTags()
   loadPopularTags()
 })
 </script>
+
+<style scoped>
+.chip {
+  display: inline-flex;
+  height: 1.75rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-surface);
+  padding: 0 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--wb-muted);
+}
+.chip--on {
+  border-color: transparent;
+  background: var(--wb-accent-fill);
+  color: var(--wb-accent-fg);
+}
+.chip--ghost:hover {
+  color: var(--wb-danger);
+}
+.tag-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-surface);
+  padding: 0.4rem 0.8rem;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.tag-tile:hover {
+  border-color: color-mix(in oklab, var(--wb-accent) 40%, transparent);
+  background: var(--wb-subtle);
+}
+</style>
