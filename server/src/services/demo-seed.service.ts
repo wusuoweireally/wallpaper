@@ -8,31 +8,45 @@ import { Tag } from "../entities/tag.entity";
 import { User, UserRole } from "../entities/user.entity";
 import { UploadService } from "./upload.service";
 
-type DemoTagTemplate = {
-  name: string;
-  slug: string;
-};
-
 /**
  * 演示数据初始化：读取本地 uploads/壁纸 目录的源图，
- * 走 UploadService（COS 上传 + 内容审核）入库，审核不通过的图自动跳过
+ * 走 UploadService（COS 上传 + 内容审核）入库，审核不通过的图自动跳过。
+ * 统计字段（浏览/点赞/收藏）保持 0，由真实用户行为产生。
  */
 @Injectable()
 export class DemoSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DemoSeedService.name);
 
+  /** 分类轮转顺序（与 wallhaven 一致的 general / anime / people） */
   private readonly categories: Array<Wallpaper["category"]> = [
     "general",
     "anime",
     "people",
   ];
 
-  private readonly tagTemplates: DemoTagTemplate[] = [
-    { name: "演示", slug: "演示" },
-    { name: "精选", slug: "精选" },
-    { name: "高清", slug: "高清" },
-    { name: "答辩展示", slug: "答辩展示" },
-  ];
+  /**
+   * 按分类的种子标签（取自 wallhaven.cc 热门通用标签，共 20 个）。
+   * 壁纸只会挂所属分类下的标签，保证内容与标签相符。
+   */
+  private readonly categoryTags: Record<Wallpaper["category"], string[]> = {
+    general: [
+      "nature",
+      "landscape",
+      "sky",
+      "clouds",
+      "water",
+      "sunlight",
+      "outdoors",
+      "simple background",
+      "minimalism",
+      "space",
+    ],
+    anime: ["anime", "anime girls", "digital art", "fan art", "video games"],
+    people: ["women", "long hair", "blue eyes", "smiling", "closeup"],
+  };
+
+  /** 每张壁纸挂的标签数 */
+  private readonly tagsPerWallpaper = 3;
 
   constructor(
     @InjectRepository(Wallpaper)
@@ -74,7 +88,13 @@ export class DemoSeedService implements OnApplicationBootstrap {
 
     const limit = this.getSeedLimit(files.length);
     const selectedFiles = files.slice(0, limit);
-    const tags = await this.ensureTags();
+
+    // 预创建全部种子标签（未用到的 usageCount 保持 0）
+    const tagsByName = new Map<string, Tag>();
+    for (const name of new Set(Object.values(this.categoryTags).flat())) {
+      tagsByName.set(name, await this.ensureTag(name));
+    }
+
     const tagUsage = new Map<number, number>();
     const entities: Wallpaper[] = [];
 
@@ -92,10 +112,8 @@ export class DemoSeedService implements OnApplicationBootstrap {
           uploader.id,
         );
 
-        const relatedTags = [
-          tags[index % tags.length],
-          tags[(index + 1) % tags.length],
-        ];
+        const category = this.categories[index % this.categories.length];
+        const relatedTags = this.pickTags(category, index, tagsByName);
         relatedTags.forEach((tag) => {
           tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
         });
@@ -103,11 +121,8 @@ export class DemoSeedService implements OnApplicationBootstrap {
         entities.push(
           this.wallpaperRepository.create({
             ...fileInfo,
-            category: this.categories[index % this.categories.length],
+            category,
             uploaderId: uploader.id,
-            viewCount: 120 - index * 7,
-            likeCount: 48 - index * 3,
-            favoriteCount: 24 - index * 2,
             status: 1,
             isFeatured: index < 3,
             tags: relatedTags,
@@ -127,12 +142,38 @@ export class DemoSeedService implements OnApplicationBootstrap {
 
     await this.wallpaperRepository.save(entities);
 
-    for (const tag of tags) {
+    // usageCount 写真实关联数
+    for (const tag of tagsByName.values()) {
       tag.usageCount = tagUsage.get(tag.id) || 0;
     }
-    await this.tagRepository.save(tags);
+    await this.tagRepository.save([...tagsByName.values()]);
 
     this.logger.log(`已初始化 ${entities.length} 条演示壁纸数据。`);
+  }
+
+  /** 从分类标签列表中按序轮转取 N 个（不同壁纸错开，避免全站同标签） */
+  private pickTags(
+    category: Wallpaper["category"],
+    index: number,
+    tagsByName: Map<string, Tag>,
+  ): Tag[] {
+    const pool = this.categoryTags[category];
+    return Array.from({ length: this.tagsPerWallpaper }, (_, offset) => {
+      const name = pool[(index + offset) % pool.length];
+      return tagsByName.get(name)!;
+    });
+  }
+
+  /** 按名称找标签，不存在则创建（slug 规则与 TagService.generateSlug 一致） */
+  private async ensureTag(name: string): Promise<Tag> {
+    const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
+    const existing = await this.tagRepository.findOne({
+      where: [{ slug }, { name }],
+    });
+    if (existing) return existing;
+
+    const tag = this.tagRepository.create({ name, slug, usageCount: 0 });
+    return this.tagRepository.save(tag);
   }
 
   /** 从文件名推断图片类型（jpeg/png/webp），用于 mimetype */
@@ -161,28 +202,5 @@ export class DemoSeedService implements OnApplicationBootstrap {
       this.logger.warn(`读取演示壁纸目录失败: ${String(error)}`);
       return [];
     }
-  }
-
-  private async ensureTags(): Promise<Tag[]> {
-    const tags: Tag[] = [];
-
-    for (const template of this.tagTemplates) {
-      let tag = await this.tagRepository.findOne({
-        where: [{ slug: template.slug }, { name: template.name }],
-      });
-
-      if (!tag) {
-        tag = this.tagRepository.create({
-          name: template.name,
-          slug: template.slug,
-          usageCount: 0,
-        });
-        await this.tagRepository.save(tag);
-      }
-
-      tags.push(tag);
-    }
-
-    return tags;
   }
 }
