@@ -57,7 +57,7 @@ server/uploads/**
 # ---------------
 # SSL 证书（私钥敏感，不提交）
 # ---------------
-docker/nginx/ssl/
+web/nginx/ssl/
 
 # ---------------
 # Docker Compose .env 副本（敏感）

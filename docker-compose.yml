@@ -2,6 +2,7 @@
 # 生产全栈：  pnpm deploy         （mysql + profile app）
 #
 # server 容器固定读 server/.env.production；compose 插值用命令行 --env-file。
+# 镜像统一由根 Dockerfile 多阶段构建，server / web 为其中的两个 target。
 
 services:
   mysql:
@@ -24,7 +25,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # 带凭据探测，避免初始化阶段（临时实例）误报健康导致 server 过早连库
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p$$MYSQL_ROOT_PASSWORD -h localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +35,8 @@ services:
     profiles: ["app"]
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
+      target: server
     restart: unless-stopped
     depends_on:
       mysql:
@@ -50,7 +53,14 @@ services:
     volumes:
       - server_uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/tags"]
+      # Node 22 自带 fetch，免装 curl；探测无鉴权公开接口 /tags
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/tags').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,13 +69,12 @@ services:
     profiles: ["app"]
     build:
       context: .
-      dockerfile: web/Dockerfile
-      args:
-        VITE_API_BASE_URL: /api
+      dockerfile: Dockerfile
+      target: web
     restart: unless-stopped
     depends_on:
-      server:
-        condition: service_healthy
+      # nginx 反代只需 server DNS 存在，无需等健康；串行等待会拖慢冷启动
+      - server
     ports:
       - "127.0.0.1:3001:80"
 
