@@ -1,23 +1,46 @@
 <template>
-  <div class="min-h-screen bg-base-200">
-    <!-- 筛选 + 网格同一内容栏，宽度对齐 -->
-    <div class="mx-auto w-full max-w-7xl px-3 py-4 sm:px-5 lg:px-8">
-      <WallpaperFilter v-model="filters" @filter-change="handleFilterChange" />
+  <div class="wb-page">
+    <div class="sticky top-14 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
+      <div class="wb-container-gallery py-2">
+        <WallpaperFilter v-model="filters" />
+      </div>
+    </div>
 
-      <div class="mt-4">
-        <div v-if="error" class="alert alert-error mb-6">
+    <div class="wb-container-gallery py-3">
+      <header class="mb-2 flex flex-wrap items-end justify-between gap-2">
+        <div class="min-w-0">
+          <h1 class="wb-page-title truncate">{{ hero.title }}</h1>
+          <p class="mt-0.5 text-xs text-muted">{{ hero.subtitle }}</p>
+        </div>
+        <p v-if="!loading && totalCount > 0" class="shrink-0 text-xs tabular-nums text-faint">
+          共 {{ totalCount }} 张
+        </p>
+      </header>
+
+      <div>
+        <div v-if="error" class="wb-alert-danger mb-6">
           <i class="i-[mdi--alert-circle] text-lg"></i>
           <span>{{ error }}</span>
-          <button class="btn btn-ghost btn-sm" @click="() => loadFirst()">重试</button>
+          <button class="wb-btn-ghost wb-btn-sm" @click="() => loadFirst()">重试</button>
+        </div>
+
+        <!-- 零结果空态 -->
+        <div v-if="!loading && !error && wallpapers.length === 0" class="wb-empty">
+          <p class="text-base font-medium text-fg">暂无壁纸</p>
+          <p class="mt-1 text-sm text-muted">调整筛选条件或稍后再来</p>
+          <button v-if="hasActiveFilters" type="button" class="wb-btn mt-4" @click="resetFilters">
+            重置筛选
+          </button>
         </div>
 
         <WallpaperGrid
+          v-else
           :wallpapers="wallpapers"
           :loading="loading && wallpapers.length === 0"
           :show-pagination="false"
           :show-reset="true"
+          masonry
           :pagination="{ currentPage: 1, totalPages: 1, totalCount: totalCount }"
-          @wallpaper-click="handleWallpaperClick"
           @reset-filters="resetFilters"
         />
 
@@ -26,30 +49,29 @@
           ref="sentinelRef"
           class="flex flex-col items-center gap-3 py-10"
         >
-          <div v-if="loading" class="flex items-center gap-2 text-sm text-base-content/55">
-            <span class="loading loading-spinner loading-sm"></span>
-            加载中...
+          <div v-if="loading" class="flex items-center gap-2 text-sm text-muted">
+            <span class="wb-spinner"></span>
+            加载中…
+          </div>
+          <div v-else-if="appendError" class="flex items-center gap-3 text-sm text-error">
+            <i class="i-[mdi--alert-circle]" aria-hidden="true"></i>
+            <span>{{ appendError }}</span>
+            <button type="button" class="wb-btn-ghost wb-btn-sm text-error" @click="retryAppend">
+              重试
+            </button>
           </div>
           <template v-else-if="noMore">
-            <div class="flex items-center gap-2 text-sm text-base-content/40">
-              <div class="h-px w-16 bg-base-content/15"></div>
+            <div class="flex items-center gap-2 text-sm text-faint">
+              <div class="h-px w-16 bg-line"></div>
               <span>没有更多了 ({{ totalCount }} 张壁纸)</span>
-              <div class="h-px w-16 bg-base-content/15"></div>
+              <div class="h-px w-16 bg-line"></div>
             </div>
           </template>
-          <button
-            v-else
-            type="button"
-            class="btn btn-outline btn-sm"
-            @click="loadMore"
-          >
-            加载更多
-          </button>
+          <button v-else type="button" class="wb-btn" @click="loadMore">加载更多</button>
         </div>
       </div>
     </div>
 
-    <!-- 返回顶部 -->
     <Transition
       enter-active-class="transition-all duration-300"
       leave-active-class="transition-all duration-300"
@@ -58,12 +80,16 @@
     >
       <button
         v-if="showBackToTop"
-        class="fixed bottom-6 right-6 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-110 dark:bg-slate-100 dark:text-slate-900"
-        @click="scrollToTop"
+        class="wb-icon-btn fixed bottom-6 right-6 z-50 h-10 w-10 shadow-sm"
         title="回到顶部"
+        @click="scrollToTop"
       >
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+          />
         </svg>
       </button>
     </Transition>
@@ -71,12 +97,21 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from "vue"
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { wallpaperService, type Wallpaper } from "@/services/wallpaper"
 import WallpaperFilter from "@/components/WallpaperFilter.vue"
 import WallpaperGrid from "@/components/WallpaperGrid.vue"
 import { createFetchGeneration } from "@/utils/fetchGeneration"
+import {
+  buildApiListQuery,
+  defaultBrowseFilters,
+  filtersFromRouteQuery,
+  filtersToRouteQuery,
+  hasActiveBrowseFilters,
+  sceneHeroFromFilters,
+  type BrowseFilters,
+} from "@/utils/wallpaperBrowse"
 
 interface ApiWallpaperResponse {
   success: boolean
@@ -90,60 +125,46 @@ interface ApiWallpaperResponse {
   }
 }
 
-interface Filters {
-  sortBy: "latest" | "popular" | "random" | "likes" | "downloads"
-  category: string
-  subCategory: string
-  resolution: string
-  ratio: string
-  orientation: string
-  format: string
-  search: string
-}
-
 const route = useRoute()
 const router = useRouter()
 
-// 响应式数据
 const loading = ref(false)
 const wallpapers = ref<Wallpaper[]>([])
 const currentPage = ref(1)
 const pageSize = 20
 const totalCount = ref(0)
-const totalPages = ref(0)
 const error = ref<string | null>(null)
 const retryCount = ref(0)
 const maxRetries = 3
 const fetchTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null)
 const filterDebounceId = ref<ReturnType<typeof setTimeout> | null>(null)
 const noMore = ref(false)
+/** 追加页加载失败的信息（与首屏 error 分开，避免清空已浏览内容） */
+const appendError = ref("")
 const showBackToTop = ref(false)
 const sentinelRef = ref<HTMLElement | null>(null)
 const listFetchGeneration = createFetchGeneration()
 const FILTER_DEBOUNCE_MS = 400
+const syncingFromRoute = ref(false)
 
-// 筛选条件
-const filters = ref<Filters>({
-  sortBy: "latest",
-  category: "",
-  subCategory: "",
-  resolution: "",
-  ratio: "",
-  orientation: "",
-  format: "",
-  search: "",
+/** 随机排序种子：一轮筛选会话内固定，翻页不重复；换筛选/回退前进时重掷 */
+const newRandomSeed = () => Math.floor(Math.random() * 2 ** 31)
+const randomSeed = ref(newRandomSeed())
+
+const filters = ref<BrowseFilters>(defaultBrowseFilters())
+
+const hero = computed(() => {
+  if (filters.value.search.trim()) {
+    return { title: `搜索「${filters.value.search.trim()}」`, subtitle: "按关键词匹配壁纸标签" }
+  }
+  return sceneHeroFromFilters({
+    sortBy: filters.value.sortBy,
+    topRange: filters.value.topRange,
+  })
 })
 
-// 排序映射表
-const sortMapping = {
-  latest: { sortBy: "createdAt", sortOrder: "DESC" },
-  popular: { sortBy: "popular", sortOrder: "DESC" },
-  likes: { sortBy: "likeCount", sortOrder: "DESC" },
-  downloads: { sortBy: "downloadCount", sortOrder: "DESC" },
-  random: { sortBy: "random", sortOrder: "DESC" },
-} as const
+const hasActiveFilters = computed(() => hasActiveBrowseFilters(filters.value))
 
-// IntersectionObserver：在 sentinel 挂载后再绑定
 let observer: IntersectionObserver | null = null
 
 const setupObserver = () => {
@@ -151,10 +172,8 @@ const setupObserver = () => {
     observer.disconnect()
     observer = null
   }
-
   const el = sentinelRef.value
   if (!el) return
-
   observer = new IntersectionObserver(
     (entries) => {
       const entry = entries[0]
@@ -172,105 +191,85 @@ const bindObserverAfterRender = async () => {
   setupObserver()
 }
 
-// 从路由查询参数初始化筛选条件（须在 watch filters 之前）
-const initFiltersFromRoute = () => {
-  const sortParam = route.query.sort as string
-  if (sortParam && ["latest", "popular", "random", "likes", "downloads"].includes(sortParam)) {
-    filters.value.sortBy = sortParam as "latest" | "popular" | "random" | "likes" | "downloads"
-  }
+const applyRouteQuery = () => {
+  const next = filtersFromRouteQuery(route.query as Record<string, unknown>)
+  syncingFromRoute.value = true
+  filters.value = next
+  nextTick(() => {
+    syncingFromRoute.value = false
+  })
 }
-initFiltersFromRoute()
 
-// 初始化
+const writeFiltersToRoute = () => {
+  const query = filtersToRouteQuery(filters.value)
+  router.replace({ path: route.path, query })
+}
+
 onMounted(() => {
+  applyRouteQuery()
   fetchWallpapers(false)
   window.addEventListener("scroll", handleScroll, { passive: true })
 })
 
-// sentinel 出现/替换时重新观察
 watch(sentinelRef, (el) => {
   if (el) setupObserver()
 })
 
-// 筛选条件变化：debounce，避免搜索每个字符打一次接口
 watch(
   filters,
   () => {
+    if (syncingFromRoute.value) return
     if (filterDebounceId.value) clearTimeout(filterDebounceId.value)
     filterDebounceId.value = setTimeout(() => {
+      writeFiltersToRoute()
       wallpapers.value = []
       currentPage.value = 1
       noMore.value = false
       error.value = null
+      randomSeed.value = newRandomSeed() // 换筛选 = 新一轮随机池
       fetchWallpapers(false)
     }, FILTER_DEBOUNCE_MS)
   },
   { deep: true },
 )
 
-// 构建查询参数
-const buildQueryParams = () => {
-  const sortConfig = sortMapping[filters.value.sortBy]
+// 浏览器前进后退：同步 URL → filters
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.path !== "/wallpapers") return
+    const next = filtersFromRouteQuery(route.query as Record<string, unknown>)
+    const cur = filtersToRouteQuery(filters.value)
+    const nxt = filtersToRouteQuery(next)
+    if (JSON.stringify(cur) === JSON.stringify(nxt)) return
+    syncingFromRoute.value = true
+    filters.value = next
+    nextTick(() => {
+      syncingFromRoute.value = false
+      wallpapers.value = []
+      currentPage.value = 1
+      noMore.value = false
+      randomSeed.value = newRandomSeed()
+      fetchWallpapers(false)
+    })
+  },
+)
 
-  let minWidth: number | undefined
-  let maxWidth: number | undefined
-  let minHeight: number | undefined
-  let maxHeight: number | undefined
-
-  // 分辨率档位 → 最小宽高阈值（模糊匹配，不锁上限）
-  const resolutionTiers: Record<string, { minW: number; minH: number }> = {
-    "5k":          { minW: 4800, minH: 2700 },
-    "4k":          { minW: 3000, minH: 1600 },
-    "2k":          { minW: 2200, minH: 1200 },
-    "1080p":       { minW: 1600, minH: 900 },
-    "720p":        { minW: 1000, minH: 600 },
-    "4k-portrait":   { minW: 1600, minH: 3000 },
-    "2k-portrait":   { minW: 1200, minH: 2200 },
-    "1080p-portrait": { minW: 900, minH: 1600 },
-  }
-
-  if (filters.value.resolution) {
-    const tier = resolutionTiers[filters.value.resolution]
-    if (tier) {
-      minWidth = tier.minW
-      minHeight = tier.minH
-    }
-  }
-
-  let aspectRatio: number | undefined
-  if (filters.value.ratio) {
-    const [width, height] = filters.value.ratio.split(":").map(Number)
-    aspectRatio = width / height
-  }
-
-  return {
-    page: currentPage.value,
-    limit: pageSize,
-    tagKeyword: filters.value.search.trim() || undefined,
-    sortBy: sortConfig.sortBy,
-    sortOrder: sortConfig.sortOrder,
-    category: filters.value.category
-      ? (filters.value.category as "general" | "anime" | "people")
-      : undefined,
-    subCategory: filters.value.subCategory || undefined,
-    format: filters.value.format || undefined,
-    aspectRatio,
-    orientation: filters.value.orientation || undefined,
-    minWidth,
-    maxWidth,
-    minHeight,
-    maxHeight,
-  }
-}
-
-// 获取壁纸列表：首屏/筛选递增代数；追加沿用代数；乱序旧响应丢弃
 const fetchWallpapers = async (append: boolean) => {
   const gen = append ? listFetchGeneration.current : listFetchGeneration.next()
   loading.value = true
   if (!append) error.value = null
+  // 开始新请求前清掉上一轮“加载更多”的行内错误
+  appendError.value = ""
 
   try {
-    const response = await wallpaperService.getWallpapers(buildQueryParams())
+    const params = buildApiListQuery(
+      filters.value,
+      currentPage.value,
+      pageSize,
+      randomSeed.value,
+    )
+    const response = await wallpaperService.getWallpapers(params)
     if (!listFetchGeneration.isCurrent(gen)) return
 
     const apiResponse = response as unknown as ApiWallpaperResponse
@@ -282,7 +281,6 @@ const fetchWallpapers = async (append: boolean) => {
         wallpapers.value = apiResponse.data
       }
       totalCount.value = apiResponse.pagination.total
-      totalPages.value = apiResponse.pagination.pages
       noMore.value = currentPage.value >= apiResponse.pagination.pages
       retryCount.value = 0
       await bindObserverAfterRender()
@@ -308,11 +306,15 @@ const fetchWallpapers = async (append: boolean) => {
       return
     }
 
-    if (!append) {
+    if (append) {
+      // 追加失败：页码回退，保留已加载内容，行内提示重试
+      currentPage.value = Math.max(1, currentPage.value - 1)
+      appendError.value = errObj.message || "加载更多失败，请稍后重试"
+    } else {
       wallpapers.value = []
       totalCount.value = 0
+      error.value = errObj.message || "获取壁纸失败，请稍后重试"
     }
-    error.value = errObj.message || "获取壁纸失败，请稍后重试"
   } finally {
     if (listFetchGeneration.isCurrent(gen)) {
       loading.value = false
@@ -320,43 +322,28 @@ const fetchWallpapers = async (append: boolean) => {
   }
 }
 
-// 加载更多（下一页）
 const loadMore = () => {
   if (loading.value || noMore.value) return
   currentPage.value++
   fetchWallpapers(true)
 }
 
-// 重新加载第一页
+/** 行内重试：清掉错误再追加，模板多语句表达式交给方法避免编译问题 */
+const retryAppend = () => {
+  appendError.value = ""
+  loadMore()
+}
+
 const loadFirst = () => {
   wallpapers.value = []
   currentPage.value = 1
   noMore.value = false
+  randomSeed.value = newRandomSeed()
   fetchWallpapers(false)
 }
 
-// 筛选条件变化处理
-const handleFilterChange = () => {
-  // watch filters 已经处理了重置
-}
-
-// 壁纸点击处理
-const handleWallpaperClick = (wallpaper: Wallpaper) => {
-  router.push(`/wallpaper/${wallpaper.id}`)
-}
-
-// 重置筛选条件
 const resetFilters = () => {
-  filters.value = {
-    sortBy: "latest",
-    category: "",
-    subCategory: "",
-    resolution: "",
-    ratio: "",
-    orientation: "",
-    format: "",
-    search: "",
-  }
+  filters.value = defaultBrowseFilters()
 }
 
 const handleScroll = () => {
@@ -367,7 +354,6 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" })
 }
 
-// 清理
 onUnmounted(() => {
   if (observer) observer.disconnect()
   if (fetchTimeoutId.value) clearTimeout(fetchTimeoutId.value)
