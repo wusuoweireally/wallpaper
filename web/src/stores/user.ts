@@ -64,8 +64,6 @@ export const useUserStore = defineStore("user", () => {
   const userStats = ref({
     uploads: 0,
     favorites: 0,
-    likes: 0,
-    likesReceived: 0,
   })
 
   // ==================== 计算属性 ====================
@@ -186,26 +184,32 @@ export const useUserStore = defineStore("user", () => {
 
   /**
    * 初始化用户认证状态（应用启动时调用）
-   * Cookie 会自动随请求发送，只需从 localStorage 恢复用户信息并验证
+   * Cookie 会自动随请求发送，只需从 localStorage 恢复用户信息并验证。
+   * 记忆化：路由守卫可 await 同一 Promise，本地缓存缺失时等服务端校验再放行
    */
-  const initializeAuth = async () => {
-    // 从 localStorage 恢复用户信息
-    const savedUser = getUserFromStorage()
+  let authInitPromise: Promise<void> | null = null
+  const initializeAuth = async (): Promise<void> => {
+    authInitPromise ??= (async () => {
+      // 从 localStorage 恢复用户信息
+      const savedUser = getUserFromStorage()
 
-    if (savedUser) {
-      user.value = savedUser
-    }
-
-    // 始终尝试用 Cookie 验证登录态（即使 localStorage 为空）
-    try {
-      await fetchCurrentUser()
-    } catch (error: unknown) {
-      // 只有在 localStorage 有数据时才需要清除（说明 cookie 过期了）
       if (savedUser) {
-        console.warn("用户认证验证失败，清除本地登录态:", error)
-        clearUser()
+        user.value = savedUser
       }
-    }
+
+      // 始终尝试用 Cookie 验证登录态（即使 localStorage 为空）；
+      // 引导探测失败不算"登录过期"，跳过全局重定向，否则游客会被踢到登录页
+      try {
+        await fetchCurrentUser({ skipAuthExpiredHandler: true })
+      } catch (error: unknown) {
+        // 只有在 localStorage 有数据时才需要清除（说明 cookie 过期了）
+        if (savedUser) {
+          console.warn("用户认证验证失败，清除本地登录态:", error)
+          clearUser()
+        }
+      }
+    })()
+    return authInitPromise
   }
 
   // ==================== 用户信息相关方法 ====================
@@ -213,12 +217,12 @@ export const useUserStore = defineStore("user", () => {
   /**
    * 获取当前用户信息（从服务器验证）
    */
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = async (opts?: { skipAuthExpiredHandler?: boolean }) => {
     try {
       loading.value = true
       clearError()
 
-      const response = await userService.getProfile()
+      const response = await userService.getProfile(opts)
 
       if (response.success && response.data) {
         setUser(response.data)
@@ -234,7 +238,8 @@ export const useUserStore = defineStore("user", () => {
       if (status === 401) {
         clearUser()
       }
-      const errorMessage = serviceErr.response?.data?.message || serviceErr.message || "获取用户信息失败"
+      const errorMessage =
+        serviceErr.response?.data?.message || serviceErr.message || "获取用户信息失败"
       if (status !== 401) {
         setError(errorMessage)
       }
@@ -358,7 +363,7 @@ export const useUserStore = defineStore("user", () => {
    * 统一获取用户壁纸列表
    */
   const fetchUserWallpapers = async (
-    type: "uploads" | "favorites" | "likes",
+    type: "uploads" | "favorites",
     page: number = 1,
     limit: number = 20,
     _search: string = "",
@@ -374,9 +379,6 @@ export const useUserStore = defineStore("user", () => {
           break
         case "favorites":
           response = await userService.getUserFavorites(page, limit)
-          break
-        case "likes":
-          response = await userService.getUserLikes(page, limit)
           break
         default:
           throw new Error("不支持的壁纸类型")
@@ -397,7 +399,6 @@ export const useUserStore = defineStore("user", () => {
     const typeMap = {
       uploads: "上传",
       favorites: "收藏",
-      likes: "点赞",
     }
     return typeMap[type as keyof typeof typeMap] || type
   }

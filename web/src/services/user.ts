@@ -65,6 +65,12 @@ export interface LoginResponse {
   user: User
 }
 
+/** 浏览记录项：viewedAt 为最近浏览时间 */
+export interface ViewHistoryItem {
+  wallpaper: Wallpaper
+  viewedAt: string
+}
+
 /**
  * 用户服务类
  */
@@ -93,7 +99,7 @@ class UserService {
     try {
       const response = await api.post("/users/login", loginDto, {
         skipAuthExpiredHandler: true,
-      } as import("axios").AxiosRequestConfig)
+      })
       return response as unknown as ApiResponse<LoginResponse>
     } catch (error) {
       console.error("登录失败:", error)
@@ -106,12 +112,9 @@ class UserService {
    */
   async logout() {
     try {
-      const config = { skipAuthExpiredHandler: true }
-      const response = await api.post(
-        "/users/logout",
-        undefined,
-        config as import("axios").AxiosRequestConfig,
-      )
+      const response = await api.post("/users/logout", undefined, {
+        skipAuthExpiredHandler: true,
+      })
       return response as unknown as ApiResponse
     } catch (error) {
       console.error("登出失败:", error)
@@ -122,12 +125,17 @@ class UserService {
   /**
    * 获取当前用户信息
    */
-  async getProfile(): Promise<ApiResponse<User>> {
+  async getProfile(opts?: { skipAuthExpiredHandler?: boolean }): Promise<ApiResponse<User>> {
     try {
-      const response = await api.get("/users/profile")
+      const response = await api.get("/users/profile", {
+        skipAuthExpiredHandler: opts?.skipAuthExpiredHandler,
+        // 引导探测的 401 对游客是常态，不弹全局错误提示
+        skipGlobalErrorToast: opts?.skipAuthExpiredHandler,
+      })
       return response as ApiResponse<User>
     } catch (error) {
-      console.error("获取用户信息失败:", error)
+      // 静默探测（游客）的 401 属预期，不重复打日志
+      if (!opts?.skipAuthExpiredHandler) console.error("获取用户信息失败:", error)
       throw error
     }
   }
@@ -185,40 +193,18 @@ class UserService {
     ApiResponse<{
       uploads: number
       favorites: number
-      likes: number
-      likesReceived: number
     }>
   > {
     return (await api.get("/users/stats")) as ApiResponse<{
       uploads: number
       favorites: number
-      likes: number
-      likesReceived: number
     }>
-  }
-
-  /**
-   * 获取用户点赞的壁纸列表
-   */
-  /** 后端信封：{ success, data: Wallpaper[], pagination } */
-  async getUserLikes(page: number = 1, limit: number = 20) {
-    try {
-      return (await api.get<Wallpaper[]>("/users/likes", {
-        params: { page, limit },
-      })) as ApiResponse<Wallpaper[]>
-    } catch (error) {
-      console.error("获取用户点赞列表失败:", error)
-      throw error
-    }
   }
 
   /**
    * 获取用户收藏的壁纸列表
    */
-  async getUserFavorites(
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<ApiResponse<Wallpaper[]>> {
+  async getUserFavorites(page: number = 1, limit: number = 20): Promise<ApiResponse<Wallpaper[]>> {
     try {
       return (await api.get<Wallpaper[]>("/users/favorites", {
         params: { page, limit },
@@ -232,16 +218,30 @@ class UserService {
   /**
    * 获取用户上传的壁纸列表
    */
-  async getUserWallpapers(
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<ApiResponse<Wallpaper[]>> {
+  async getUserWallpapers(page: number = 1, limit: number = 20): Promise<ApiResponse<Wallpaper[]>> {
     try {
       return (await api.get<Wallpaper[]>("/users/wallpapers", {
         params: { page, limit },
       })) as ApiResponse<Wallpaper[]>
     } catch (error) {
       console.error("获取用户上传壁纸列表失败:", error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取当前用户浏览记录（近 30 天，分页）
+   */
+  async getViewHistory(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<ApiResponse<ViewHistoryItem[]>> {
+    try {
+      return (await api.get<ViewHistoryItem[]>("/users/view-history", {
+        params: { page, limit },
+      })) as ApiResponse<ViewHistoryItem[]>
+    } catch (error) {
+      console.error("获取浏览记录失败:", error)
       throw error
     }
   }

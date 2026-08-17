@@ -1,37 +1,33 @@
 <template>
-  <div
-    class="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
-  >
-    <header class="mx-auto flex w-full max-w-md items-center justify-between px-5 pt-6 sm:px-0 sm:pt-10">
+  <div class="wb-page flex min-h-screen flex-col">
+    <header
+      class="mx-auto flex w-full max-w-md items-center justify-between px-5 pt-6 sm:px-0 sm:pt-10"
+    >
       <router-link
         to="/"
-        class="text-base font-semibold tracking-tight text-slate-900 transition hover:text-slate-600 dark:text-slate-100 dark:hover:text-slate-300"
+        class="text-base font-semibold tracking-tight text-fg transition hover:text-muted"
       >
-        随心壁纸
+        Wallbay
       </router-link>
-      <router-link
-        to="/wallpapers"
-        class="text-sm text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-      >
-        去逛逛
-      </router-link>
+      <div class="flex items-center gap-2">
+        <ThemeToggle />
+        <router-link to="/wallpapers" class="text-sm text-muted transition hover:text-fg">
+          去逛逛
+        </router-link>
+      </div>
     </header>
 
     <main class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10 sm:px-0">
       <div class="mb-8">
-        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+        <h1 class="text-2xl font-semibold tracking-tight text-fg">
           {{ formTitle }}
         </h1>
-        <p class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+        <p class="mt-2 text-sm leading-relaxed text-muted">
           {{ formSubtitle }}
         </p>
       </div>
 
-      <div
-        class="mb-6 flex border-b border-slate-200 dark:border-slate-800"
-        role="tablist"
-        aria-label="登录或注册"
-      >
+      <div class="mb-6 flex border-b border-line" role="tablist" aria-label="登录或注册">
         <button
           type="button"
           role="tab"
@@ -55,12 +51,7 @@
       </div>
 
       <Transition name="auth-fade" mode="out-in">
-        <form
-          v-if="isLogin"
-          key="login"
-          class="space-y-4"
-          @submit.prevent="handleLogin"
-        >
+        <form v-if="isLogin" key="login" class="space-y-4" @submit.prevent="handleLogin">
           <div class="space-y-1.5">
             <label for="login-account" class="auth-label">账号</label>
             <input
@@ -90,7 +81,7 @@
               />
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                class="absolute inset-y-0 right-0 flex items-center px-3 text-faint hover:text-fg"
                 aria-label="切换密码显示"
                 @click="showPassword = !showPassword"
               >
@@ -131,20 +122,9 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-0.5">
-            <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <input
-                v-model="rememberMe"
-                type="checkbox"
-                class="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-              />
-              记住我
-            </label>
-          </div>
-
           <div
             v-if="loginError"
-            class="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+            class="rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-3 py-2.5 text-sm text-error"
             role="alert"
           >
             {{ loginError }}
@@ -160,24 +140,17 @@
 
           <div class="relative py-2">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-slate-200 dark:border-slate-800" />
+              <div class="w-full border-t border-line" />
             </div>
             <div class="relative flex justify-center text-xs">
-              <span class="bg-slate-50 px-3 text-slate-400 dark:bg-slate-950 dark:text-slate-500"
-                >或</span
-              >
+              <span class="bg-canvas px-3 text-faint">或</span>
             </div>
           </div>
 
           <GitHubLoginButton v-if="!user" />
         </form>
 
-        <form
-          v-else
-          key="register"
-          class="space-y-4"
-          @submit.prevent="handleRegister"
-        >
+        <form v-else key="register" class="space-y-4" @submit.prevent="handleRegister">
           <div class="space-y-1.5">
             <label for="register-username" class="auth-label">用户名</label>
             <input
@@ -191,7 +164,7 @@
               required
               @input="registerErrors.username = ''"
             />
-            <p v-if="registerErrors.username" class="text-xs text-red-600 dark:text-red-400">
+            <p v-if="registerErrors.username" class="text-xs text-error">
               {{ registerErrors.username }}
             </p>
           </div>
@@ -199,7 +172,7 @@
           <div class="space-y-1.5">
             <label for="register-email" class="auth-label">
               邮箱
-              <span class="font-normal text-slate-400">（可选）</span>
+              <span class="font-normal text-faint">（可选）</span>
             </label>
             <input
               id="register-email"
@@ -211,7 +184,7 @@
               autocomplete="email"
               @input="registerErrors.email = ''"
             />
-            <p v-if="registerErrors.email" class="text-xs text-red-600 dark:text-red-400">
+            <p v-if="registerErrors.email" class="text-xs text-error">
               {{ registerErrors.email }}
             </p>
           </div>
@@ -229,7 +202,7 @@
               required
               @input="registerErrors.password = ''"
             />
-            <p v-if="registerErrors.password" class="text-xs text-red-600 dark:text-red-400">
+            <p v-if="registerErrors.password" class="text-xs text-error">
               {{ registerErrors.password }}
             </p>
           </div>
@@ -247,34 +220,23 @@
               required
               @input="registerErrors.confirmPassword = ''"
             />
-            <p v-if="registerErrors.confirmPassword" class="text-xs text-red-600 dark:text-red-400">
+            <p v-if="registerErrors.confirmPassword" class="text-xs text-error">
               {{ registerErrors.confirmPassword }}
             </p>
           </div>
 
-          <label
-            class="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-slate-600 dark:text-slate-400"
-          >
+          <label class="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-muted">
             <input
               type="checkbox"
               required
-              class="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-slate-900 focus:ring-slate-400 dark:border-slate-600 dark:bg-slate-900"
+              class="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-line bg-surface text-primary focus:ring-primary/30"
             />
-            <span>
-              已阅读并同意
-              <a href="#" class="text-slate-900 underline-offset-2 hover:underline dark:text-slate-200"
-                >用户协议</a
-              >
-              与
-              <a href="#" class="text-slate-900 underline-offset-2 hover:underline dark:text-slate-200"
-                >隐私政策</a
-              >
-            </span>
+            <span> 已阅读并同意用户协议与隐私政策 </span>
           </label>
 
           <div
             v-if="registerError"
-            class="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+            class="rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-3 py-2.5 text-sm text-error"
             role="alert"
           >
             {{ registerError }}
@@ -291,10 +253,8 @@
       </Transition>
     </main>
 
-    <footer
-      class="mx-auto w-full max-w-md px-5 pb-8 text-center text-xs text-slate-400 dark:text-slate-600 sm:px-0"
-    >
-      © {{ year }} 随心壁纸
+    <footer class="mx-auto w-full max-w-md px-5 pb-8 text-center text-xs text-faint sm:px-0">
+      © {{ year }} Wallbay
     </footer>
   </div>
 </template>
@@ -304,6 +264,7 @@ import { ref, reactive, computed, watch, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useUserStore } from "@/stores/user"
 import GitHubLoginButton from "@/components/GitHubLoginButton.vue"
+import ThemeToggle from "@/components/ThemeToggle.vue"
 import {
   buildLoginPayload,
   buildRegisterPayload,
@@ -311,12 +272,15 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
 } from "@/utils/authPayload"
+import { resolvePostLoginRedirect } from "@/utils/safeRedirect"
+import { useGlobalToast } from "@/composables/useToast"
 
 type AuthMode = "login" | "register"
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const toast = useGlobalToast()
 
 const user = computed(() => userStore.user)
 const year = new Date().getFullYear()
@@ -356,7 +320,6 @@ const loginForm = reactive({
 })
 const loginLoading = ref(false)
 const loginError = ref("")
-const rememberMe = ref(false)
 const showPassword = ref(false)
 
 const registerForm = reactive({
@@ -380,10 +343,7 @@ const handleLogin = async () => {
 
   try {
     await userStore.login(buildLoginPayload(loginForm.account, loginForm.password))
-    const redirectParam = route.query.redirect
-    const redirectPath =
-      typeof redirectParam === "string" && redirectParam.startsWith("/") ? redirectParam : "/"
-    router.replace(redirectPath)
+    router.replace(resolvePostLoginRedirect(route.query.redirect))
   } catch (error: unknown) {
     const err = error as Error & { message?: string }
     console.error("登录失败:", err)
@@ -454,6 +414,7 @@ const handleRegister = async () => {
 
     await userStore.register(registerData)
 
+    toast.success("注册成功，请登录")
     switchForm("login")
     Object.assign(registerForm, {
       username: "",
@@ -480,76 +441,49 @@ const handleRegister = async () => {
   padding: 0.65rem 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(148 163 184);
+  color: var(--wb-faint);
   transition: color 0.15s ease;
 }
 
 .auth-tab:hover {
-  color: rgb(71 85 105);
-}
-
-:global(.dark) .auth-tab:hover {
-  color: rgb(203 213 225);
+  color: var(--wb-fg);
 }
 
 .auth-tab--active {
-  border-bottom-color: rgb(15 23 42);
-  color: rgb(15 23 42);
-}
-
-:global(.dark) .auth-tab--active {
-  border-bottom-color: rgb(241 245 249);
-  color: rgb(241 245 249);
+  border-bottom-color: var(--wb-accent);
+  color: var(--wb-fg);
 }
 
 .auth-label {
   display: block;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: rgb(51 65 85);
-}
-
-:global(.dark) .auth-label {
-  color: rgb(203 213 225);
+  color: var(--wb-muted);
 }
 
 .auth-input {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid rgb(226 232 240);
-  background: #fff;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-surface);
   padding: 0.625rem 0.75rem;
   font-size: 0.9375rem;
   line-height: 1.5;
-  color: rgb(15 23 42);
+  color: var(--wb-fg);
   outline: none;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
 .auth-input::placeholder {
-  color: rgb(148 163 184);
+  color: var(--wb-faint);
 }
 
 .auth-input:focus {
-  border-color: rgb(100 116 139);
-  box-shadow: 0 0 0 3px rgb(148 163 184 / 0.25);
+  border-color: var(--wb-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--wb-accent) 20%, transparent);
 }
 
 .auth-input--error {
-  border-color: rgb(248 113 113);
-}
-
-:global(.dark) .auth-input {
-  border-color: rgb(51 65 85);
-  background: rgb(15 23 42);
-  color: rgb(241 245 249);
-}
-
-:global(.dark) .auth-input:focus {
-  border-color: rgb(148 163 184);
-  box-shadow: 0 0 0 3px rgb(51 65 85 / 0.6);
+  border-color: var(--wb-danger);
 }
 
 .auth-submit {
@@ -559,30 +493,20 @@ const handleRegister = async () => {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
-  background: rgb(15 23 42);
+  background: var(--wb-accent-fill);
   padding: 0.7rem 1rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #fff;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  color: var(--wb-accent-fg);
 }
 
 .auth-submit:hover:not(:disabled) {
-  background: rgb(30 41 59);
+  background: var(--wb-accent-fill-hover);
 }
 
 .auth-submit:disabled {
   cursor: not-allowed;
   opacity: 0.65;
-}
-
-:global(.dark) .auth-submit {
-  background: rgb(241 245 249);
-  color: rgb(15 23 42);
-}
-
-:global(.dark) .auth-submit:hover:not(:disabled) {
-  background: rgb(226 232 240);
 }
 
 .auth-fade-enter-active,
@@ -593,25 +517,5 @@ const handleRegister = async () => {
 .auth-fade-enter-from,
 .auth-fade-leave-to {
   opacity: 0;
-}
-
-/* 让 GitHub 按钮跟页面更统一：去掉夸张圆角与 hover 位移感 */
-:deep(.github-btn) {
-  border-radius: 0.5rem !important;
-  border-width: 1px !important;
-  padding-top: 0.65rem !important;
-  padding-bottom: 0.65rem !important;
-  font-weight: 500 !important;
-  box-shadow: none !important;
-}
-
-:deep(.github-btn:hover) {
-  transform: none !important;
-}
-
-:deep(.login-tip) {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: rgb(148 163 184);
 }
 </style>

@@ -4,6 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios"
 import { useGlobalToast } from "@/composables/useToast"
+import { serializeQueryParams } from "@/utils/queryParams"
 
 const AUTH_EXPIRED_EVENT = "auth-expired"
 let isDispatchingAuthExpired = false
@@ -13,7 +14,8 @@ const { error: toastError } = useGlobalToast()
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   requestId?: string
   skipAuthExpiredHandler?: boolean
-  skipDuplicateRequestCancellation?: boolean
+  /** 显式开启相同请求去重（AGENTS.md：默认不去重，仅显式声明时启用） */
+  deduplicate?: boolean
   skipGlobalErrorToast?: boolean
 }
 
@@ -41,6 +43,10 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true, // 依赖 HttpOnly Cookie 自动携带认证信息
+  // 数组参数：resolutions=a&resolutions=b（勿用 resolutions[]，后端 whitelist 会 400）
+  paramsSerializer: {
+    serialize: (params) => serializeQueryParams(params as Record<string, unknown>),
+  },
 })
 
 // 请求取消令牌管理
@@ -49,7 +55,7 @@ const cancelTokenSources: Map<string, CancelTokenSource> = new Map()
 // 请求拦截器 - 添加请求取消功能
 api.interceptors.request.use(
   (config: CustomAxiosRequestConfig) => {
-    if (config.skipDuplicateRequestCancellation) return config
+    if (!config.deduplicate) return config
 
     // 生成更精确的请求ID，包含URL、方法和参数
     const params = new URLSearchParams()
@@ -161,6 +167,7 @@ api.interceptors.response.use(
       if (shouldToast) toastError(errorMessage)
 
       error.userMessage = errorMessage
+      error.message = errorMessage
       error.timestamp = new Date().toISOString()
       return Promise.reject(error)
     }
@@ -233,23 +240,14 @@ api.interceptors.response.use(
       if (shouldToast) toastError(errorMessage)
     }
 
-    // 包装错误对象，添加上下文信息
+    // 包装错误对象，添加上下文信息；message 一并换成中文文案，
+    // 局部 catch 用 err.message 提示时不再露出 axios 英文原文
     error.userMessage = errorMessage
+    error.message = errorMessage
     error.timestamp = new Date().toISOString()
     return Promise.reject(error)
   },
 )
-
-// 手动取消请求的函数
-export const cancelRequest = (requestId: string): boolean => {
-  if (cancelTokenSources.has(requestId)) {
-    const source = cancelTokenSources.get(requestId)
-    source?.cancel(`手动取消请求: ${requestId}`)
-    cancelTokenSources.delete(requestId)
-    return true
-  }
-  return false
-}
 
 export default api
 
@@ -257,7 +255,7 @@ export default api
 declare module "axios" {
   export interface AxiosRequestConfig {
     skipAuthExpiredHandler?: boolean
-    skipDuplicateRequestCancellation?: boolean
+    deduplicate?: boolean
     skipGlobalErrorToast?: boolean
   }
 
