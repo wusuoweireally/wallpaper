@@ -1,7 +1,7 @@
 <template>
   <article class="wallpaper-card group relative" data-card="overlay">
     <div
-      class="wb-shadow-pop relative overflow-hidden rounded-tile border-[1.5px] border-fg/85 bg-inset transition-transform duration-200 ease-out group-hover:-translate-y-1"
+      class="relative overflow-hidden rounded-tile bg-inset transition-transform duration-200 ease-out group-hover:-translate-y-1"
       :class="{ 'aspect-[16/10]': !masonry }"
       :style="masonry ? { aspectRatio: aspect } : undefined"
     >
