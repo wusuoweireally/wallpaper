@@ -3,7 +3,6 @@ import { UserRole } from "../entities/user.entity";
 import { WallpaperStatus } from "../entities/wallpaper.entity";
 import { UploadService } from "../services/upload.service";
 import { WallpaperService } from "../services/wallpaper.service";
-import { TagService } from "../services/tag.service";
 import { ViewHistoryService } from "../services/view-history.service";
 import { WallpaperController } from "./wallpaper.controller";
 
@@ -12,6 +11,7 @@ describe("WallpaperController upload", () => {
   const fileInfo = {
     fileUrl: "/uploads/wallpapers/example.png",
     thumbnailUrl: "/uploads/thumbnails/example.webp",
+    previewUrl: "/uploads/previews/example.webp",
     fileSize: 100,
     width: 1920,
     height: 1080,
@@ -34,50 +34,47 @@ describe("WallpaperController upload", () => {
         processWallpaperUpload,
         deleteUploadedFiles,
       } as unknown as UploadService,
-      {} as TagService,
       {} as ViewHistoryService,
     );
   });
 
-  it("stores a regular user's upload as approved after COS audit", async () => {
+  it("stores upload as PENDING draft (finalize later)", async () => {
     create.mockImplementation((data: Record<string, unknown>) =>
       Promise.resolve({ id: 1, ...data }),
     );
 
     const result = await controller.uploadWallpaper(
       file,
-      { category: "general", tags: ["风景"] },
+      {},
       { userId: 7, username: "creator", role: UserRole.USER },
     );
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: WallpaperStatus.APPROVED }),
+      expect.objectContaining({ status: WallpaperStatus.PENDING }),
       7,
-      true,
     );
-    expect(result.message).toBe("壁纸上传成功");
+    expect(result.message).toContain("完善分类");
   });
 
-  it("publishes an administrator's upload immediately", async () => {
+  it("also drafts admin uploads as PENDING", async () => {
     create.mockImplementation((data: Record<string, unknown>) =>
       Promise.resolve({ id: 1, ...data }),
     );
 
     const result = await controller.uploadWallpaper(
       file,
-      { category: "general", tags: ["风景"] },
+      {},
       { userId: 8, username: "admin", role: UserRole.ADMIN },
     );
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: WallpaperStatus.APPROVED }),
+      expect.objectContaining({ status: WallpaperStatus.PENDING }),
       8,
-      true,
     );
-    expect(result.message).toBe("壁纸上传成功");
+    expect(result.success).toBe(true);
   });
 
-  it("removes both files when the database transaction fails", async () => {
+  it("removes all three files when the database transaction fails", async () => {
     create.mockRejectedValue(new Error("internal database details"));
 
     await expect(
@@ -91,6 +88,7 @@ describe("WallpaperController upload", () => {
     expect(deleteUploadedFiles).toHaveBeenCalledWith(
       fileInfo.fileUrl,
       fileInfo.thumbnailUrl,
+      fileInfo.previewUrl,
     );
   });
 });

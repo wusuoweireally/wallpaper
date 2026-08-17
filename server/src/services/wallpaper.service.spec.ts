@@ -1,7 +1,6 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import type { DataSource, Repository } from "typeorm";
 import { UserFavorite } from "../entities/user-favorite.entity";
-import { UserLike } from "../entities/user-like.entity";
 import { UserRole } from "../entities/user.entity";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { TagService } from "./tag.service";
@@ -28,7 +27,6 @@ describe("WallpaperService visibility", () => {
     findOne = jest.fn();
     service = new WallpaperService(
       { findOne } as unknown as Repository<Wallpaper>,
-      {} as Repository<UserLike>,
       {} as Repository<UserFavorite>,
       {} as DataSource,
       {} as TagService,
@@ -95,17 +93,12 @@ describe("WallpaperService visibility", () => {
       );
     });
   });
-
-  describe("findVisibleByAssetUrl", () => {
-    it.todo("removed: asset access no longer goes through the backend");
-  });
 });
 
 describe("WallpaperService idempotent interactions", () => {
   const wallpaper = Object.assign(new Wallpaper(), {
     id: 42,
     status: 1,
-    likeCount: 5,
     favoriteCount: 3,
   });
 
@@ -124,7 +117,6 @@ describe("WallpaperService idempotent interactions", () => {
 
   const createService = (
     interactionRepository: Record<string, jest.Mock>,
-    entity: typeof UserLike | typeof UserFavorite,
     managerDelete = jest.fn(),
   ) => {
     const lockedQuery = createLockedWallpaperQuery();
@@ -149,12 +141,7 @@ describe("WallpaperService idempotent interactions", () => {
     return {
       service: new WallpaperService(
         {} as Repository<Wallpaper>,
-        (entity === UserLike
-          ? interactionRepository
-          : {}) as unknown as Repository<UserLike>,
-        (entity === UserFavorite
-          ? interactionRepository
-          : {}) as unknown as Repository<UserFavorite>,
+        interactionRepository as unknown as Repository<UserFavorite>,
         dataSource as unknown as DataSource,
         {} as TagService,
       ),
@@ -162,32 +149,13 @@ describe("WallpaperService idempotent interactions", () => {
     };
   };
 
-  it("does not toggle or recount an existing like", async () => {
-    const likes = {
-      findOne: jest.fn().mockResolvedValue({ id: 9 }),
-      create: jest.fn(),
-      save: jest.fn(),
-    };
-    const { service, wallpaperRepository } = createService(likes, UserLike);
-
-    await expect(service.addLike(7, 42)).resolves.toEqual({
-      isLiked: true,
-      likeCount: 5,
-    });
-    expect(likes.save).not.toHaveBeenCalled();
-    expect(wallpaperRepository.increment).not.toHaveBeenCalled();
-  });
-
   it("does not toggle or recount an existing favorite", async () => {
     const favorites = {
       findOne: jest.fn().mockResolvedValue({ id: 11 }),
       create: jest.fn(),
       save: jest.fn(),
     };
-    const { service, wallpaperRepository } = createService(
-      favorites,
-      UserFavorite,
-    );
+    const { service, wallpaperRepository } = createService(favorites);
 
     await expect(service.addFavorite(7, 42)).resolves.toEqual({
       isFavorited: true,
@@ -197,23 +165,109 @@ describe("WallpaperService idempotent interactions", () => {
     expect(wallpaperRepository.increment).not.toHaveBeenCalled();
   });
 
-  it("keeps the like count unchanged when removing an absent like", async () => {
-    const remove = jest.fn().mockResolvedValue({ affected: 0 });
-    const { service } = createService({}, UserLike, remove);
-
-    await expect(service.removeLike(7, 42)).resolves.toEqual({
-      isLiked: false,
-      likeCount: 5,
-    });
-  });
-
   it("keeps the favorite count unchanged when removing an absent favorite", async () => {
     const remove = jest.fn().mockResolvedValue({ affected: 0 });
-    const { service } = createService({}, UserFavorite, remove);
+    const { service } = createService({}, remove);
 
     await expect(service.removeFavorite(7, 42)).resolves.toEqual({
       isFavorited: false,
       favoriteCount: 3,
     });
+  });
+});
+
+describe("WallpaperService status transitions (update status)", () => {
+  const id = 42;
+
+  /** 组装可跑 setStatus 事务的 service：锁行查询返回指定状态的壁纸 */
+  const createService = (lockedStatus: number) => {
+    const wallpaper = Object.assign(new Wallpaper(), {
+      id,
+      status: lockedStatus,
+    });
+    const lockedQuery = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(wallpaper),
+    };
+    const tagUpdate = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      execute: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((target: unknown) =>
+        target === Wallpaper
+          ? { createQueryBuilder: () => lockedQuery }
+          : { createQueryBuilder: () => tagUpdate },
+      ),
+      count: jest.fn(),
+      update: jest.fn(),
+      find: jest.fn(),
+    };
+    const dataSource = {
+      transaction: jest.fn((callback: (m: typeof manager) => unknown) =>
+        callback(manager),
+      ),
+    };
+    return {
+      service: new WallpaperService(
+        {
+          findOne: jest.fn().mockResolvedValue(wallpaper),
+        } as unknown as Repository<Wallpaper>,
+        {} as Repository<UserFavorite>,
+        dataSource as unknown as DataSource,
+        {} as TagService,
+      ),
+      manager,
+      tagUpdate,
+    };
+  };
+
+  it("rejects publishing a draft without tags (bypassing publishDrafts)", async () => {
+    const { service, manager } = createService(0);
+    manager.count.mockResolvedValue(0);
+
+    await expect(service.update(id, { status: 1 })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(manager.update).not.toHaveBeenCalled();
+  });
+
+  it("publishes with tags and increments tag usage", async () => {
+    const { service, manager, tagUpdate } = createService(0);
+    manager.count.mockResolvedValue(2);
+    manager.find.mockResolvedValue([{ tagId: 5 }, { tagId: 9 }]);
+
+    await expect(service.update(id, { status: 1 })).resolves.not.toThrow();
+    expect(manager.update).toHaveBeenCalledWith(
+      Wallpaper,
+      id,
+      expect.objectContaining({ status: 1 }),
+    );
+    expect(tagUpdate.set).toHaveBeenCalledWith(
+      expect.objectContaining({ usageCount: expect.any(Function) }),
+    );
+  });
+
+  it("unpublishing decrements tag usage", async () => {
+    const { service, manager, tagUpdate } = createService(1);
+    manager.find.mockResolvedValue([{ tagId: 5 }]);
+
+    await expect(service.update(id, { status: 0 })).resolves.not.toThrow();
+    expect(manager.update).toHaveBeenCalledWith(
+      Wallpaper,
+      id,
+      expect.objectContaining({ status: 0 }),
+    );
+    expect(tagUpdate.execute).toHaveBeenCalled();
+  });
+
+  it("no-ops when status is unchanged", async () => {
+    const { service, manager } = createService(1);
+
+    await expect(service.update(id, { status: 1 })).resolves.not.toThrow();
+    expect(manager.update).not.toHaveBeenCalled();
   });
 });

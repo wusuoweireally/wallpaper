@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
 import { Repository, DataSource, EntityManager } from "typeorm";
 import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
-import { UserLike } from "../entities/user-like.entity";
 import { UserFavorite } from "../entities/user-favorite.entity";
 import { CreateWallpaperDto } from "../dto/wallpaper.dto";
 import { TagService } from "./tag.service";
@@ -11,6 +15,49 @@ import { Tag } from "../entities/tag.entity";
 import { sanitizeUser } from "../utils/sanitize";
 import { normalizeLimit, normalizePagination } from "../common/pagination";
 import { isAdminRole, UserRole } from "../entities/user.entity";
+import {
+  aspectRatioBounds,
+  normalizeColorFilter,
+  parseResolutionList,
+  resolveTopRangeSince,
+} from "./wallpaper-filters";
+
+/**
+ * 数据万象预览参数：等比缩到 1600 内 + webp q88，语义与上传时 sharp 生成的预览图一致。
+ * 仅老数据（previewUrl 为空）现场生成用；URL 即浏览器缓存 key，写死后勿动态变更。
+ */
+const CI_PREVIEW_PARAMS =
+  "imageMogr2/thumbnail/1600x1600/format/webp/quality/88";
+
+/** 列表查询参数（替代超长位置参数） */
+export interface WallpaperListQuery {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "ASC" | "DESC";
+  tags?: string[];
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  aspectRatio?: number;
+  orientation?: string;
+  category?: "general" | "anime" | "people";
+  subCategory?: string;
+  format?: string;
+  minFileSize?: number;
+  maxFileSize?: number;
+  viewerId?: number;
+  topRange?: string;
+  color?: string;
+  resolutions?: string[];
+  /** 仅查某用户公开上传 */
+  uploaderId?: number;
+  /** 关键词搜索（按标签名模糊匹配） */
+  search?: string;
+  /** 随机排序种子：同 seed 翻页顺序稳定 */
+  seed?: number;
+}
 
 export interface WallpaperViewer {
   userId: number;
@@ -33,15 +80,13 @@ function isMysqlDeadlock(error: unknown): boolean {
 
 @Injectable()
 export class WallpaperService {
-  // 壁纸热门评分公式：浏览x1 + 点赞x5 + 收藏x8 + 下载x3
+  // 壁纸热门评分公式：浏览x1 + 收藏x8（点赞/下载统计已下线，不参与评分）
   private static readonly POPULARITY_SCORE =
-    "(wallpaper.viewCount + wallpaper.likeCount * 5 + wallpaper.favoriteCount * 8 + wallpaper.downloadCount * 3)";
+    "(wallpaper.viewCount + wallpaper.favoriteCount * 8)";
 
   constructor(
     @InjectRepository(Wallpaper)
     private readonly wallpaperRepository: Repository<Wallpaper>,
-    @InjectRepository(UserLike)
-    private readonly userLikeRepository: Repository<UserLike>,
     @InjectRepository(UserFavorite)
     private readonly userFavoriteRepository: Repository<UserFavorite>,
     @InjectDataSource()
@@ -55,6 +100,11 @@ export class WallpaperService {
     wallpaper: Wallpaper | Wallpaper[],
   ): Wallpaper | Wallpaper[] {
     const sanitizeOne = (item: Wallpaper): Wallpaper => {
+      // 老数据没有预览对象：COS 直链时拼数据万象参数现场生成，体验对齐新上传
+      // （非 http 的本地上传老路径不拼，走前端 thumbnail→fileUrl 兜底）
+      if (!item.previewUrl && item.fileUrl?.startsWith("http")) {
+        item = { ...item, previewUrl: `${item.fileUrl}?${CI_PREVIEW_PARAMS}` };
+      }
       if (!item.uploader) {
         return item;
       }
@@ -84,9 +134,11 @@ export class WallpaperService {
       height: number;
       format: string;
       aspectRatio: number;
+      dominantColor?: string | null;
+      colorBucket?: string | null;
+      contentHash?: string | null;
     },
     uploaderId: number,
-    allowCreateTags = false,
   ): Promise<Wallpaper> {
     const { tags = [], ...wallpaperData } = createWallpaperDto;
     const maxAttempts = 3;
@@ -99,11 +151,11 @@ export class WallpaperService {
           const wallpaper = await repository.save(
             repository.create({ ...wallpaperData, uploaderId }),
           );
+          // 上传允许自定义标签（不存在则创建）；发布走 replaceWallpaperTags
           await this.tagService.attachWallpaperTags(
             manager,
             wallpaper.id,
             tags,
-            allowCreateTags,
           );
           return wallpaper;
         });
@@ -118,25 +170,23 @@ export class WallpaperService {
     throw lastError;
   }
 
+  /** 按 contentHash 查重，返回是否已存在与已有 id（选图阶段提前判断） */
+  async checkDuplicate(
+    contentHash: string,
+  ): Promise<{ exists: boolean; id: number | null }> {
+    const existing = await this.wallpaperRepository.findOne({
+      where: { contentHash },
+      select: ["id"],
+    });
+    return { exists: !!existing, id: existing?.id ?? null };
+  }
+
   /**
    * 根据ID查找壁纸
    */
   async findById(id: number): Promise<Wallpaper> {
     const wallpaper = await this.wallpaperRepository.findOne({
       where: { id },
-      relations: ["uploader", "tags"],
-    });
-
-    if (!wallpaper) {
-      throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-    }
-
-    return this.sanitizeWallpaperUser(wallpaper);
-  }
-
-  async findPublishedById(id: number): Promise<Wallpaper> {
-    const wallpaper = await this.wallpaperRepository.findOne({
-      where: { id, status: WallpaperStatus.APPROVED },
       relations: ["uploader", "tags"],
     });
 
@@ -166,30 +216,14 @@ export class WallpaperService {
   /**
    * 分页查询壁纸列表（支持搜索和多种筛选）
    */
-  async findAll(
-    page: number = 1,
-    limit: number = 20,
-    sortBy: string = "createdAt",
-    sortOrder: "ASC" | "DESC" = "DESC",
-    tags?: string[],
-    tagKeyword?: string,
-    minWidth?: number,
-    maxWidth?: number,
-    minHeight?: number,
-    maxHeight?: number,
-    aspectRatio?: number,
-    orientation?: string,
-    category?: "general" | "anime" | "people",
-    subCategory?: string,
-    search?: string,
-    format?: string,
-    minFileSize?: number,
-    maxFileSize?: number,
-    viewerId?: number,
-  ): Promise<{
-    data: Array<Wallpaper & { isLiked: boolean; isFavorited: boolean }>;
+  async findAll(q: WallpaperListQuery = {}): Promise<{
+    data: Array<Wallpaper & { isFavorited: boolean }>;
     total: number;
   }> {
+    let page = q.page ?? 1;
+    let limit = q.limit ?? 20;
+    const sortBy = q.sortBy ?? "createdAt";
+    const sortOrder: "ASC" | "DESC" = q.sortOrder ?? "DESC";
     ({ page, limit } = normalizePagination(page, limit));
     const skip = (page - 1) * limit;
 
@@ -201,184 +235,271 @@ export class WallpaperService {
       .leftJoinAndSelect("wallpaper.tags", "tags")
       .distinct(true);
 
-    // 搜索：匹配标签名
-    if (search && search.trim()) {
-      const searchTerm = `%${search.trim()}%`;
-      queryBuilder.andWhere("(tags.name LIKE :search)", { search: searchTerm });
-    }
-
-    // 添加分类筛选
-    if (category) {
-      queryBuilder.andWhere("wallpaper.category = :category", { category });
-    }
-
-    // 添加子分类筛选
-    if (subCategory) {
-      queryBuilder.andWhere("wallpaper.subCategory = :subCategory", {
-        subCategory,
+    if (q.uploaderId) {
+      queryBuilder.andWhere("wallpaper.uploaderId = :uploaderId", {
+        uploaderId: q.uploaderId,
       });
     }
 
-    // 添加尺寸筛选
-    if (minWidth) {
-      queryBuilder.andWhere("wallpaper.width >= :minWidth", { minWidth });
-    }
-    if (maxWidth) {
-      queryBuilder.andWhere("wallpaper.width <= :maxWidth", { maxWidth });
-    }
-    if (minHeight) {
-      queryBuilder.andWhere("wallpaper.height >= :minHeight", { minHeight });
-    }
-    if (maxHeight) {
-      queryBuilder.andWhere("wallpaper.height <= :maxHeight", { maxHeight });
+    if (q.category) {
+      queryBuilder.andWhere("wallpaper.category = :category", {
+        category: q.category,
+      });
     }
 
-    // 添加宽高比筛选（±10% 容差）
-    if (aspectRatio) {
-      const tolerance = aspectRatio * 0.1;
+    if (q.subCategory) {
+      queryBuilder.andWhere("wallpaper.subCategory = :subCategory", {
+        subCategory: q.subCategory,
+      });
+    }
+
+    if (q.minWidth) {
+      queryBuilder.andWhere("wallpaper.width >= :minWidth", {
+        minWidth: q.minWidth,
+      });
+    }
+    if (q.maxWidth) {
+      queryBuilder.andWhere("wallpaper.width <= :maxWidth", {
+        maxWidth: q.maxWidth,
+      });
+    }
+    if (q.minHeight) {
+      queryBuilder.andWhere("wallpaper.height >= :minHeight", {
+        minHeight: q.minHeight,
+      });
+    }
+    if (q.maxHeight) {
+      queryBuilder.andWhere("wallpaper.height <= :maxHeight", {
+        maxHeight: q.maxHeight,
+      });
+    }
+
+    // 精确分辨率（OR 一组 width×height）
+    const exactResolutions = parseResolutionList(q.resolutions);
+    if (exactResolutions.length > 0) {
+      const parts = exactResolutions.map(
+        (_, i) =>
+          `(wallpaper.width = :resW${i} AND wallpaper.height = :resH${i})`,
+      );
+      const params: Record<string, number> = {};
+      exactResolutions.forEach((r, i) => {
+        params[`resW${i}`] = r.width;
+        params[`resH${i}`] = r.height;
+      });
+      queryBuilder.andWhere(`(${parts.join(" OR ")})`, params);
+    }
+
+    // 宽高比 ±10%
+    if (q.aspectRatio) {
+      const { min, max } = aspectRatioBounds(q.aspectRatio);
       queryBuilder
-        .andWhere("wallpaper.aspectRatio >= :minRatio", {
-          minRatio: aspectRatio - tolerance,
-        })
-        .andWhere("wallpaper.aspectRatio <= :maxRatio", {
-          maxRatio: aspectRatio + tolerance,
-        });
+        .andWhere("wallpaper.aspectRatio >= :minRatio", { minRatio: min })
+        .andWhere("wallpaper.aspectRatio <= :maxRatio", { maxRatio: max });
     }
 
-    // 添加方向筛选
-    if (orientation === "landscape") {
+    if (q.orientation === "landscape") {
       queryBuilder.andWhere("wallpaper.width > wallpaper.height");
-    } else if (orientation === "portrait") {
+    } else if (q.orientation === "portrait") {
       queryBuilder.andWhere("wallpaper.height > wallpaper.width");
-    } else if (orientation === "square") {
+    } else if (q.orientation === "square") {
       queryBuilder.andWhere("wallpaper.width = wallpaper.height");
     }
 
-    // 添加文件格式筛选
-    if (format) {
-      queryBuilder.andWhere("wallpaper.format = :format", { format });
+    if (q.format) {
+      queryBuilder.andWhere("wallpaper.format = :format", { format: q.format });
     }
 
-    // 添加文件大小筛选
-    if (minFileSize) {
+    if (q.minFileSize) {
       queryBuilder.andWhere("wallpaper.fileSize >= :minFileSize", {
-        minFileSize,
+        minFileSize: q.minFileSize,
       });
     }
-    if (maxFileSize) {
+    if (q.maxFileSize) {
       queryBuilder.andWhere("wallpaper.fileSize <= :maxFileSize", {
-        maxFileSize,
+        maxFileSize: q.maxFileSize,
       });
     }
 
-    // 添加标签筛选
-    if (tags && tags.length > 0) {
-      queryBuilder
-        .innerJoin("wallpaper.tags", "filterTags")
-        .andWhere("filterTags.name IN (:...filterTags)", { filterTags: tags });
-    }
-
-    if (tagKeyword && tagKeyword.trim()) {
-      queryBuilder.andWhere("tags.name LIKE :tagKeyword", {
-        tagKeyword: `%${tagKeyword.trim()}%`,
+    // 主色桶
+    const colorBucket = normalizeColorFilter(q.color);
+    if (colorBucket) {
+      queryBuilder.andWhere("wallpaper.colorBucket = :colorBucket", {
+        colorBucket,
       });
     }
 
-    // 添加排序
+    // toplist 时间窗
+    const since = resolveTopRangeSince(q.topRange);
+    if (since) {
+      queryBuilder.andWhere("wallpaper.createdAt >= :topSince", {
+        topSince: since,
+      });
+    }
+
+    // 关键词搜索：标签名 LIKE（EXISTS 与多标签 AND 同风格，避免 join 重复）
+    const searchTerm = q.search?.trim();
+    if (searchTerm) {
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM wallpaper_tags wt
+          INNER JOIN tags t ON t.id = wt.tag_id
+          WHERE wt.wallpaper_id = wallpaper.id AND t.name LIKE :search
+        )`,
+        { search: `%${searchTerm}%` },
+      );
+    }
+
+    // 多标签 AND：EXISTS 子查询，避免 leftJoin+groupBy 触发 MySQL ONLY_FULL_GROUP_BY 500
+    if (q.tags && q.tags.length > 0) {
+      q.tags.forEach((tagName, i) => {
+        const param = `filterTag${i}`;
+        queryBuilder.andWhere(
+          `EXISTS (
+            SELECT 1 FROM wallpaper_tags wt
+            INNER JOIN tags t ON t.id = wt.tag_id
+            WHERE wt.wallpaper_id = wallpaper.id AND t.name = :${param}
+          )`,
+          { [param]: tagName },
+        );
+      });
+    }
+
     const validSortFields = [
       "createdAt",
       "viewCount",
-      "likeCount",
       "favoriteCount",
-      "downloadCount",
       "width",
       "height",
       "aspectRatio",
       "fileSize",
     ];
 
-    // 处理特殊排序逻辑
     if (sortBy === "random") {
-      queryBuilder.orderBy("RAND()");
-    } else if (sortBy === "popular") {
-      // 热门排序：加权综合评分
-      // 浏览x1 + 点赞x5 + 收藏x8 + 下载x3
+      // 带 seed 的 RAND(N) 确定性排序：翻页传同一 seed 不重复（MySQL 按 seed 初始化随机源）
+      if (q.seed !== undefined) {
+        queryBuilder
+          .orderBy("RAND(:randomSeed)")
+          .setParameter("randomSeed", q.seed);
+      } else {
+        queryBuilder.orderBy("RAND()");
+      }
+    } else if (sortBy === "popular" || sortBy === "toplist") {
+      // toplist / popular：加权综合评分
       queryBuilder.addSelect(
         WallpaperService.POPULARITY_SCORE,
         "popularity_score",
       );
       queryBuilder.orderBy("popularity_score", "DESC");
     } else {
-      // 常规字段排序
       const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
       queryBuilder.orderBy(`wallpaper.${sortField}`, sortOrder);
-      // 同秒写入时保证顺序稳定，避免分页抖动
       if (sortField !== "id") {
         queryBuilder.addOrderBy("wallpaper.id", sortOrder);
       }
     }
 
-    // 执行完整的分页查询 - 修复：单次查询获取所有数据，保持排序
     const [wallpapersWithRelations, total] = await queryBuilder
       .skip(skip)
       .take(limit)
       .getManyAndCount();
 
     const sanitized = this.sanitizeWallpaperUser(wallpapersWithRelations);
-    const data = await this.attachInteractionStatus(sanitized, viewerId);
+    const data = await this.attachInteractionStatus(sanitized, q.viewerId);
     return { data, total };
   }
 
+  /** 某用户公开（已审核）上传列表 */
+  async findPublicUploadsByUser(
+    uploaderId: number,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    data: Array<Wallpaper & { isFavorited: boolean }>;
+    total: number;
+  }> {
+    return this.findAll({ page, limit, uploaderId, sortBy: "createdAt" });
+  }
+
   /**
-   * 批量为壁纸附加当前用户的点赞/收藏状态。
+   * 批量为壁纸附加当前用户的收藏状态。
    * 无 viewerId 时全部返回 false，避免额外查询。
    */
   async attachInteractionStatus(
     wallpapers: Wallpaper[],
     viewerId?: number,
-  ): Promise<Array<Wallpaper & { isLiked: boolean; isFavorited: boolean }>> {
+  ): Promise<Array<Wallpaper & { isFavorited: boolean }>> {
     if (!viewerId || wallpapers.length === 0) {
       return wallpapers.map((wallpaper) => ({
         ...wallpaper,
-        isLiked: false,
         isFavorited: false,
       }));
     }
 
     const ids = wallpapers.map((wallpaper) => wallpaper.id);
-    const [likes, favorites] = await Promise.all([
-      this.userLikeRepository
-        .createQueryBuilder("like")
-        .select("like.wallpaperId", "wallpaperId")
-        .where("like.userId = :viewerId", { viewerId })
-        .andWhere("like.wallpaperId IN (:...ids)", { ids })
-        .getRawMany<{ wallpaperId: string | number }>(),
-      this.userFavoriteRepository
-        .createQueryBuilder("favorite")
-        .select("favorite.wallpaperId", "wallpaperId")
-        .where("favorite.userId = :viewerId", { viewerId })
-        .andWhere("favorite.wallpaperId IN (:...ids)", { ids })
-        .getRawMany<{ wallpaperId: string | number }>(),
-    ]);
+    const favorites = await this.userFavoriteRepository
+      .createQueryBuilder("favorite")
+      .select("favorite.wallpaperId", "wallpaperId")
+      .where("favorite.userId = :viewerId", { viewerId })
+      .andWhere("favorite.wallpaperId IN (:...ids)", { ids })
+      .getRawMany<{ wallpaperId: string | number }>();
 
-    const likedIds = new Set(likes.map((row) => Number(row.wallpaperId)));
     const favoritedIds = new Set(
       favorites.map((row) => Number(row.wallpaperId)),
     );
 
     return wallpapers.map((wallpaper) => ({
       ...wallpaper,
-      isLiked: likedIds.has(Number(wallpaper.id)),
       isFavorited: favoritedIds.has(Number(wallpaper.id)),
     }));
   }
 
   /**
-   * 更新壁纸信息
+   * 更新壁纸信息（普通字段直写）
+   * status 走 setStatus：事务内做标签校验与 usageCount 记账，绕不过发布约束
    */
   async update(id: number, updateData: Partial<Wallpaper>): Promise<Wallpaper> {
-    await this.wallpaperRepository.update(id, updateData);
+    const { status, ...fields } = updateData;
+    if (Object.keys(fields).length > 0) {
+      await this.wallpaperRepository.update(id, fields);
+    }
+    if (status !== undefined) {
+      await this.setStatus(id, status);
+    }
     return await this.findById(id);
+  }
+
+  /** 状态切换（0=下架草稿 1=公开）：与 publish/delete 同一套 usageCount 记账 */
+  private async setStatus(id: number, status: WallpaperStatus): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const wallpaper = await manager
+        .getRepository(Wallpaper)
+        .createQueryBuilder("wallpaper")
+        .setLock("pessimistic_write")
+        .where("wallpaper.id = :id", { id })
+        .getOne();
+      if (!wallpaper) {
+        throw new NotFoundException(`壁纸 ID ${id} 不存在`);
+      }
+      if (wallpaper.status === status) return;
+
+      if (status === WallpaperStatus.APPROVED) {
+        const tagCount = await manager.count(WallpaperTag, {
+          where: { wallpaperId: id },
+        });
+        if (tagCount === 0) {
+          throw new BadRequestException(
+            `壁纸 #${id} 请至少添加一个标签后再公开`,
+          );
+        }
+        await manager.update(Wallpaper, id, { status });
+        await this.adjustTagUsageCount(manager, id, 1);
+      } else {
+        await manager.update(Wallpaper, id, {
+          status: WallpaperStatus.PENDING,
+        });
+        await this.adjustTagUsageCount(manager, id, -1);
+      }
+    });
   }
 
   private async adjustTagUsageCount(
@@ -418,7 +539,6 @@ export class WallpaperService {
         throw new NotFoundException(`壁纸 ID ${id} 不存在`);
       }
 
-      await manager.delete(UserLike, { wallpaperId: id });
       await manager.delete(UserFavorite, { wallpaperId: id });
 
       if (wallpaper.status === WallpaperStatus.APPROVED) {
@@ -441,11 +561,19 @@ export class WallpaperService {
   async batchDelete(ids: number[]): Promise<{
     deletedCount: number;
     failedIds: number[];
-    deletedFiles: Array<{ fileUrl: string; thumbnailUrl?: string }>;
+    deletedFiles: Array<{
+      fileUrl: string;
+      thumbnailUrl?: string;
+      previewUrl?: string;
+    }>;
   }> {
     let deletedCount = 0;
     const failedIds: number[] = [];
-    const deletedFiles: Array<{ fileUrl: string; thumbnailUrl?: string }> = [];
+    const deletedFiles: Array<{
+      fileUrl: string;
+      thumbnailUrl?: string;
+      previewUrl?: string;
+    }> = [];
 
     // 批量处理（分批执行避免一次性处理太多）
     const batchSize = 50;
@@ -460,6 +588,7 @@ export class WallpaperService {
           deletedFiles.push({
             fileUrl: wallpaper.fileUrl,
             thumbnailUrl: wallpaper.thumbnailUrl,
+            previewUrl: wallpaper.previewUrl,
           });
         } catch (error) {
           console.error(`删除壁纸 ID ${id} 失败:`, error);
@@ -478,114 +607,16 @@ export class WallpaperService {
     await this.wallpaperRepository.increment({ id, status: 1 }, "viewCount", 1);
   }
 
-  /**
-   * 增加下载次数
-   */
-  async incrementDownloadCount(id: number): Promise<void> {
-    const result = await this.wallpaperRepository.increment(
-      { id, status: 1 },
-      "downloadCount",
-      1,
-    );
-    if (result.affected === 0) {
-      throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-    }
-  }
-
-  /** 确保点赞记录存在，并返回数据库最终状态。 */
-  async addLike(
-    userId: number,
+  /** 用户是否已收藏该壁纸（点赞已下线，仅查收藏） */
+  async getUserFavoriteStatus(
     wallpaperId: number,
-  ): Promise<{ isLiked: true; likeCount: number }> {
-    return await this.dataSource.transaction(async (manager) => {
-      const userLikeRepo = manager.getRepository(UserLike);
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :wallpaperId", { wallpaperId })
-        .andWhere("wallpaper.status = :status", { status: 1 })
-        .getOne();
-      if (!wallpaper) {
-        throw new NotFoundException(`壁纸 ID ${wallpaperId} 不存在`);
-      }
-
-      const existingLike = await userLikeRepo.findOne({
-        where: { userId, wallpaperId },
-      });
-
-      if (existingLike) {
-        return { isLiked: true, likeCount: wallpaper.likeCount };
-      }
-
-      const userLike = userLikeRepo.create({ userId, wallpaperId });
-      await userLikeRepo.save(userLike);
-      await wallpaperRepo.increment({ id: wallpaperId }, "likeCount", 1);
-      return { isLiked: true, likeCount: wallpaper.likeCount + 1 };
+    userId: number,
+  ): Promise<boolean> {
+    const favorite = await this.userFavoriteRepository.findOne({
+      where: { wallpaperId, userId },
+      select: ["id"],
     });
-  }
-
-  /**
-   * 强制取消点赞（幂等）
-   */
-  async removeLike(
-    userId: number,
-    wallpaperId: number,
-  ): Promise<{ isLiked: false; likeCount: number }> {
-    return this.dataSource.transaction(async (manager) => {
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :wallpaperId", { wallpaperId })
-        .getOne();
-      if (!wallpaper) {
-        throw new NotFoundException(`壁纸 ID ${wallpaperId} 不存在`);
-      }
-
-      const result = await manager.delete(UserLike, { userId, wallpaperId });
-      if (result.affected) {
-        await wallpaperRepo
-          .createQueryBuilder()
-          .update(Wallpaper)
-          .set({ likeCount: () => "GREATEST(like_count - 1, 0)" })
-          .where("id = :wallpaperId", { wallpaperId })
-          .execute();
-      }
-      return {
-        isLiked: false,
-        likeCount: result.affected
-          ? Math.max(0, wallpaper.likeCount - 1)
-          : wallpaper.likeCount,
-      };
-    });
-  }
-
-  /**
-   * 获取用户对壁纸的交互状态（点赞和收藏）
-   * 使用单次查询优化性能
-   */
-  async getUserInteractionStatus(
-    wallpaperId: number,
-    userId: number,
-  ): Promise<{ isLiked: boolean; isFavorited: boolean }> {
-    // 并行查询点赞和收藏状态（已在 controller 层使用 Promise.all）
-    const [like, favorite] = await Promise.all([
-      this.userLikeRepository.findOne({
-        where: { wallpaperId, userId },
-        select: ["id"], // 只查询 ID，减少数据传输
-      }),
-      this.userFavoriteRepository.findOne({
-        where: { wallpaperId, userId },
-        select: ["id"],
-      }),
-    ]);
-
-    return {
-      isLiked: !!like,
-      isFavorited: !!favorite,
-    };
+    return !!favorite;
   }
 
   /** 确保收藏记录存在，并返回数据库最终状态。 */
@@ -668,32 +699,8 @@ export class WallpaperService {
   }
 
   /**
-   * 根据上传者ID查询壁纸
+   * 根据上传者ID查询壁纸（本人全部状态，个人中心用）
    */
-  async findByUploaderId(
-    uploaderId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<{ data: Wallpaper[]; total: number }> {
-    // 验证上传者ID的有效性
-    if (!uploaderId || isNaN(uploaderId) || uploaderId <= 0) {
-      throw new NotFoundException("上传者ID无效");
-    }
-
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await this.wallpaperRepository.findAndCount({
-      where: { uploaderId, status: 1 },
-      relations: ["uploader", "tags"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
-
-    return { data: this.sanitizeWallpaperUser(data), total };
-  }
-
   async findOwnUploads(
     uploaderId: number,
     page: number = 1,
@@ -715,20 +722,15 @@ export class WallpaperService {
     return { data: this.sanitizeWallpaperUser(data), total };
   }
 
-  async getUploaderStats(uploaderId: number): Promise<{
-    uploads: number;
-    likesReceived: number;
-  }> {
+  async getUploaderStats(uploaderId: number): Promise<{ uploads: number }> {
     const result = await this.wallpaperRepository
       .createQueryBuilder("wallpaper")
       .select("COUNT(*)", "uploads")
-      .addSelect("COALESCE(SUM(wallpaper.likeCount), 0)", "likesReceived")
       .where("wallpaper.uploaderId = :uploaderId", { uploaderId })
-      .getRawOne<{ uploads: string; likesReceived: string }>();
+      .getRawOne<{ uploads: string }>();
 
     return {
       uploads: Number(result?.uploads ?? 0),
-      likesReceived: Number(result?.likesReceived ?? 0),
     };
   }
 
@@ -782,7 +784,6 @@ export class WallpaperService {
     total: number;
     pending: number;
     approved: number;
-    rejected: number;
     featured: number;
   }> {
     const row = await this.wallpaperRepository
@@ -797,17 +798,12 @@ export class WallpaperService {
         "approved",
       )
       .addSelect(
-        "SUM(CASE WHEN wallpaper.status = :rejected THEN 1 ELSE 0 END)",
-        "rejected",
-      )
-      .addSelect(
         "SUM(CASE WHEN wallpaper.status = :approved AND wallpaper.isFeatured = 1 THEN 1 ELSE 0 END)",
         "featured",
       )
       .setParameters({
         pending: WallpaperStatus.PENDING,
         approved: WallpaperStatus.APPROVED,
-        rejected: WallpaperStatus.REJECTED,
       })
       .getRawOne<Record<string, string>>();
 
@@ -815,7 +811,6 @@ export class WallpaperService {
       total: Number(row?.total ?? 0),
       pending: Number(row?.pending ?? 0),
       approved: Number(row?.approved ?? 0),
-      rejected: Number(row?.rejected ?? 0),
       featured: Number(row?.featured ?? 0),
     };
   }
@@ -857,6 +852,48 @@ export class WallpaperService {
   }
 
   /**
+   * 发布草稿：校验所有权 → 事务内写分类/标签并设为已通过
+   * 单张原子（避免"已公开但标签没写进去"的中间态）；批量中某张失败即中断
+   */
+  async publishDrafts(
+    userId: number,
+    items: Array<{
+      id: number;
+      category: "general" | "anime" | "people";
+      tags: string[];
+    }>,
+    role?: UserRole,
+  ): Promise<Wallpaper[]> {
+    const results: Wallpaper[] = [];
+    for (const item of items) {
+      const wallpaper = await this.findById(item.id);
+      if (wallpaper.uploaderId !== userId && !isAdminRole(role)) {
+        throw new ForbiddenException(`无权发布壁纸 #${item.id}`);
+      }
+      if (
+        wallpaper.status !== WallpaperStatus.PENDING &&
+        wallpaper.status !== WallpaperStatus.APPROVED
+      ) {
+        throw new BadRequestException(`壁纸 #${item.id} 不可发布`);
+      }
+      const tags = (item.tags || []).map((t) => t.trim()).filter(Boolean);
+      if (tags.length === 0) {
+        throw new BadRequestException(`壁纸 #${item.id} 请至少添加一个标签`);
+      }
+      // 事务内：先设 APPROVED 再换标签（replaceWallpaperTags 按 status 记账 usageCount）
+      await this.dataSource.transaction(async (manager) => {
+        await manager.update(Wallpaper, item.id, {
+          category: item.category,
+          status: WallpaperStatus.APPROVED,
+        });
+        await this.tagService.replaceWallpaperTags(item.id, tags, manager);
+      });
+      results.push(await this.findById(item.id));
+    }
+    return this.sanitizeWallpaperUser(results);
+  }
+
+  /**
    * 获取相关推荐壁纸（同分类，排除当前壁纸）
    */
   async getRelatedWallpapers(
@@ -865,35 +902,50 @@ export class WallpaperService {
     limit: number = 8,
   ): Promise<Wallpaper[]> {
     limit = normalizeLimit(limit, 8, 50);
-    const qb = this.wallpaperRepository
-      .createQueryBuilder("wallpaper")
-      .leftJoinAndSelect("wallpaper.uploader", "uploader")
-      .leftJoinAndSelect("wallpaper.tags", "tags")
-      .where("wallpaper.status = :status", { status: 1 })
-      .andWhere("wallpaper.id != :id", { id: wallpaperId });
+    const baseQb = () => {
+      const qb = this.wallpaperRepository
+        .createQueryBuilder("wallpaper")
+        .leftJoinAndSelect("wallpaper.uploader", "uploader")
+        .leftJoinAndSelect("wallpaper.tags", "tags")
+        .where("wallpaper.status = :status", { status: 1 })
+        .andWhere("wallpaper.id != :id", { id: wallpaperId });
+      if (category) {
+        qb.andWhere("wallpaper.category = :category", { category });
+      }
+      return qb;
+    };
 
-    if (category) {
-      qb.andWhere("wallpaper.category = :category", { category });
-    }
-
-    // 随机偏移替代 ORDER BY RAND()（避免全表扫描计算随机数）
+    // 随机起点替代 ORDER BY RAND()（避免全表扫描计算随机数）
     const maxId = await this.wallpaperRepository
       .createQueryBuilder("w")
       .select("MAX(w.id)", "max")
       .getRawOne<{ max: number }>();
-    if (maxId?.max) {
-      qb.andWhere("wallpaper.id >= :randomOffset", {
-        randomOffset: Math.floor(Math.random() * maxId.max),
-      });
-    }
-    qb.orderBy("wallpaper.id", "ASC").take(limit);
+    const offset = maxId?.max ? Math.floor(Math.random() * maxId.max) : 0;
 
-    return this.sanitizeWallpaperUser(await qb.getMany());
+    // 第一段：从随机起点往后取
+    const first = await baseQb()
+      .andWhere("wallpaper.id >= :offset", { offset })
+      .orderBy("wallpaper.id", "ASC")
+      .take(limit)
+      .getMany();
+
+    // 兜底回绕：起点太靠后导致不足时，从头补齐，避免推荐偶发为空
+    let wallpapers = first;
+    if (first.length < limit && offset > 0) {
+      const rest = await baseQb()
+        .andWhere("wallpaper.id < :offset", { offset })
+        .orderBy("wallpaper.id", "ASC")
+        .take(limit - first.length)
+        .getMany();
+      wallpapers = [...first, ...rest];
+    }
+
+    return this.sanitizeWallpaperUser(wallpapers);
   }
 
   /**
    * 获取热门壁纸
-   * 按照浏览量降序排序
+   * 加权综合评分：浏览x1 + 收藏x8
    */
   async getPopularWallpapers(limit: number = 10): Promise<Wallpaper[]> {
     limit = normalizeLimit(limit, 10, 50);
@@ -925,59 +977,20 @@ export class WallpaperService {
     return this.sanitizeWallpaperUser(wallpapers);
   }
 
-  /**
-   * 获取近期热门壁纸（最近N天内按综合评分排序）
-   */
-  async getTrendingWallpapers(
-    days: number = 7,
-    limit: number = 10,
-  ): Promise<Wallpaper[]> {
-    days = Math.min(30, Math.max(1, Math.trunc(days) || 7));
-    limit = normalizeLimit(limit, 10, 50);
-    const qb = this.wallpaperRepository
-      .createQueryBuilder("wallpaper")
-      .leftJoinAndSelect("wallpaper.uploader", "uploader")
-      .leftJoinAndSelect("wallpaper.tags", "tags")
-      .addSelect(WallpaperService.POPULARITY_SCORE, "popularity_score")
-      .where("wallpaper.status = :status", { status: 1 })
-      .andWhere("wallpaper.createdAt >= :since", {
-        since: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
-      })
-      .orderBy("popularity_score", "DESC")
-      .take(limit);
-
-    return this.sanitizeWallpaperUser(await qb.getMany());
-  }
-
-  /**
-   * 获取用户点赞的壁纸列表（分页）
-   */
-  async getUserLikedWallpapers(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<{ data: Wallpaper[]; total: number }> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    // 使用 QueryBuilder 确保 total 与 data 基于同一过滤结果集（仅 status=1 的壁纸）
-    const qb = this.userLikeRepository
-      .createQueryBuilder("like")
-      .leftJoinAndSelect("like.wallpaper", "wallpaper")
-      .leftJoinAndSelect("wallpaper.uploader", "uploader")
-      .where("like.userId = :userId", { userId })
-      .andWhere("wallpaper.status = :status", { status: 1 })
-      .orderBy("like.createdAt", "DESC")
-      .skip(skip)
-      .take(limit);
-
-    const [likes, total] = await qb.getManyAndCount();
-    const wallpapers = likes
-      .map((like) => like.wallpaper)
-      .filter(Boolean)
-      .map((wallpaper) => ({ ...wallpaper, isLiked: true }));
-
-    return { data: this.sanitizeWallpaperUser(wallpapers), total };
+  /** 用户收藏数（仅公开壁纸；个人中心统计用，COUNT 替代拉整行） */
+  async countUserFavorites(userId: number): Promise<number> {
+    return await this.userFavoriteRepository
+      .createQueryBuilder("favorite")
+      .innerJoin(
+        "favorite.wallpaper",
+        "wallpaper",
+        "wallpaper.status = :status",
+        {
+          status: WallpaperStatus.APPROVED,
+        },
+      )
+      .where("favorite.userId = :userId", { userId })
+      .getCount();
   }
 
   /**

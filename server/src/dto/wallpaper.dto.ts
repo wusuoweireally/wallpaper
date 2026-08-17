@@ -1,5 +1,6 @@
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsEnum,
@@ -12,6 +13,7 @@ import {
   MaxLength,
   Min,
   Length,
+  ValidateNested,
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import type { TransformFnParams } from "class-transformer";
@@ -33,8 +35,14 @@ const readAsArray = ({ value }: TransformFnParams): unknown[] | undefined => {
   return [input];
 };
 
+/**
+ * 第一步「仅传文件」：分类/标签可选（草稿 PENDING）
+ * 第二步 publish 再强制分类 + 标签
+ */
 export class CreateWallpaperDto {
-  @IsEnum(["general", "anime", "people"])
+  @IsEnum(["general", "anime", "people"], {
+    message: "分类无效",
+  })
   @IsOptional()
   category?: "general" | "anime" | "people";
 
@@ -72,6 +80,41 @@ export class CreateWallpaperDto {
   tags?: string[];
 }
 
+/** 发布草稿：分类 + 至少 1 个标签 */
+export class PublishWallpaperItemDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id: number;
+
+  @IsEnum(["general", "anime", "people"], {
+    message: "请选择分类（综合 / 动漫 / 人物）",
+  })
+  category: "general" | "anime" | "people";
+
+  @Transform((params: TransformFnParams) =>
+    readAsArray(params)?.map((value) =>
+      typeof value === "string" ? value.replace(/\s+/g, " ").trim() : value,
+    ),
+  )
+  @IsArray({ message: "请至少添加一个标签" })
+  @ArrayMinSize(1, { message: "请至少添加一个标签" })
+  @ArrayMaxSize(5)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @Length(1, 30, { each: true })
+  tags: string[];
+}
+
+export class PublishWallpapersDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => PublishWallpaperItemDto)
+  items: PublishWallpaperItemDto[];
+}
+
 export class UpdateWallpaperDto {
   @IsEnum(["general", "anime", "people"])
   @IsOptional()
@@ -96,6 +139,11 @@ export class UpdateWallpaperDto {
   ])
   @IsOptional()
   subCategory?: string;
+
+  /** 公开状态：0=不公开(草稿/下架)，1=公开（本人切换用） */
+  @IsIn([0, 1])
+  @IsOptional()
+  status?: number;
 }
 
 export class WallpaperQueryDto {
@@ -111,10 +159,6 @@ export class WallpaperQueryDto {
   @Max(100)
   @IsOptional()
   limit?: number = 20;
-
-  @IsString()
-  @IsOptional()
-  search?: string;
 
   @IsString()
   @IsOptional()
@@ -175,7 +219,56 @@ export class WallpaperQueryDto {
   @IsOptional()
   maxFileSize?: string;
 
-  @IsString()
+  /** toplist 时间窗：1d/3d/1w/1M/3M/6M/1y */
+  @IsIn(["1d", "3d", "1w", "1M", "3M", "6M", "1y"])
   @IsOptional()
-  tagKeyword?: string;
+  topRange?: string;
+
+  /** 主色：bucket 名或 hex */
+  @IsString()
+  @MaxLength(32)
+  @IsOptional()
+  color?: string;
+
+  /** 精确分辨率列表，如 1920x1080 */
+  @Transform(readAsArray)
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(20, { each: true })
+  @IsOptional()
+  resolutions?: string[];
+
+  /** 随机排序种子：翻页时传同一 seed 保证顺序稳定（不重复） */
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(2147483647)
+  @IsOptional()
+  seed?: number;
+
+  /** 关键词搜索（按标签名模糊匹配） */
+  @IsString()
+  @MaxLength(50)
+  @IsOptional()
+  search?: string;
+}
+
+export class CreateCollectionDto {
+  @IsString()
+  @Length(1, 80)
+  name: string;
+}
+
+export class UpdateCollectionDto {
+  @IsString()
+  @Length(1, 80)
+  name: string;
+}
+
+export class CollectionWallpaperDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  wallpaperId: number;
 }

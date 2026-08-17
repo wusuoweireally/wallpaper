@@ -147,19 +147,6 @@ export class TagService {
   }
 
   /**
-   * 根据壁纸ID获取关联标签
-   * @param wallpaperId 壁纸ID
-   */
-  async getTagsByWallpaperId(wallpaperId: number): Promise<Tag[]> {
-    const wallpaperTags = await this.wallpaperTagRepository.find({
-      where: { wallpaperId },
-      relations: ["tag"],
-    });
-
-    return wallpaperTags.map((wt) => wt.tag);
-  }
-
-  /**
    * 根据ID获取标签
    * @param id 标签ID
    */
@@ -226,29 +213,11 @@ export class TagService {
       .execute();
   }
 
-  /**
-   * 处理壁纸标签关联
-   * @param wallpaperId 壁纸ID
-   * @param tagNames 标签名称数组
-   * @param allowCreate 是否允许创建新标签。
-   *   普通用户上传时为 false：仅能关联已存在标签，忽略新标签，
-   *   避免绕过 “创建标签需管理员” 的限制而污染标签库。
-   */
-  async processWallpaperTags(
-    wallpaperId: number,
-    tagNames: string[],
-    allowCreate = false,
-  ): Promise<void> {
-    await this.dataSource.transaction((manager) =>
-      this.attachWallpaperTags(manager, wallpaperId, tagNames, allowCreate),
-    );
-  }
-
+  /** 壁纸挂标签（上传入口，新标签自动创建） */
   async attachWallpaperTags(
     manager: EntityManager,
     wallpaperId: number,
     tagNames: string[],
-    allowCreate = false,
   ): Promise<void> {
     if (!tagNames || tagNames.length === 0) return;
 
@@ -272,26 +241,13 @@ export class TagService {
     const existingTags = await tagRepo.find({ where: { slug: In(slugs) } });
     const existingBySlug = new Map(existingTags.map((tag) => [tag.slug, tag]));
 
-    if (!allowCreate) {
-      const missingTags = normalizedNames.filter(
-        (name) => !existingBySlug.has(this.generateSlug(name)),
-      );
-      if (missingTags.length > 0) {
-        throw new BadRequestException(
-          `标签不存在或不可用：${missingTags.join("、")}`,
-        );
-      }
-    }
-
     const tags = [...existingTags];
-    if (allowCreate) {
-      for (const name of normalizedNames) {
-        const slug = this.generateSlug(name);
-        if (existingBySlug.has(slug)) continue;
-        const tag = await this.findOrCreateTag(tagRepo, name);
-        existingBySlug.set(slug, tag);
-        tags.push(tag);
-      }
+    for (const name of normalizedNames) {
+      const slug = this.generateSlug(name);
+      if (existingBySlug.has(slug)) continue;
+      const tag = await this.findOrCreateTag(tagRepo, name);
+      existingBySlug.set(slug, tag);
+      tags.push(tag);
     }
 
     const existingAssociations = await wallpaperTagRepo.find({
@@ -325,10 +281,12 @@ export class TagService {
 
   /**
    * 替换指定壁纸的标签
+   * @param manager 外部事务管理器（如 publishDrafts 的事务）；不传则自开事务
    */
   async replaceWallpaperTags(
     wallpaperId: number,
     tagNames: string[],
+    manager?: EntityManager,
   ): Promise<Tag[]> {
     const uniqueNames = Array.from(
       new Set(
@@ -338,12 +296,12 @@ export class TagService {
       ),
     );
 
-    // 事务内：删除旧关联 + 创建新关联 + 更新 usageCount 原子执行
-    return await this.dataSource.transaction(async (manager) => {
-      const tagRepo = manager.getRepository(Tag);
-      const wallpaperTagRepo = manager.getRepository(WallpaperTag);
+    const run = async (m: EntityManager): Promise<Tag[]> => {
+      // 事务内：删除旧关联 + 创建新关联 + 更新 usageCount 原子执行
+      const tagRepo = m.getRepository(Tag);
+      const wallpaperTagRepo = m.getRepository(WallpaperTag);
 
-      const wallpaper = await manager
+      const wallpaper = await m
         .getRepository(Wallpaper)
         .createQueryBuilder("wallpaper")
         .setLock("pessimistic_write")
@@ -414,6 +372,8 @@ export class TagService {
       }
 
       return tags;
-    });
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
   }
 }
