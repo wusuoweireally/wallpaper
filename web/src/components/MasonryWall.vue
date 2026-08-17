@@ -1,7 +1,7 @@
 <template>
   <div class="wb-masonry" data-gallery="masonry" :style="wallStyle">
     <div v-for="(col, i) in columns" :key="i" class="wb-masonry-col">
-      <slot :items="col" />
+      <slot :items="col" :tail-cut="tailCuts[i]" />
     </div>
   </div>
 </template>
@@ -35,6 +35,30 @@ const columnCount = computed(() => masonryColumnCount(viewportWidth.value))
 const columns = computed(() =>
   splitMasonryColumns(props.items, columnCount.value, props.itemHeight),
 )
+
+/** 剩余尾差小于一张卡片 10% 高时视为已齐平，放弃裁切 */
+const CUT_TOLERANCE = 0.1
+
+/**
+ * 尾部裁切线（相对列宽的比例）：以最矮列为基准，更高的列把最后一张裁到基准线。
+ * 高度 ≤ 基准（该列即最矮或尾差过小）时为 undefined，卡片按原比例完整展示。
+ * 返回数组与 columns 一一对应，供卡片换算 max-height。
+ */
+const tailCuts = computed<(number | undefined)[]>(() => {
+  const cols = columns.value
+  if (cols.length < 2 || !props.itemHeight) return cols.map(() => undefined)
+  const heights = cols.map((col) => col.reduce((s, it) => s + props.itemHeight!(it), 0))
+  const base = Math.min(...heights)
+  return cols.map((col, i) => {
+    const over = heights[i] - base
+    if (over <= CUT_TOLERANCE) return undefined
+    const last = col[col.length - 1]
+    const cutRatio = props.itemHeight!(last) - over
+    // 裁切后不足半张高失去可读性，不裁（保留尾差）
+    if (cutRatio < 0.5) return undefined
+    return Math.min(cutRatio, props.itemHeight!(last))
+  })
+})
 
 /** 与 .wb-masonry 的 gap 一致（rem） */
 const GAP_REM = 1

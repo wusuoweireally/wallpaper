@@ -88,7 +88,7 @@ export class PublishWallpaperItemDto {
   id: number;
 
   @IsEnum(["general", "anime", "people"], {
-    message: "请选择分类（综合 / 动漫 / 人物）",
+    message: "请选择分类（综合 / 动漫 / 真人）",
   })
   category: "general" | "anime" | "people";
 

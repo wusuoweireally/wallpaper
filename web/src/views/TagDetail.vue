@@ -37,7 +37,7 @@
             <option value="">全部分类</option>
             <option value="general">通用</option>
             <option value="anime">动漫</option>
-            <option value="people">人物</option>
+            <option value="people">真人</option>
           </select>
           <select
             v-model="filters.sort"

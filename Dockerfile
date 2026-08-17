@@ -34,11 +34,8 @@ COPY --from=server-build /app/server/dist ./dist
 COPY --from=server-build /app/server/public ./public
 COPY --from=server-build /app/server/package.json ./package.json
 
-# 拷贝默认上传资源（uploads/壁纸 源图、defaultAvatar 等）到镜像中。
-# 当挂载的命名卷为空（如执行 down -v 后）时，Docker 会用镜像里的内容初始化该卷，
-# 从而保证演示数据 seed 能找到默认壁纸源图。已有卷不受影响。
+# defaultAvatar 等默认资源；壁纸 demo 走 COS 直链 fixture，不再依赖本地源图
 COPY --from=server-build /app/server/uploads ./uploads
-# 确保运行时所需的上传子目录存在（demo-seed 会向 wallpapers/ 写入文件，缺目录会报错）
 RUN mkdir -p uploads/wallpapers uploads/thumbnails uploads/profile-pictures
 
 EXPOSE 3000

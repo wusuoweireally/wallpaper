@@ -157,7 +157,7 @@ export const CATEGORIES = [
   { value: "", label: "全部" },
   { value: "general", label: "综合" },
   { value: "anime", label: "动漫" },
-  { value: "people", label: "人物" },
+  { value: "people", label: "真人" },
 ]
 
 const SORT_VALUES: BrowseSortBy[] = ["latest", "popular", "toplist", "random", "views", "favorites"]

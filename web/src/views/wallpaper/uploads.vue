@@ -119,6 +119,16 @@
                   }"
                 ></span>
 
+                <!-- 排队中遮罩 -->
+                <div
+                  v-if="item.status === 'pending' && isUploading"
+                  class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]"
+                >
+                  <span class="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white"
+                    >等待上传</span
+                  >
+                </div>
+
                 <!-- 上传中遮罩 -->
                 <div
                   v-if="item.status === 'uploading'"
@@ -197,6 +207,9 @@
                     :style="{ width: item.progress + '%' }"
                   ></div>
                 </div>
+                <p v-else-if="item.status === 'pending' && isUploading" class="mt-1.5 text-[11px] text-faint">
+                  排队中…
+                </p>
                 <p v-else-if="item.validating" class="mt-1.5 text-[11px] text-faint">校验中…</p>
                 <!-- 错误信息(前端校验 + 服务端错误)+ 重试 -->
                 <div
@@ -667,7 +680,7 @@ const errors = reactive({ image: "", category: "", tags: "" })
 const categories = [
   { value: "general" as const, label: "综合" },
   { value: "anime" as const, label: "动漫" },
-  { value: "people" as const, label: "人物" },
+  { value: "people" as const, label: "真人" },
 ]
 const selectedTags = ref<string[]>([])
 const hotTags = ref<string[]>([])

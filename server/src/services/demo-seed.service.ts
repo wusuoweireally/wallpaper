@@ -1,52 +1,38 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { promises as fs } from "fs";
+import { readFile } from "fs/promises";
 import { join } from "path";
 import { In, Repository } from "typeorm";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import { Tag } from "../entities/tag.entity";
 import { User, UserRole } from "../entities/user.entity";
-import { UploadService } from "./upload.service";
+
+interface DemoWallpaperRow {
+  fileUrl: string;
+  thumbnailUrl: string | null;
+  previewUrl: string | null;
+  fileSize: number;
+  format: string | null;
+  contentHash: string | null;
+  width: number;
+  height: number;
+  aspectRatio: number | null;
+  category: Wallpaper["category"];
+  subCategory: string | null;
+  status: number;
+  isFeatured: boolean;
+  dominantColor: string | null;
+  colorBucket: string | null;
+  tags: string[];
+}
 
 /**
- * 演示数据初始化：读取本地 uploads/壁纸 目录的源图，
- * 走 UploadService（COS 上传 + 内容审核）入库，审核不通过的图自动跳过。
- * 统计字段（浏览/点赞/收藏）保持 0，由真实用户行为产生。
+ * 演示数据：写入开发环境已上传到 COS 的壁纸记录（URL 直连同一桶）。
+ * 不重新上传、不走内容审核。库里已有壁纸则跳过。
  */
 @Injectable()
 export class DemoSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DemoSeedService.name);
-
-  /** 分类轮转顺序（与 wallhaven 一致的 general / anime / people） */
-  private readonly categories: Array<Wallpaper["category"]> = [
-    "general",
-    "anime",
-    "people",
-  ];
-
-  /**
-   * 按分类的种子标签（取自 wallhaven.cc 热门通用标签，共 20 个）。
-   * 壁纸只会挂所属分类下的标签，保证内容与标签相符。
-   */
-  private readonly categoryTags: Record<Wallpaper["category"], string[]> = {
-    general: [
-      "nature",
-      "landscape",
-      "sky",
-      "clouds",
-      "water",
-      "sunlight",
-      "outdoors",
-      "simple background",
-      "minimalism",
-      "space",
-    ],
-    anime: ["anime", "anime girls", "digital art", "fan art", "video games"],
-    people: ["women", "long hair", "blue eyes", "smiling", "closeup"],
-  };
-
-  /** 每张壁纸挂的标签数 */
-  private readonly tagsPerWallpaper = 3;
 
   constructor(
     @InjectRepository(Wallpaper)
@@ -55,7 +41,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
     private readonly tagRepository: Repository<Tag>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly uploadService: UploadService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -69,7 +54,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    // 接受 ADMIN 或 SUPER_ADMIN 作为上传者（种子管理员现为 SUPER_ADMIN）
     const uploader = await this.userRepository.findOne({
       where: { role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN]) },
       order: { createdAt: "ASC" },
@@ -79,89 +63,69 @@ export class DemoSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    const wallpapersDir = join(process.cwd(), "uploads", "壁纸");
-    const files = await this.loadWallpaperFiles(wallpapersDir);
-    if (files.length === 0) {
-      this.logger.warn("uploads/壁纸 目录为空，跳过演示壁纸初始化。");
+    const rows = await this.loadFixture();
+    if (!rows.length) {
+      this.logger.warn("演示壁纸 fixture 为空，跳过初始化。");
       return;
     }
 
-    const limit = this.getSeedLimit(files.length);
-    const selectedFiles = files.slice(0, limit);
-
-    // 预创建全部种子标签（未用到的 usageCount 保持 0）
+    const selected = rows.slice(0, this.getSeedLimit(rows.length));
     const tagsByName = new Map<string, Tag>();
-    for (const name of new Set(Object.values(this.categoryTags).flat())) {
+    for (const name of new Set(selected.flatMap((row) => row.tags))) {
       tagsByName.set(name, await this.ensureTag(name));
     }
 
     const tagUsage = new Map<number, number>();
-    const entities: Wallpaper[] = [];
-
-    for (const [index, fileName] of selectedFiles.entries()) {
-      try {
-        const buffer = await fs.readFile(join(wallpapersDir, fileName));
-        const file = {
-          buffer,
-          mimetype: `image/${this.getImageExtension(fileName)}`,
-          size: buffer.length,
-        } as Express.Multer.File;
-        // COS 上传 + 内容审核（违规或失败抛错，跳过该文件）
-        const fileInfo = await this.uploadService.processWallpaperUpload(
-          file,
-          uploader.id,
-        );
-
-        const category = this.categories[index % this.categories.length];
-        const relatedTags = this.pickTags(category, index, tagsByName);
-        relatedTags.forEach((tag) => {
-          tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
-        });
-
-        entities.push(
-          this.wallpaperRepository.create({
-            ...fileInfo,
-            category,
-            uploaderId: uploader.id,
-            status: 1,
-            isFeatured: index < 3,
-            tags: relatedTags,
-          }),
-        );
-      } catch (error) {
-        this.logger.warn(
-          `演示壁纸处理失败，跳过: ${fileName} - ${String(error)}`,
-        );
+    const entities = selected.map((row) => {
+      const tags = row.tags
+        .map((name) => tagsByName.get(name))
+        .filter((tag): tag is Tag => Boolean(tag));
+      for (const tag of tags) {
+        tagUsage.set(tag.id, (tagUsage.get(tag.id) || 0) + 1);
       }
-    }
-
-    if (entities.length === 0) {
-      this.logger.warn("没有可用的演示壁纸实体，跳过初始化。");
-      return;
-    }
+      return this.wallpaperRepository.create({
+        fileUrl: row.fileUrl,
+        thumbnailUrl: row.thumbnailUrl ?? undefined,
+        previewUrl: row.previewUrl ?? undefined,
+        fileSize: row.fileSize,
+        format: row.format ?? undefined,
+        contentHash: row.contentHash,
+        width: row.width,
+        height: row.height,
+        aspectRatio: row.aspectRatio ?? undefined,
+        category: row.category,
+        subCategory: row.subCategory ?? undefined,
+        status: row.status,
+        isFeatured: row.isFeatured,
+        dominantColor: row.dominantColor,
+        colorBucket: row.colorBucket,
+        uploaderId: uploader.id,
+        tags,
+      });
+    });
 
     await this.wallpaperRepository.save(entities);
 
-    // usageCount 写真实关联数
     for (const tag of tagsByName.values()) {
       tag.usageCount = tagUsage.get(tag.id) || 0;
     }
     await this.tagRepository.save([...tagsByName.values()]);
 
-    this.logger.log(`已初始化 ${entities.length} 条演示壁纸数据。`);
+    this.logger.log(
+      `已初始化 ${entities.length} 条演示壁纸数据（COS 直链，未重新上传）。`,
+    );
   }
 
-  /** 从分类标签列表中按序轮转取 N 个（不同壁纸错开，避免全站同标签） */
-  private pickTags(
-    category: Wallpaper["category"],
-    index: number,
-    tagsByName: Map<string, Tag>,
-  ): Tag[] {
-    const pool = this.categoryTags[category];
-    return Array.from({ length: this.tagsPerWallpaper }, (_, offset) => {
-      const name = pool[(index + offset) % pool.length];
-      return tagsByName.get(name)!;
-    });
+  private async loadFixture(): Promise<DemoWallpaperRow[]> {
+    const filePath = join(__dirname, "..", "data", "demo-wallpapers.json");
+    try {
+      const raw = await readFile(filePath, "utf8");
+      const parsed = JSON.parse(raw) as { wallpapers?: DemoWallpaperRow[] };
+      return Array.isArray(parsed.wallpapers) ? parsed.wallpapers : [];
+    } catch (error) {
+      this.logger.warn(`读取演示壁纸 fixture 失败: ${String(error)}`);
+      return [];
+    }
   }
 
   /** 按名称找标签，不存在则创建（slug 规则与 TagService.generateSlug 一致） */
@@ -176,31 +140,12 @@ export class DemoSeedService implements OnApplicationBootstrap {
     return this.tagRepository.save(tag);
   }
 
-  /** 从文件名推断图片类型（jpeg/png/webp），用于 mimetype */
-  private getImageExtension(fileName: string): string {
-    const ext = fileName.split(".").pop()?.toLowerCase();
-    if (ext === "jpeg" || ext === "jpg") return "jpeg";
-    if (ext === "png" || ext === "webp") return ext;
-    return "jpeg";
-  }
-
+  /** DEMO_SEED_LIMIT≤0 或未配置：fixture 有多少入多少 */
   private getSeedLimit(maxAvailable: number): number {
-    const rawLimit = Number(process.env.DEMO_SEED_LIMIT || 8);
-    if (!Number.isInteger(rawLimit) || rawLimit <= 0) {
-      return Math.min(8, maxAvailable);
-    }
+    const raw = process.env.DEMO_SEED_LIMIT;
+    if (raw === undefined || raw === "") return maxAvailable;
+    const rawLimit = Number(raw);
+    if (!Number.isInteger(rawLimit) || rawLimit <= 0) return maxAvailable;
     return Math.min(rawLimit, maxAvailable);
-  }
-
-  private async loadWallpaperFiles(wallpapersDir: string): Promise<string[]> {
-    try {
-      const entries = await fs.readdir(wallpapersDir);
-      return entries
-        .filter((fileName) => /\.(jpe?g|png|webp)$/i.test(fileName))
-        .sort((left, right) => left.localeCompare(right));
-    } catch (error) {
-      this.logger.warn(`读取演示壁纸目录失败: ${String(error)}`);
-      return [];
-    }
   }
 }

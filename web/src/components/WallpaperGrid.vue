@@ -24,12 +24,13 @@
     </div>
 
     <MasonryWall v-else :items="wallpapers" :item-height="cardWeight">
-      <template #default="{ items }">
+      <template #default="{ items, tailCut }">
         <WallpaperCard
-          v-for="wallpaper in items"
+          v-for="(wallpaper, i) in items"
           :key="wallpaper.id"
           :wallpaper="wallpaper"
           :masonry="masonry"
+          :tail-cut="i === items.length - 1 ? tailCut : undefined"
         />
       </template>
     </MasonryWall>

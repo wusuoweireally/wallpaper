@@ -7,7 +7,7 @@
 - Monorepo：`server/`（NestJS + TypeORM + MySQL + Jest）、`web/`（Vue 3 + Vite + Pinia + Tailwind）。
 - 后端分层：`controllers/` 参数与响应 → `services/` 业务 → `modules/` 组装；`entities/`、`dto/`。
 - 前端：`components/` / `views/` 展示，`services/` API，`stores/` 状态，`router/` 路由。
-- 上传：走腾讯云 COS（桶私有写公开读，审核通过即公开）；`server/uploads/壁纸/` 仅存 Demo seed 源图（非运行时目录）。
+- 上传：走腾讯云 COS（桶私有写公开读，审核通过即公开）；Demo seed 写入 `server/src/data/demo-wallpapers.json` 里的 COS 直链（空库且 `ENABLE_DEMO_SEED=true`），不再上传本地源图。
 
 ### 代码入口
 

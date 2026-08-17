@@ -6,7 +6,7 @@
 const CATEGORY_LABELS: Record<string, string> = {
   general: "综合",
   anime: "动漫",
-  people: "人物",
+  people: "真人",
 }
 
 /** 首屏图墙条数：铺满第一屏，避免搜索英雄占位 */
@@ -71,16 +71,76 @@ export function splitMasonryColumns<T>(
   const n = Math.min(requested, items.length)
   const cols: T[][] = Array.from({ length: n }, () => [])
   const heights = Array(n).fill(0)
+  const weight = (item: T) => {
+    const h = itemHeight ? itemHeight(item) : 1
+    return Number.isFinite(h) && h > 0 ? h : 1
+  }
   for (const item of items) {
     let idx = 0
     for (let i = 1; i < n; i++) {
       if (heights[i] < heights[idx]) idx = i
     }
     cols[idx].push(item)
-    const h = itemHeight ? itemHeight(item) : 1
-    heights[idx] += Number.isFinite(h) && h > 0 ? h : 1
+    heights[idx] += weight(item)
   }
+  swapTails(cols, heights, weight)
   return cols
+}
+
+/**
+ * 末位交换收敛尾差：反复枚举所有列对的「最后一张」交换，
+ * 取能让全体列高极差严格减小最多的一对执行，直到无改进。
+ * 只换末位保证阅读顺序基本不变（同列内顺序不动，仅结尾互换）。
+ */
+function swapTails<T>(cols: T[][], heights: number[], weight: (item: T) => number): void {
+  const n = cols.length
+  if (n < 2) return
+  const spread = () => Math.max(...heights) - Math.min(...heights)
+  // 防御性上限：正常几轮就收敛，避免极端权重构造死循环
+  for (let round = 0; round < n * n + 8; round++) {
+    const before = spread()
+    if (before <= Number.EPSILON) return
+    let bestI = -1
+    let bestJ = -1
+    let bestSpread = before
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const wI = weight(cols[i][cols[i].length - 1])
+        const wJ = weight(cols[j][cols[j].length - 1])
+        heights[i] += wJ - wI
+        heights[j] += wI - wJ
+        const after = spread()
+        heights[i] -= wJ - wI
+        heights[j] -= wI - wJ
+        if (after < bestSpread - Number.EPSILON) {
+          bestSpread = after
+          bestI = i
+          bestJ = j
+        }
+      }
+    }
+    if (bestI < 0) return
+    const tmp = cols[bestI][cols[bestI].length - 1]
+    const wI = weight(tmp)
+    const wJ = weight(cols[bestJ][cols[bestJ].length - 1])
+    cols[bestI][cols[bestI].length - 1] = cols[bestJ][cols[bestJ].length - 1]
+    cols[bestJ][cols[bestJ].length - 1] = tmp
+    heights[bestI] += wJ - wI
+    heights[bestJ] += wI - wJ
+  }
+}
+
+/** 瀑布流列的最大累计权重；用于尾部裁切线的计算 */
+export function masonryColumnHeights<T>(
+  columns: T[][],
+  itemHeight: (item: T) => number,
+): number[] {
+  return columns.map((col) =>
+    col.reduce((sum, item) => {
+      const h = itemHeight(item)
+      return sum + (Number.isFinite(h) && h > 0 ? h : 1)
+    }, 0),
+  )
 }
 
 /** 相对高度：高/宽，非法回退 0.625（16:10） */

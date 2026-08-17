@@ -71,7 +71,7 @@
             <option value="">全部</option>
             <option value="general">通用</option>
             <option value="anime">动漫</option>
-            <option value="people">人物</option>
+            <option value="people">真人</option>
           </select>
         </div>
 
@@ -714,7 +714,7 @@ const uploadFileInput = ref<HTMLInputElement | null>(null)
 const categoryOptions = [
   { value: "general", label: "通用" },
   { value: "anime", label: "动漫" },
-  { value: "people", label: "人物" },
+  { value: "people", label: "真人" },
 ]
 
 type WallpaperTagLike = string | AdminWallpaperTag
@@ -781,7 +781,7 @@ const getCategoryLabel = (category: AdminWallpaper["category"]) => {
     case "anime":
       return "动漫"
     case "people":
-      return "人物"
+      return "真人"
     default:
       return "通用"
   }

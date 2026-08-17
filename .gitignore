@@ -50,9 +50,7 @@ server/uploads/**
 !server/uploads/**/
 !server/uploads/**/.gitkeep
 !server/uploads/profile-pictures/defaultAvatar.png
-# demo-seed 源图目录（可选 seed，非运行时上传）
-!server/uploads/壁纸/
-!server/uploads/壁纸/**
+# 壁纸原图不进 git（demo 用 src/data/demo-wallpapers.json 的 COS 直链）
 
 # ---------------
 # SSL 证书（私钥敏感，不提交）

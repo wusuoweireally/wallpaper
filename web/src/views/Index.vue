@@ -8,24 +8,6 @@
         to="/wallpapers?sort=popular"
         action-label="浏览全部"
       >
-        <div
-          v-if="featuredError"
-          class="wb-alert-danger mb-3 flex items-center justify-between gap-3"
-          role="alert"
-        >
-          <span>{{ featuredError }}</span>
-          <button type="button" class="wb-btn-ghost wb-btn-sm" @click="loadFeatured">重试</button>
-        </div>
-        <WallpaperGrid
-          :wallpapers="featured"
-          :loading="featuredLoading"
-          :show-pagination="false"
-          :show-reset="false"
-          masonry
-        />
-      </HomeBlock>
-
-      <HomeBlock title="最新收录" :subtitle="latestSub" to="/wallpapers?sort=latest">
         <div class="no-scrollbar mb-3 flex items-center gap-2 overflow-x-auto pb-0.5">
           <router-link
             v-for="pill in quickPills"
@@ -59,17 +41,16 @@
         </div>
 
         <div
-          v-if="gridError"
+          v-if="featuredError"
           class="wb-alert-danger mb-3 flex items-center justify-between gap-3"
           role="alert"
         >
-          <span>{{ gridError }}</span>
-          <button type="button" class="wb-btn-ghost wb-btn-sm" @click="loadGrid">重试</button>
+          <span>{{ featuredError }}</span>
+          <button type="button" class="wb-btn-ghost wb-btn-sm" @click="loadFeatured">重试</button>
         </div>
-
         <WallpaperGrid
-          :wallpapers="wallpapers"
-          :loading="gridLoading"
+          :wallpapers="featured"
+          :loading="featuredLoading"
           :show-pagination="false"
           :show-reset="false"
           masonry
@@ -101,73 +82,44 @@ import PostCard from "@/components/PostCard.vue"
 import { formatNumber } from "@/utils/format"
 import { HOME_FOLD_SIZE, mergeUniqueById } from "@/utils/wallpaperLayout"
 
-const gridLoading = ref(true)
-const gridError = ref("")
-const wallpapers = ref<Wallpaper[]>([])
-const tagsLoading = ref(true)
-const popularTags = ref<Tag[]>([])
 const forumLoading = ref(true)
 const forumPosts = ref<Post[]>([])
 const featuredLoading = ref(true)
 const featuredError = ref("")
 const featured = ref<Wallpaper[]>([])
+const tagsLoading = ref(true)
+const popularTags = ref<Tag[]>([])
 const stats = ref({ wallpapers: 0, tags: 0 })
 
-const featuredSub = computed(() =>
-  stats.value.wallpapers
-    ? `社区高质量作品 · ${formatNumber(stats.value.wallpapers)} 张`
-    : "社区高质量作品",
-)
-
-const latestSub = computed(() =>
-  stats.value.tags ? `${formatNumber(stats.value.tags)} 个标签可筛选` : "刚收录的新图",
-)
+const featuredSub = computed(() => {
+  const parts: string[] = []
+  if (stats.value.wallpapers) parts.push(`${formatNumber(stats.value.wallpapers)} 张壁纸`)
+  if (stats.value.tags) parts.push(`${formatNumber(stats.value.tags)} 个标签可筛选`)
+  return parts.length ? parts.join(" · ") : "社区高质量作品"
+})
 
 const quickPills = [
   { label: "全部", to: "/wallpapers", primary: true },
   { label: "综合", to: "/wallpapers?category=general" },
   { label: "动漫", to: "/wallpapers?category=anime" },
-  { label: "人物", to: "/wallpapers?category=people" },
+  { label: "真人", to: "/wallpapers?category=people" },
   { label: "横屏", to: "/wallpapers?orientation=landscape" },
   { label: "竖屏", to: "/wallpapers?orientation=portrait" },
   { label: "方形", to: "/wallpapers?orientation=square" },
 ]
 
-const loadGrid = async () => {
-  gridLoading.value = true
-  gridError.value = ""
+/** 拉壁纸总数（精选副标题用），limit=1 只要 pagination */
+const loadWallpaperCount = async () => {
   try {
     const res = await wallpaperService.getWallpapers({
       page: 1,
-      limit: HOME_FOLD_SIZE,
+      limit: 1,
       sortBy: "createdAt",
       sortOrder: "DESC",
     })
-    wallpapers.value = res.data || []
-    stats.value.wallpapers = res.pagination?.total ?? wallpapers.value.length
-  } catch (e) {
-    gridError.value = e instanceof Error ? e.message : "加载壁纸失败"
-    wallpapers.value = []
-  } finally {
-    gridLoading.value = false
-  }
-}
-
-const loadTags = async () => {
-  tagsLoading.value = true
-  try {
-    const res = await tagService.getTags({
-      sortBy: "usageCount",
-      sortOrder: "DESC",
-      page: 1,
-      limit: 28,
-    })
-    popularTags.value = res.data || []
-    stats.value.tags = res.pagination?.total ?? popularTags.value.length
+    stats.value.wallpapers = res.pagination?.total ?? 0
   } catch {
-    popularTags.value = []
-  } finally {
-    tagsLoading.value = false
+    /* 副标题降级为不带数字 */
   }
 }
 
@@ -200,6 +152,24 @@ const loadFeatured = async () => {
   }
 }
 
+const loadTags = async () => {
+  tagsLoading.value = true
+  try {
+    const res = await tagService.getTags({
+      sortBy: "usageCount",
+      sortOrder: "DESC",
+      page: 1,
+      limit: 28,
+    })
+    popularTags.value = res.data || []
+    stats.value.tags = res.pagination?.total ?? popularTags.value.length
+  } catch {
+    popularTags.value = []
+  } finally {
+    tagsLoading.value = false
+  }
+}
+
 const loadForum = async () => {
   forumLoading.value = true
   try {
@@ -219,7 +189,7 @@ const loadForum = async () => {
 
 onMounted(() => {
   void loadFeatured()
-  void loadGrid()
+  void loadWallpaperCount()
   void loadTags()
   void loadForum()
 })

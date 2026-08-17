@@ -534,7 +534,7 @@ const wallpaper = ref<WallpaperDetail>({
 const categoryLabelMap = {
   general: "通用",
   anime: "动漫",
-  people: "人物",
+  people: "真人",
 } as const
 const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
 

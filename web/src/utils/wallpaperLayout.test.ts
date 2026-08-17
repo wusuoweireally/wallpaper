@@ -3,6 +3,7 @@ import {
   HOME_FOLD_SIZE,
   masonryAspectRatio,
   masonryColumnCount,
+  masonryColumnHeights,
   masonryItemWeight,
   mergeUniqueById,
   qualityLabel,
@@ -24,7 +25,7 @@ function testDisplayTitle() {
   assert.equal(wallpaperDisplayTitle([{ name: "星空" }], "general"), "星空")
   assert.equal(wallpaperDisplayTitle([{ name: "  " }, { name: "海" }], "anime"), "海")
   assert.equal(wallpaperDisplayTitle([], "anime"), "动漫")
-  assert.equal(wallpaperDisplayTitle(null, "people"), "人物")
+  assert.equal(wallpaperDisplayTitle(null, "people"), "真人")
   assert.equal(wallpaperDisplayTitle(undefined, "unknown"), "壁纸")
 }
 
@@ -89,6 +90,32 @@ function testMasonryColumns() {
   )
   assert.equal(masonryItemWeight(1920, 1080), 1080 / 1920)
   assert.equal(masonryItemWeight(0, 10), 0.625)
+
+  // 末位交换收敛尾差：极差应明显小于理论最差（整档差 1.78-0.56≈1.2）
+  const colSum = (cols: { h: number }[][]) => cols.map((c) => c.reduce((s, x) => s + x.h, 0))
+  const tailItems = Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    h: [0.5625, 0.75, 1.3333, 0.625, 1.7778][i % 5],
+  }))
+  const tailCols = splitMasonryColumns(tailItems, 5, (x) => x.h)
+  const sums = colSum(tailCols)
+  const tailSpread = Math.max(...sums) - Math.min(...sums)
+  assert.ok(tailSpread < 0.7, `尾差应收敛（实际 ${tailSpread}）`)
+  // 交换后所有条目仍在场且无重复
+  const flat = tailCols.flat().map((x) => x.id).sort((a, b) => a - b)
+  assert.deepEqual(flat, Array.from({ length: 24 }, (_, i) => i))
+}
+
+function testMasonryColumnHeights() {
+  const cols = [
+    [
+      { h: 1 },
+      { h: 2 },
+    ],
+    [{ h: 0.5 }],
+  ]
+  assert.deepEqual(masonryColumnHeights(cols, (x) => x.h), [3, 0.5])
+  assert.deepEqual(masonryColumnHeights([[]], () => 1), [0])
 }
 
 testQualityLabel()
@@ -96,4 +123,5 @@ testDisplayTitle()
 testMasonryAspect()
 testMergeUniqueById()
 testMasonryColumns()
+testMasonryColumnHeights()
 console.log("wallpaperLayout.test.ts: all passed")

@@ -31,7 +31,7 @@ export class Wallpaper {
     type: "enum",
     enum: ["general", "anime", "people"],
     default: "general",
-    comment: "分类: general-通用, anime-动画, people-人物",
+    comment: "分类: general-通用, anime-动画, people-真人",
   })
   @Index("idx_category")
   category: "general" | "anime" | "people";
