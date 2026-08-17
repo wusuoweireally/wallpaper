@@ -2,7 +2,7 @@
   "name": "wallpaper-system",
   "private": true,
   "version": "1.0.0",
-  "description": "现代化的壁纸管理系统",
+  "description": "Wallbay — 壁纸分享社区",
   "workspaces": [
     "server",
     "web"

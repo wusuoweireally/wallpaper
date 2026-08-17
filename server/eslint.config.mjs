@@ -18,6 +18,7 @@ export default tseslint.config(
       "node_modules/**",
       "coverage/**",
       "uploads/**",
+      "scripts/**", // ts-node 手动工具脚本，不在 tsconfig 内
       "**/*.d.ts",
       "*.log",
       ".env*",

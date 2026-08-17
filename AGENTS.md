@@ -7,7 +7,7 @@
 - Monorepo：`server/`（NestJS + TypeORM + MySQL + Jest）、`web/`（Vue 3 + Vite + Pinia + Tailwind）。
 - 后端分层：`controllers/` 参数与响应 → `services/` 业务 → `modules/` 组装；`entities/`、`dto/`。
 - 前端：`components/` / `views/` 展示，`services/` API，`stores/` 状态，`router/` 路由。
-- 上传：`server/uploads/`（运行时文件默认不进 git）；Demo seed 源图在 `server/uploads/壁纸/`（非运行时目录）。
+- 上传：走腾讯云 COS（桶私有写公开读，审核通过即公开）；`server/uploads/壁纸/` 仅存 Demo seed 源图（非运行时目录）。
 
 ### 代码入口
 
@@ -42,7 +42,7 @@ git diff --check
 - TypeORM `synchronize` 始终关闭，结构只走 `server/src/migrations/`。
 - JWT 用 HttpOnly Cookie；前端不保存、不手动拼 token。
 - Axios GET 去重仅在请求显式 `deduplicate: true` 时启用。
-- 原图/缩略图走后端鉴权访问；头像目录可公开。
+- 壁纸原图/缩略图/预览图与头像均上传 COS、审核通过后公开读，前端直链访问。
 - 后端 `ValidationPipe`：`whitelist` + `forbidNonWhitelisted`。
 - 不提交密钥、bulk 上传产物；`.githooks/pre-commit` 可拦 `.env`/疑似密钥。
 

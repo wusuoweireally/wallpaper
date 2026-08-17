@@ -1,6 +1,6 @@
-# 随心壁纸
+# Wallbay
 
-前后端分离的壁纸分享社区：浏览、筛选、上传、点赞、收藏、标签、论坛与管理后台。
+前后端分离的壁纸分享社区：浏览、筛选、上传、收藏、标签、论坛与管理后台。
 
 | 目录 | 技术 |
 |------|------|
@@ -21,7 +21,7 @@ Docker **只跑 MySQL**，前后端本机：
 ```bash
 pnpm install --frozen-lockfile
 cp server/.env.development.example server/.env.development
-# 填 DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥16)
+# 填 DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥16)；上传需 COS_*
 
 pnpm db:up          # 起 MySQL → 127.0.0.1:3306
 pnpm -C server typeorm:run   # 首次或迁移变更时
@@ -40,7 +40,7 @@ pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api、/uploads�
 
 ```bash
 cp server/.env.production.example server/.env.production
-# 必填：DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥32)、
+# 必填：DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥32)、COS_*、
 # ADMIN_*、FRONTEND_URL(https)、COOKIE_SECURE=true；OAuth 按需
 
 pnpm deploy         # 构建并后台启动 mysql + server + web
@@ -57,7 +57,7 @@ pnpm deploy:down    # 停止（加 -v 会删数据卷，慎用）
 - 容器内数据库主机固定为 `mysql`（compose 已写死，不必在 env 里纠结）
 - 迁移：`TYPEORM_MIGRATIONS_RUN=true` 时 server 启动自动跑
 - **TLS 在宿主机 Nginx/Caddy** 终结，反代到 `http://127.0.0.1:3001`
-- 上传文件与库数据在 Docker volume；`deploy:down` 默认保留卷
+- 壁纸/头像存 COS；库数据在 Docker volume，`deploy:down` 默认保留卷
 
 宿主机反代示例：
 
@@ -89,7 +89,7 @@ location / {
 
 ## 数据与约定
 
-- 本地上传：`server/uploads/{wallpapers,thumbnails,profile-pictures}/`（默认不进 git）
+- 上传走腾讯云 COS（桶私有写公开读，审核通过即公开）
 - Demo 源图：`server/uploads/壁纸/`（seed 用）
 - 表结构只走 `server/src/migrations/`，禁止 `synchronize: true`
 - 认证：HttpOnly Cookie `Authentication`；接口见 `server/src/controllers/`
