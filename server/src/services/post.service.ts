@@ -299,7 +299,12 @@ export class PostService {
    * @param id 帖子ID
    */
   async incrementViewCount(id: number): Promise<void> {
-    await this.postRepository.increment({ id }, "viewCount", 1);
+    // 原生 SQL 热计数：updated_at 赋自身值以抑制列上 ON UPDATE CURRENT_TIMESTAMP，
+    // 避免每次浏览刷新 updated_at 导致列表/详情缓存参数失效
+    await this.dataSource.query(
+      "UPDATE posts SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
+      [id],
+    );
   }
 
   /**

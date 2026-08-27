@@ -665,7 +665,12 @@ export class WallpaperService {
    * 增加查看次数
    */
   async incrementViewCount(id: number): Promise<void> {
-    await this.wallpaperRepository.increment({ id, status: 1 }, "viewCount", 1);
+    // 原生 SQL 热计数：updated_at 赋自身值以抑制列上 ON UPDATE CURRENT_TIMESTAMP，
+    // 避免每次浏览刷新 updated_at 打穿缩略图缓存（?t= 缓存参数依赖它）
+    await this.dataSource.query(
+      "UPDATE wallpapers SET view_count = view_count + 1, updated_at = updated_at WHERE id = ? AND status = 1",
+      [id],
+    );
   }
 
   /** 用户是否已收藏该壁纸（点赞已下线，仅查收藏） */

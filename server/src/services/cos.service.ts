@@ -43,11 +43,15 @@ export class CosService {
     contentType: string,
     contentDisposition?: string,
   ): Promise<void> {
+    // Cache-Control 30 天强缓存：对象 key 含时间戳+随机串天然不可变（同名不覆盖），
+    // 命中 CDN/浏览器缓存安全。取 30 天而非更久是权衡：退出公开态转私读后，
+    // 已被缓存的副本最长还能再看 30 天才回源吃到 403——图站流量成本优先级更高
     const base = {
       Bucket: this.bucket,
       Region: this.region,
       Key: key,
       ContentType: contentType,
+      CacheControl: "max-age=2592000, public",
       ...(contentDisposition ? { ContentDisposition: contentDisposition } : {}),
     };
     if (body.length <= MULTIPART_THRESHOLD_BYTES) {

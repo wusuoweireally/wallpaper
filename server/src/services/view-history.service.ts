@@ -95,7 +95,9 @@ export class ViewHistoryService {
     wallpaperId: number,
   ): Promise<void> {
     await qr.query(
-      "UPDATE wallpapers SET view_count = view_count + 1 WHERE id = ?",
+      // updated_at 赋自身值抑制列上 ON UPDATE CURRENT_TIMESTAMP：
+      // 原生 SQL 拦不住 DB 级自动更新，不显式赋值每次浏览仍会刷 updated_at
+      "UPDATE wallpapers SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
       [wallpaperId],
     );
   }
