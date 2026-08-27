@@ -231,38 +231,14 @@ const handleAvatarChange = (event: Event) => {
   }
 }
 
-// 单独的头像上传方法
+// 头像上传：走 userStore（axios 实例统一超时/401/错误提示），不再裸 fetch 绕过拦截器
 const uploadAvatar = async (file: File) => {
   loading.value = true
   error.value = ""
   success.value = ""
 
   try {
-    const formData = new FormData()
-    formData.append("avatar", file)
-
-    const currentUser = userStore.user
-    if (!currentUser) {
-      throw new Error("用户未登录")
-    }
-
-    const response = await fetch(`/api/users/${currentUser.id}/avatar`, {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || "头像上传失败")
-    }
-
-    const result = await response.json()
-
-    // 更新本地用户信息中的头像URL
-    if (userStore.user && result.data?.avatarUrl) {
-      userStore.user.avatarUrl = result.data.avatarUrl
-    }
+    await userStore.uploadAvatar(file)
 
     success.value = "头像更新成功"
 
@@ -274,12 +250,9 @@ const uploadAvatar = async (file: File) => {
     // 清除预览和文件引用
     avatarFile.value = null
     avatarPreview.value = null
-
-    return result
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     error.value = errObj.message || "头像上传失败"
-    throw new Error(errObj.message || "头像上传失败")
   } finally {
     loading.value = false
   }

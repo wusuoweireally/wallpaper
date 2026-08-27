@@ -370,30 +370,6 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach(async (to, _from, next) => {
-  // 在路由切换前清理可能的DOM残留
-  if (typeof document !== "undefined") {
-    // 清理所有可能的 Teleport 元素
-    const teleportElements = document.querySelectorAll("[data-teleport]")
-    teleportElements.forEach((el) => el.remove())
-
-    // 清理所有可能的模态框背景
-    const modals = document.querySelectorAll("[data-modal-backdrop]")
-    modals.forEach((el) => el.remove())
-
-    // 清理所有固定定位的可能残留元素
-    const fixedElements = document.querySelectorAll(".fixed.z-\\[9999\\]")
-    fixedElements.forEach((el) => {
-      const elAny = el as HTMLElement & { _v_isTeleport?: boolean; __vteleport?: boolean }
-      if (elAny._v_isTeleport || elAny.__vteleport) {
-        el.remove()
-      }
-    })
-
-    // 恢复 body 样式
-    document.body.style.overflow = ""
-    document.body.classList.remove("modal-open")
-  }
-
   // 设置页面标题（统一后缀品牌名）
   if (to.meta.title) {
     const title = to.meta.title as string

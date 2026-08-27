@@ -185,7 +185,8 @@ export const useUserStore = defineStore("user", () => {
   /**
    * 初始化用户认证状态（应用启动时调用）
    * Cookie 会自动随请求发送，只需从 localStorage 恢复用户信息并验证。
-   * 记忆化：路由守卫可 await 同一 Promise，本地缓存缺失时等服务端校验再放行
+   * 记忆化：路由守卫可 await 同一 Promise；但网络类失败（非 401 的不确定结论）
+   * 会取消记忆化，让下一次导航重试校验，而不是整个会话卡在"未验证"。
    */
   let authInitPromise: Promise<void> | null = null
   const initializeAuth = async (): Promise<void> => {
@@ -199,14 +200,16 @@ export const useUserStore = defineStore("user", () => {
 
       // 始终尝试用 Cookie 验证登录态（即使 localStorage 为空）；
       // 引导探测失败不算"登录过期"，跳过全局重定向，否则游客会被踢到登录页
+      let conclusive = false
       try {
-        await fetchCurrentUser({ skipAuthExpiredHandler: true })
+        const me = await fetchCurrentUser({ skipAuthExpiredHandler: true })
+        // 拿到用户=校验通过；401 已清空本地用户=确定的未登录结论。两者都不再重试
+        conclusive = !!me || !user.value
       } catch (error: unknown) {
-        // 只有在 localStorage 有数据时才需要清除（说明 cookie 过期了）
-        if (savedUser) {
-          console.warn("用户认证验证失败，清除本地登录态:", error)
-          clearUser()
-        }
+        console.warn("认证校验请求异常:", error)
+      }
+      if (!conclusive) {
+        authInitPromise = null
       }
     })()
     return authInitPromise

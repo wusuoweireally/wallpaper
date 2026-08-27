@@ -16,3 +16,14 @@ export const resolveAvatarUrl = (raw?: string | null): string => {
 
   return raw
 }
+
+/**
+ * 头像加载失败兜底：回退默认头像且只回退一次。
+ * 默认头像本身 404 或坏地址反复触发 error 时避免无限循环。
+ */
+export const handleAvatarError = (event: Event): void => {
+  const img = event.target as HTMLImageElement | null
+  if (!img || img.dataset.avatarFallback === "1") return
+  img.dataset.avatarFallback = "1"
+  img.src = DEFAULT_AVATAR
+}

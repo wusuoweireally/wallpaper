@@ -62,6 +62,10 @@
         <div v-if="wallpaperLoading" class="flex justify-center py-20">
           <span class="wb-spinner wb-spinner-lg text-muted"></span>
         </div>
+        <div v-else-if="loadError" class="wb-empty">
+          <p class="text-muted">壁纸加载失败，请稍后重试</p>
+          <button class="wb-btn-primary mt-4" @click="retryLoad">重新加载</button>
+        </div>
         <div v-else-if="wallpapers.length === 0" class="wb-empty">
           <p class="text-muted">暂无相关壁纸</p>
         </div>
@@ -97,7 +101,11 @@ const relatedTags = ref<Tag[]>([])
 const wallpapers = ref<Wallpaper[]>([])
 const loading = ref(true)
 const wallpaperLoading = ref(true)
+const loadError = ref(false)
 const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
+/** 随机排序会话内种子：换筛选才重掷，翻页保持同一顺序 */
+const newRandomSeed = () => Math.floor(Math.random() * 2 ** 31)
+const randomSeed = ref(newRandomSeed())
 
 type CategoryFilter = "" | "general" | "anime" | "people"
 
@@ -108,26 +116,32 @@ const filters = reactive<{ category: CategoryFilter; sort: string; search: strin
 })
 
 const loadTag = async () => {
+  const requestedId = route.params.id
   try {
     loading.value = true
-    const response = await tagService.getTagById(Number(route.params.id))
+    const response = await tagService.getTagById(Number(requestedId))
+    // 慢响应守卫：期间已切到别的标签时丢弃，避免旧标签内容顶掉新页面
+    if (requestedId !== route.params.id) return
     tag.value = response.data ?? null
   } catch (error) {
     console.error("加载标签详情失败:", error)
+    if (requestedId === route.params.id) tag.value = null
   } finally {
-    loading.value = false
+    if (requestedId === route.params.id) loading.value = false
   }
 }
 
 const loadWallpapers = async () => {
   try {
     wallpaperLoading.value = true
+    loadError.value = false
+    // 随机排序带会话内固定种子：翻页顺序稳定，不重复/漏图
     const sortParams = (() => {
       switch (filters.sort) {
         case "popular":
           return { sortBy: "popular" as const }
         case "random":
-          return { sortBy: "random" as const }
+          return { sortBy: "random" as const, seed: randomSeed.value }
         default:
           return { sortBy: "createdAt", sortOrder: "DESC" as const }
       }
@@ -153,6 +167,7 @@ const loadWallpapers = async () => {
     }
   } catch (error) {
     console.error("加载壁纸列表失败:", error)
+    loadError.value = true
   } finally {
     wallpaperLoading.value = false
   }
@@ -171,9 +186,10 @@ const loadRelatedTags = async () => {
   }
 }
 
-/** 筛选条件变化：回第 1 页再请求 */
+/** 筛选条件变化：回第 1 页再请求（随机排序重掷种子开新一轮） */
 const applyFilters = () => {
   pagination.value.page = 1
+  if (filters.sort === "random") randomSeed.value = newRandomSeed()
   loadWallpapers()
 }
 
@@ -182,11 +198,20 @@ const changePage = (page: number) => {
   loadWallpapers()
 }
 
+const retryLoad = () => {
+  loadWallpapers()
+}
+
 const getUsageCount = (tag?: TagUsage | null) => tag?.usageCount ?? tag?.useCount ?? 0
 
 const reloadForRoute = async () => {
-  pagination.value.page = 1
+  // 先清干净上一轮状态：否则新标签加载失败或请求在途时会残留旧标签的数据
+  tag.value = null
+  relatedTags.value = []
   wallpapers.value = []
+  loadError.value = false
+  pagination.value.page = 1
+  randomSeed.value = newRandomSeed()
   await loadTag()
   if (tag.value) {
     await Promise.all([loadWallpapers(), loadRelatedTags()])

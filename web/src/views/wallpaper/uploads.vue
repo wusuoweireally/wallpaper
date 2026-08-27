@@ -1104,8 +1104,11 @@ const highlightTagMatch = (name: string, q: string) => {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
+let tagSuggestGen = 0
+
 const fetchTagSuggestions = async (keyword: string) => {
   const kw = keyword.trim()
+  const gen = ++tagSuggestGen
   if (!kw) {
     tagSuggestions.value = []
     tagSuggestLoading.value = false
@@ -1119,13 +1122,17 @@ const fetchTagSuggestions = async (keyword: string) => {
       sortBy: "usageCount",
       sortOrder: "DESC",
     })
+        if (gen !== tagSuggestGen) return // 过期响应丢弃，防止慢网回显陈旧候选
     const selected = new Set(selectedTags.value.map((t) => t.toLowerCase()))
-    tagSuggestions.value = (res.data || []).filter((t) => !selected.has(t.name.toLowerCase()))
+    tagSuggestions.value = (res.data || []).filter(
+      (t) => !selected.has(t.name.toLowerCase()),
+    )
     tagHighlight.value = 0
   } catch {
+    if (gen !== tagSuggestGen) return
     tagSuggestions.value = []
   } finally {
-    tagSuggestLoading.value = false
+    if (gen === tagSuggestGen) tagSuggestLoading.value = false
   }
 }
 
@@ -1234,6 +1241,8 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("beforeunload", onBeforeUnload)
   if (tagSearchTimer) clearTimeout(tagSearchTimer)
+  // 还排着队的文件其 blob 预览地址一并回收
+  pendingFiles.value.forEach((item) => URL.revokeObjectURL(item.previewUrl))
 })
 
 const handlePublish = async () => {

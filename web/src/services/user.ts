@@ -177,6 +177,8 @@ class UserService {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        // 设置页有行内错误提示，跳过全局 toast 避免双重报错
+        skipGlobalErrorToast: true,
       })
       return response as unknown as ApiResponse<{
         avatarUrl: string
@@ -186,6 +188,14 @@ class UserService {
       console.error("上传头像失败:", error)
       throw error
     }
+  }
+
+  /**
+   * 注销账号（DELETE /users/:id）：后端把资料匿名化并清除登录 Cookie。
+   * 仅允许本人或管理员调用；成功后前端需登出并跳转。
+   */
+  async deleteAccount(id: number): Promise<ApiResponse> {
+    return await api.delete(`/users/${id}`, { skipGlobalErrorToast: true })
   }
 
   /** 获取当前用户统计数据 */

@@ -224,27 +224,28 @@
           {{ shareNotice }}
         </p>
 
-        <!-- 主色板:wallhaven 色板条,点击按此色筛选 -->
-        <section v-if="wallpaper.dominantColor" class="mb-4">
+        <!-- 主色板：多个主色块，点击按该色筛选 -->
+        <section v-if="colorSwatches.length" class="mb-4">
           <h2 class="mb-2 text-xs font-bold tracking-wide text-primary">主色</h2>
-          <router-link
-            :to="{
-              path: '/wallpapers',
-              query: { color: wallpaper.colorBucket || wallpaper.dominantColor },
-            }"
-            class="group block"
-            title="按此主色筛选相似壁纸"
-          >
-            <span
-              class="block h-7 w-full rounded-control ring-1 ring-inset ring-black/10 transition group-hover:ring-primary/50"
-              :style="{ background: wallpaper.dominantColor }"
-            ></span>
-            <span
-              class="mt-1 block font-mono text-[11px] uppercase tracking-wide text-faint transition group-hover:text-primary"
+          <div class="flex gap-1">
+            <router-link
+              v-for="hex in colorSwatches"
+              :key="hex"
+              :to="{ path: '/wallpapers', query: { color: hex } }"
+              class="group min-w-0 flex-1"
+              :title="`按 ${hex} 筛选相似壁纸`"
             >
-              {{ wallpaper.dominantColor }}
-            </span>
-          </router-link>
+              <span
+                class="block h-7 w-full rounded-control ring-1 ring-inset ring-black/10 transition group-hover:ring-primary/50"
+                :style="{ background: hex }"
+              ></span>
+              <span
+                class="mt-1 block truncate text-center font-mono text-[10px] uppercase tracking-wide text-faint transition group-hover:text-primary"
+              >
+                {{ hex }}
+              </span>
+            </router-link>
+          </div>
         </section>
 
         <div
@@ -451,8 +452,8 @@ interface WallpaperDetail {
   views?: number
   /** 主色 hex(色板条 + 点击按色筛选) */
   dominantColor?: string | null
-  /** 主色粗分桶(筛选用) */
-  colorBucket?: string | null
+  /** 主色板 hex，按占比降序 */
+  palette?: string[] | null
 }
 
 const route = useRoute()
@@ -538,6 +539,14 @@ const categoryLabelMap = {
 } as const
 const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
 
+const HEX_RE = /^#[0-9a-f]{6}$/i
+const colorSwatches = computed(() => {
+  const fromApi = (wallpaper.value.palette || []).filter((hex) => HEX_RE.test(hex))
+  if (fromApi.length) return fromApi
+  const fallback = wallpaper.value.dominantColor
+  return fallback && HEX_RE.test(fallback) ? [fallback] : []
+})
+
 const goPublishDraft = () => {
   router.push({ path: "/upload", query: { drafts: String(wallpaper.value.id) } })
 }
@@ -583,7 +592,7 @@ const fetchWallpaperDetail = async () => {
       favorites: d.favoriteCount,
       views: d.viewCount || 0,
       dominantColor: d.dominantColor || null,
-      colorBucket: d.colorBucket || null,
+      palette: Array.isArray(d.palette) ? d.palette : [],
     }
 
     isFavorited.value = d.isFavorited || false
@@ -940,6 +949,8 @@ watch(
 onUnmounted(() => {
   loading.value = false
   window.removeEventListener("keydown", handleKeydown)
+  // 灯箱开着时直接路由跳走的话，恢复被锁住的滚动（原全局路由兜底已删）
+  document.body.style.overflow = ""
 })
 </script>
 

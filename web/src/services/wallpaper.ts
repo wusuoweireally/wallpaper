@@ -74,6 +74,8 @@ export interface Wallpaper {
   isFeatured: boolean
   dominantColor?: string | null
   colorBucket?: string | null
+  /** 主色板 hex，按占比降序 */
+  palette?: string[] | null
   createdAt: string
   updatedAt: string
   tags?: Tag[]
@@ -204,42 +206,10 @@ class WallpaperService {
     }
   }
 
-  /** 游客防刷：单 key 存已浏览时间戳，超容量裁最旧（避免每个壁纸一个 key 无限膨胀） */
-  private viewWindowMark(id: number): boolean {
-    const KEY = "wallbay-viewed"
-    const MAX = 500
-    let map: Record<string, number> = {}
-    try {
-      map = JSON.parse(localStorage.getItem(KEY) || "{}")
-    } catch {
-      map = {} // 数据损坏则重置
-    }
-    const now = Date.now()
-    if (now - Number(map[id] || 0) < 3_600_000) return false // 窗口内：本次不计数
-    map[id] = now
-
-    const entries = Object.entries(map)
-    if (entries.length > MAX) {
-      entries.sort((a, b) => a[1] - b[1])
-      for (const [k] of entries.slice(0, entries.length - MAX)) delete map[k]
-    }
-    localStorage.setItem(KEY, JSON.stringify(map))
-
-    // 一次性清掉旧版按壁纸散落的 key
-    if (!localStorage.getItem("wallbay-viewed-migrated")) {
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const k = localStorage.key(i)
-        if (k?.startsWith("wallbay-viewed-")) localStorage.removeItem(k)
-      }
-      localStorage.setItem("wallbay-viewed-migrated", "1")
-    }
-    return true
-  }
-
   async getWallpaperDetail(id: number) {
     return await api.get<Wallpaper>(`/wallpapers/${id}`, {
-      params: this.viewWindowMark(id) ? {} : { trackView: "0" },
-      deduplicate: true, // 双击/连点进详情只发一次请求（配合后端防刷）
+      // 浏览计数由后端按 IP/用户 1 小时窗去重，前端不再上报 trackView
+      deduplicate: true, // 双击/连点进详情只发一次请求
     })
   }
 

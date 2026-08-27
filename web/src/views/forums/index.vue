@@ -205,6 +205,7 @@ import PostCard from "@/components/PostCard.vue"
 import Pagination from "@/components/Pagination.vue"
 import type { Post, PostCategory } from "@/stores/forum"
 import { formatNumber } from "@/utils/format"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 
 defineOptions({ name: "ForumIndex" })
 
@@ -241,10 +242,16 @@ const heroStats = computed(() => [
   },
 ])
 
+// 列表请求代数：筛选/分类快速切换时丢弃过期响应
+const postsFetchGeneration = createFetchGeneration()
+
 const fetchPosts = async (reset = false) => {
   if (reset) {
     forumStore.setPostsPagination({ currentPage: 1 })
   }
+
+  const gen = postsFetchGeneration.next()
+  const isCurrent = () => postsFetchGeneration.isCurrent(gen)
 
   try {
     forumStore.setLoading(true)
@@ -259,6 +266,9 @@ const fetchPosts = async (reset = false) => {
       search: forumStore.filters.search || undefined,
     })
 
+    // 已有更新请求发出，过期响应直接丢弃
+    if (!isCurrent()) return
+
     forumStore.setPosts(data)
     forumStore.setPostsPagination({
       currentPage: pagination.currentPage,
@@ -266,10 +276,13 @@ const fetchPosts = async (reset = false) => {
       totalCount: pagination.totalCount,
     })
   } catch (error) {
+    if (!isCurrent()) return
     console.error("获取帖子失败:", error)
     forumStore.setError("获取帖子失败，请稍后重试")
   } finally {
-    forumStore.setLoading(false)
+    if (isCurrent()) {
+      forumStore.setLoading(false)
+    }
   }
 }
 

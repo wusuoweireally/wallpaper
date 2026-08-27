@@ -88,7 +88,7 @@
                     {{ post.author?.username || "未知用户" }}
                   </span>
                   <span class="wb-chip border-primary/30 bg-primary/10 text-primary">
-                    {{ getCategoryName(post.category) }}
+                    {{ postCategoryLabel(post.category) }}
                   </span>
                   <span class="text-xs text-faint">
                     {{ formatTime(post.createdAt) }}
@@ -256,7 +256,14 @@
             </div>
           </div>
 
-          <div v-if="comments.length === 0 && !loading" class="wb-empty">
+          <div v-if="commentsError" class="wb-alert-danger mb-4">
+            <span>{{ commentsError }}</span>
+            <button type="button" class="wb-btn-ghost wb-btn-xs" @click="retryLoadComments">
+              重试
+            </button>
+          </div>
+
+          <div v-else-if="comments.length === 0 && !loading" class="wb-empty">
             <i class="i-[mdi--comment-outline] text-4xl text-faint"></i>
             <p class="mt-4 text-base font-semibold text-fg">暂无评论</p>
             <p class="mt-1 text-sm text-muted">快来发表第一条评论吧！</p>
@@ -275,7 +282,7 @@
             />
           </div>
 
-          <div v-if="hasMoreComments" class="mt-8 text-center">
+          <div v-if="hasMoreComments && !commentsError" class="mt-8 text-center">
             <button class="wb-btn w-full" @click="loadMoreComments" :disabled="loadingMore">
               <span class="wb-spinner mr-2" v-if="loadingMore"></span>
               <i class="i-[mdi--chevron-down]" v-else></i>
@@ -301,10 +308,12 @@ import { useRoute, useRouter } from "vue-router"
 import { forumService } from "@/services/forum"
 import { useUserStore } from "@/stores/user"
 import type { Post, Comment } from "@/stores/forum"
+import { postCategoryLabel } from "@/stores/forum"
 import CommentItem from "@/components/CommentItem.vue"
 import ReportModal from "@/components/ReportModal.vue"
-import { resolveAvatarUrl } from "@/utils/avatar"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 import { useGlobalToast } from "@/composables/useToast"
 import { confirmAction } from "@/composables/useConfirm"
 import { formatTime } from "@/utils/format"
@@ -335,6 +344,7 @@ const commentSortOptions = [
 const currentPage = ref(1)
 const hasMoreComments = ref(false)
 const loadingMore = ref(false)
+const commentsError = ref("")
 const reportModalRef = ref<InstanceType<typeof ReportModal>>()
 
 // 计算属性
@@ -344,15 +354,7 @@ const isAuthor = computed(() => {
   return post.value?.authorId === userStore.user?.id
 })
 
-const authorAvatar = computed(() => {
-  const raw = post.value?.author?.avatarUrl || post.value?.author?.profilePicture || undefined
-  return resolveAvatarUrl(raw)
-})
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-}
+const authorAvatar = computed(() => resolveAvatarUrl(post.value?.author?.avatarUrl))
 
 // 清理后的帖子内容（防XSS；正文来自纯文本 textarea，换行需转 <br> 保留段落）
 const sanitizedContent = computed(() => {
@@ -403,16 +405,6 @@ const countCommentTree = (comment: Comment): number => {
 }
 
 // 方法
-const getCategoryName = (category: string): string => {
-  const categoryMap: Record<string, string> = {
-    tech_discussion: "技术讨论",
-    experience_sharing: "经验分享",
-    q_a: "问答求助",
-    resource_sharing: "资源分享",
-  }
-  return categoryMap[category] || "未分类"
-}
-
 const getTagList = (tags: string): string[] => {
   return tags
     ? tags
@@ -423,11 +415,14 @@ const getTagList = (tags: string): string[] => {
 }
 
 const loadPost = async () => {
+  const requestedId = postId.value
   try {
     loading.value = true
     error.value = ""
 
-    const postData = await forumService.getPost(postId.value)
+    const postData = await forumService.getPost(requestedId)
+    // 慢响应守卫：同组件切换帖子时丢弃过期响应，避免旧帖内容顶掉新 URL 页面
+    if (requestedId !== postId.value) return
     post.value = postData
 
     isLiked.value = !!postData.isLiked
@@ -436,16 +431,25 @@ const loadPost = async () => {
     // 更新页面标题
     document.title = `${post.value.title} - Wallbay`
   } catch (err: unknown) {
+    if (requestedId !== postId.value) return
     const errObj = err as Error & { message?: string }
     console.error("加载帖子失败:", errObj)
     error.value = errObj.message || "帖子加载失败"
   } finally {
-    loading.value = false
+    if (requestedId === postId.value) {
+      loading.value = false
+    }
   }
 }
 
+// 评论请求代数：排序切换与加载更多并发时，过期响应一律丢弃
+const commentsFetchGeneration = createFetchGeneration()
+
 const loadComments = async (reset: boolean = true) => {
   if (!post.value) return
+
+  const gen = commentsFetchGeneration.next()
+  const isCurrent = () => commentsFetchGeneration.isCurrent(gen)
 
   try {
     if (reset) {
@@ -466,6 +470,10 @@ const loadComments = async (reset: boolean = true) => {
       ...sortOptions[commentSort.value],
     })
 
+    // 期间发起了新的排序/翻页请求，本次响应作废
+    if (!isCurrent()) return
+
+    commentsError.value = ""
     if (result && result.data) {
       if (reset) {
         comments.value = result.data
@@ -482,6 +490,8 @@ const loadComments = async (reset: boolean = true) => {
     }
   } catch (err: unknown) {
     console.error("加载评论失败:", err)
+    if (!isCurrent()) return
+    commentsError.value = "评论加载失败，请稍后重试"
     if (reset) {
       comments.value = []
     }
@@ -498,6 +508,11 @@ const loadMoreComments = async () => {
   } finally {
     loadingMore.value = false
   }
+}
+
+/** 评论加载失败后的重试：重新拉取第一页 */
+const retryLoadComments = () => {
+  loadComments(true)
 }
 
 const toggleLike = async () => {

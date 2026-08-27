@@ -218,6 +218,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue"
+import { useRouter } from "vue-router"
 import { useUserStore } from "@/stores/user"
 import {
   buildChangePasswordPayload,
@@ -227,6 +228,7 @@ import {
 } from "@/utils/authPayload"
 
 const userStore = useUserStore()
+const router = useRouter()
 
 // 组件是否已经挂载
 const isMounted = ref(false)
@@ -376,19 +378,10 @@ const updatePassword = async () => {
     )
     await userStore.changePassword(payload.currentPassword, payload.newPassword)
 
-    if (isMounted.value) {
-      success.value = "密码修改成功"
-
-      passwordForm.currentPassword = ""
-      passwordForm.newPassword = ""
-      passwordForm.confirmPassword = ""
-
-      setTimeout(() => {
-        if (isMounted.value) {
-          success.value = ""
-        }
-      }, 3000)
-    }
+    // 改密使所有已签发会话失效（tokenVersion+1）：主动登出引导重登，
+    // 避免用户看到"修改成功"后下一个请求被 401 踢到登录页
+    userStore.clearUser()
+    router.replace({ name: "Login" })
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
     if (isMounted.value) {

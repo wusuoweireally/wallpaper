@@ -238,6 +238,11 @@ watch(
   () => route.fullPath,
   () => {
     if (route.path !== "/wallpapers") return
+    // 取消还没触发的筛选防抖：否则 back 还原列表后，旧防抖到点会再发一次请求并重掷随机池
+    if (filterDebounceId.value) {
+      clearTimeout(filterDebounceId.value)
+      filterDebounceId.value = null
+    }
     const next = filtersFromRouteQuery(route.query as Record<string, unknown>)
     const cur = filtersToRouteQuery(filters.value)
     const nxt = filtersToRouteQuery(next)
@@ -258,6 +263,8 @@ watch(
 const fetchWallpapers = async (append: boolean) => {
   const gen = append ? listFetchGeneration.current : listFetchGeneration.next()
   loading.value = true
+  /** 命中自动重试时保持 loading：否则等待窗口内按钮重现，可再次点按引发并发追加乱序 */
+  let willRetry = false
   if (!append) error.value = null
   // 开始新请求前清掉上一轮“加载更多”的行内错误
   appendError.value = ""
@@ -303,6 +310,7 @@ const fetchWallpapers = async (append: boolean) => {
       const retryDelay = 1000 * retryCount.value
       if (fetchTimeoutId.value) clearTimeout(fetchTimeoutId.value)
       fetchTimeoutId.value = setTimeout(() => fetchWallpapers(append), retryDelay)
+      willRetry = true
       return
     }
 
@@ -316,7 +324,7 @@ const fetchWallpapers = async (append: boolean) => {
       error.value = errObj.message || "获取壁纸失败，请稍后重试"
     }
   } finally {
-    if (listFetchGeneration.isCurrent(gen)) {
+    if (!willRetry && listFetchGeneration.isCurrent(gen)) {
       loading.value = false
     }
   }

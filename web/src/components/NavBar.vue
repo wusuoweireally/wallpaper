@@ -304,6 +304,7 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useUserStore } from "@/stores/user"
+import { handleAvatarError } from "@/utils/avatar"
 import { confirmAction } from "@/composables/useConfirm"
 import ThemeToggle from "@/components/ThemeToggle.vue"
 
@@ -452,11 +453,6 @@ onUnmounted(() => {
   document.removeEventListener("click", closeDropdown)
   window.removeEventListener("keydown", onGlobalKeydown)
 })
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-}
 </script>
 
 <style scoped>

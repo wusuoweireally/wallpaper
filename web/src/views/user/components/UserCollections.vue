@@ -43,7 +43,27 @@
 
     <div v-if="active" class="space-y-3 border-t border-line pt-6">
       <div class="flex items-center justify-between">
-        <h3 class="font-semibold">{{ active.name }}</h3>
+        <div v-if="!renaming" class="flex items-center gap-2">
+          <h3 class="font-semibold">{{ active.name }}</h3>
+          <button type="button" class="wb-btn-ghost wb-btn-xs" @click="startRename">重命名</button>
+        </div>
+        <form v-else class="flex items-center gap-2" @submit.prevent="confirmRename">
+          <input
+            v-model="renameValue"
+            type="text"
+            maxlength="80"
+            class="wb-input h-8 w-40 py-0 text-sm"
+            placeholder="合集名称"
+          />
+          <button
+            type="submit"
+            class="wb-btn-primary wb-btn-xs"
+            :disabled="!renameValue.trim() || renamingBusy"
+          >
+            保存
+          </button>
+          <button type="button" class="wb-btn-ghost wb-btn-xs" @click="renaming = false">取消</button>
+        </form>
         <button type="button" class="wb-btn-ghost wb-btn-xs" @click="active = null">关闭</button>
       </div>
 
@@ -129,6 +149,35 @@ const removingId = ref<number | null>(null)
 const activePage = ref(1)
 const activeTotalPages = ref(1)
 const COLLECTION_PAGE_SIZE = 40
+/** 合集重命名（后端 PATCH /collections/:id 链路早已存在，这里补上入口） */
+const renaming = ref(false)
+const renameValue = ref("")
+const renamingBusy = ref(false)
+
+const startRename = () => {
+  if (!active.value) return
+  renameValue.value = active.value.name
+  renaming.value = true
+}
+
+const confirmRename = async () => {
+  const target = active.value
+  const name = renameValue.value.trim()
+  if (!target || !name || renamingBusy.value) return
+  renamingBusy.value = true
+  try {
+    await wallpaperService.renameCollection(target.id, name)
+    target.name = name
+    const listed = collections.value.find((x) => x.id === target.id)
+    if (listed) listed.name = name
+    toast.success("已重命名")
+    renaming.value = false
+  } catch (e: unknown) {
+    toast.error((e as Error).message || "重命名失败")
+  } finally {
+    renamingBusy.value = false
+  }
+}
 
 const load = async () => {
   loading.value = true
@@ -180,6 +229,8 @@ const remove = async (c: Collection) => {
 }
 
 const select = async (c: Collection) => {
+  // 切换目标后退出上一个合集的重命名态，避免把 A 的旧名提交给 B
+  renaming.value = false
   active.value = c
   activePage.value = 1
   await fetchCollectionItems(1)
@@ -187,22 +238,27 @@ const select = async (c: Collection) => {
 
 /** 拉当前合集某一页（Pagination @change 与 select 复用） */
 const fetchCollectionItems = async (page: number) => {
-  if (!active.value) return
+  const target = active.value
+  if (!target) return
   loadingItems.value = true
   try {
     const res = await wallpaperService.listCollectionWallpapers(
-      active.value.id,
+      target.id,
       page,
       COLLECTION_PAGE_SIZE,
     )
+    // 慢响应守卫：期间已切到别的合集时丢弃，避免「标题是 B、内容是 A」
+    // 以及把移出操作作用到错误合集
+    if (active.value?.id !== target.id) return
     items.value = res.data || []
     activePage.value = res.pagination?.page || page
     activeTotalPages.value = res.pagination?.pages || 1
   } catch {
+    if (active.value?.id !== target.id) return
     items.value = []
     activeTotalPages.value = 1
   } finally {
-    loadingItems.value = false
+    if (active.value?.id === target.id) loadingItems.value = false
   }
 }
 
