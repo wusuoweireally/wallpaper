@@ -16,6 +16,7 @@ import { Roles } from "../../decorators/roles.decorator";
 import { UserRole } from "../../entities/user.entity";
 import { WallpaperService } from "../../services/wallpaper.service";
 import { UploadService } from "../../services/upload.service";
+import { TagService } from "../../services/tag.service";
 import {
   AdminWallpaperQueryDto,
   AdminUpdateWallpaperTagsDto,
@@ -23,6 +24,7 @@ import {
   AdminWallpaperIdsDto,
 } from "../../dto/admin.dto";
 import { UpdateWallpaperDto } from "../../dto/wallpaper.dto";
+import { buildPaginationMeta } from "../../common/pagination";
 
 @Controller("admin/wallpapers")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,6 +33,7 @@ export class AdminWallpaperController {
   constructor(
     private readonly wallpaperService: WallpaperService,
     private readonly uploadService: UploadService,
+    private readonly tagService: TagService,
   ) {}
 
   @Get()
@@ -52,12 +55,7 @@ export class AdminWallpaperController {
     return {
       success: true,
       data,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      pagination: buildPaginationMeta({ data, total, page, limit }),
     };
   }
 
@@ -96,10 +94,7 @@ export class AdminWallpaperController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateWallpaperTagsDto,
   ) {
-    const tags = await this.wallpaperService.updateWallpaperTags(
-      id,
-      dto.tags || [],
-    );
+    const tags = await this.tagService.replaceWallpaperTags(id, dto.tags || []);
     return {
       success: true,
       message: "标签已更新",

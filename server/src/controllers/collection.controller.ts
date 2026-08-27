@@ -19,6 +19,7 @@ import {
   CreateCollectionDto,
   UpdateCollectionDto,
 } from "../dto/wallpaper.dto";
+import { buildPaginationMeta } from "../common/pagination";
 
 @Controller("collections")
 export class CollectionController {
@@ -89,12 +90,11 @@ export class CollectionController {
       success: true,
       data: result.data,
       collection: result.collection,
-      pagination: {
+      pagination: buildPaginationMeta({
+        ...result,
         page: Number(page),
         limit: Number(limit),
-        total: result.total,
-        pages: Math.ceil(result.total / Number(limit)) || 1,
-      },
+      }),
     };
   }
 

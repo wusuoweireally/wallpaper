@@ -16,6 +16,7 @@ import { ReportService } from "../../services/report.service";
 import { GetReportsDto, UpdateReportDto } from "../../dto/report.dto";
 import { CurrentUser } from "../../decorators/current-user.decorator";
 import type { CurrentUserType } from "../../decorators/current-user.decorator";
+import { buildPaginationMeta } from "../../common/pagination";
 
 @Controller("admin/reports")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,12 +31,7 @@ export class AdminReportController {
       success: true,
       message: "获取举报列表成功",
       data: reports.data,
-      pagination: {
-        page: reports.page,
-        limit: reports.limit,
-        total: reports.total,
-        pages: Math.ceil(reports.total / reports.limit),
-      },
+      pagination: buildPaginationMeta(reports),
     };
   }
 

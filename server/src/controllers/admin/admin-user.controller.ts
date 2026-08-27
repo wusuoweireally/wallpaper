@@ -23,6 +23,7 @@ import {
 import { RolesGuard } from "../../guards/roles.guard";
 import { CurrentUser } from "../../decorators/current-user.decorator";
 import type { CurrentUserType } from "../../decorators/current-user.decorator";
+import { buildPaginationMeta } from "../../common/pagination";
 
 @Controller("admin/users")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,12 +42,11 @@ export class AdminUserController {
     return {
       success: true,
       data: users,
-      pagination: {
+      pagination: buildPaginationMeta({
+        ...result,
         page: Number(page),
         limit: Number(limit),
-        total: result.total,
-        pages: Math.ceil(result.total / Number(limit)),
-      },
+      }),
     };
   }
 

@@ -19,6 +19,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
 import { UserRole } from "../entities/user.entity";
+import { buildPaginationMeta } from "../common/pagination";
 
 @SkipThrottle()
 @Controller("tags")
@@ -38,12 +39,7 @@ export class TagController {
     return {
       success: true,
       data: result.data,
-      pagination: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        pages: Math.ceil(result.total / result.limit),
-      },
+      pagination: buildPaginationMeta(result),
     };
   }
 
