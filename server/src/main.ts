@@ -9,6 +9,10 @@ async function bootstrap() {
   try {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+    // 优雅停机：收到 SIGTERM/SIGINT 时停止接新请求，尽力让在途请求收尾再关
+    // 连接池；完整窗口还依赖 compose 的 server stop_grace_period（默认仅 10s）
+    app.enableShutdownHooks();
+
     // 启用CORS - 生产环境限制域名，开发环境允许所有
     const allowedOrigins =
       process.env.NODE_ENV === "production"
