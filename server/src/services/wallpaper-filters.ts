@@ -1,6 +1,8 @@
 /**
  * 壁纸列表筛选纯函数（查询参数解析 + 内存断言用）
  * SQL 侧与内存侧共用同一套语义，避免前后端/测试漂移。
+ * 注意：matchesWallpaperFilters 仅作测试 oracle（wallpaper-list-query.spec 用它
+ * 校验 SQL 结果集），生产查询路径只走 findAll 的 SQL 实现；改筛选语义时两处要同步。
  */
 
 export type ColorBucket =
