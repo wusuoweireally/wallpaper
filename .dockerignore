@@ -10,5 +10,5 @@
 web/dist
 server/pnpm-lock.yaml
 web/pnpm-lock.yaml
-# 壁纸源图已改为 COS 直链 fixture，原图不必打进镜像
-server/uploads/壁纸/**
+# 应用已全量走 COS，本地 uploads 不打进镜像
+server/uploads

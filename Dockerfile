@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS server-build
 
 COPY server/ ./server/
-RUN mkdir -p server/public && pnpm --filter server build
+RUN pnpm --filter server build
 RUN pnpm --filter server deploy --legacy --prod --frozen-lockfile /app/server-runtime
 
 FROM node:${NODE_VERSION}-bookworm-slim AS server
@@ -29,14 +29,10 @@ FROM node:${NODE_VERSION}-bookworm-slim AS server
 WORKDIR /app
 ENV NODE_ENV=production
 
+# 应用已是纯 COS 链路：不读写本地 uploads/public，镜像只带运行必需产物
 COPY --from=server-build /app/server-runtime/node_modules ./node_modules
 COPY --from=server-build /app/server/dist ./dist
-COPY --from=server-build /app/server/public ./public
 COPY --from=server-build /app/server/package.json ./package.json
-
-# defaultAvatar 等默认资源；壁纸 demo 走 COS 直链 fixture，不再依赖本地源图
-COPY --from=server-build /app/server/uploads ./uploads
-RUN mkdir -p uploads/wallpapers uploads/thumbnails uploads/profile-pictures
 
 EXPOSE 3000
 CMD ["node", "dist/main"]

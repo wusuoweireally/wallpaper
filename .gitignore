@@ -42,14 +42,10 @@ yarn-error.log*
 lerna-debug.log*
 
 # ---------------
-# 上传目录：忽略运行时文件，仅跟踪占位与静态/seed 资源
-# 本地开发：壁纸原图/缩略图写在本机 uploads，不进 git
+# 上传目录：应用已全量走 COS，本地 uploads 仅存历史遗留文件，整体不进 git
 # Docker MySQL 数据在容器卷中，与此无关
 # ---------------
-server/uploads/**
-!server/uploads/**/
-!server/uploads/**/.gitkeep
-!server/uploads/profile-pictures/defaultAvatar.png
+server/uploads/
 # 壁纸原图不进 git（demo 用 src/data/demo-wallpapers.json 的 COS 直链）
 
 # ---------------
