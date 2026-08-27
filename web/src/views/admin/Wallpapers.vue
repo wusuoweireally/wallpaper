@@ -249,10 +249,6 @@
                   >{{ wallpaper.viewCount || 0 }}</span
                 >
                 <span class="inline-flex items-center gap-1"
-                  ><i class="i-[mdi--heart-outline]" aria-hidden="true"></i
-                  >{{ wallpaper.likeCount || 0 }}</span
-                >
-                <span class="inline-flex items-center gap-1"
                   ><i class="i-[mdi--star-outline]" aria-hidden="true"></i
                   >{{ wallpaper.favoriteCount || 0 }}</span
                 >
@@ -584,10 +580,6 @@
                 <p class="text-lg font-semibold text-fg">{{ previewWallpaper.viewCount || 0 }}</p>
               </div>
               <div class="rounded-control border border-line bg-inset p-3">
-                <p class="text-xs text-faint">点赞</p>
-                <p class="text-lg font-semibold text-fg">{{ previewWallpaper.likeCount || 0 }}</p>
-              </div>
-              <div class="rounded-control border border-line bg-inset p-3">
                 <p class="text-xs text-faint">收藏</p>
                 <p class="text-lg font-semibold text-fg">
                   {{ previewWallpaper.favoriteCount || 0 }}
@@ -660,6 +652,7 @@ import wallpaperService from "@/services/wallpaper"
 import { confirmAction } from "@/composables/useConfirm"
 import type { ApiResponse } from "@/config/api"
 import Pagination from "@/components/Pagination.vue"
+import { formatFileSize, formatDateTime } from "@/utils/format"
 
 interface PaginationMeta {
   page: number
@@ -747,28 +740,6 @@ const getUploaderAvatar = (url?: string | null) => {
   // COS 完整 URL 或绝对路径直返；其余（旧式文件名等）视为默认头像
   if (!url || !/^(https?:)?\//.test(url)) return DEFAULT_AVATAR_PLACEHOLDER
   return url
-}
-
-const formatFileSize = (size?: number) => {
-  if (!size && size !== 0) return "未知大小"
-  const units = ["B", "KB", "MB", "GB"]
-  let index = 0
-  let value = size
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024
-    index += 1
-  }
-  return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
-}
-
-const formatDateTime = (date: string) => {
-  return new Date(date).toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
 }
 
 const formatStatus = (status?: number) => {

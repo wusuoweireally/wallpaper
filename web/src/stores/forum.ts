@@ -12,8 +12,6 @@ export interface Post {
   author?: {
     id: number
     username: string
-    email: string
-    profilePicture?: string | null
     avatarUrl?: string | null
   }
   viewCount: number
@@ -43,8 +41,6 @@ export interface Comment {
   author?: {
     id: number
     username: string
-    email: string
-    profilePicture?: string | null
     avatarUrl?: string | null
   }
   likeCount: number
@@ -61,6 +57,18 @@ export interface PostCategory {
   color: string
 }
 
+/** 帖子分类中文映射（value → 展示名），供视图层直接复用 */
+export const POST_CATEGORY_LABELS: Record<string, string> = {
+  tech_discussion: "技术讨论",
+  experience_sharing: "经验分享",
+  q_a: "问答求助",
+  resource_sharing: "资源分享",
+}
+
+/** 取分类展示名，未知或空分类回退「未分类」 */
+export const postCategoryLabel = (category: string): string =>
+  POST_CATEGORY_LABELS[category] || "未分类"
+
 export interface PaginationData {
   currentPage: number
   totalPages: number
@@ -72,10 +80,11 @@ export interface PaginationData {
  * 论坛状态管理
  *
  * 管理论坛相关的状态，包括：
- * - 帖子列表和详情
- * - 评论列表和管理
- * - 用户交互状态（点赞、收藏等）
+ * - 帖子列表和筛选
  * - 分页和搜索状态
+ * - 用户交互状态（点赞等）
+ *
+ * 评论数据由详情页本地管理，不进 store。
  */
 export const useForumStore = defineStore("forum", () => {
   // 状态定义
@@ -84,17 +93,7 @@ export const useForumStore = defineStore("forum", () => {
 
   // 帖子相关状态
   const posts = ref<Post[]>([])
-  const currentPost = ref<Post | null>(null)
   const postsPagination = ref<PaginationData>({
-    currentPage: 1,
-    totalPages: 0,
-    totalCount: 0,
-    pageSize: 20,
-  })
-
-  // 评论相关状态
-  const comments = ref<Comment[]>([])
-  const commentsPagination = ref<PaginationData>({
     currentPage: 1,
     totalPages: 0,
     totalCount: 0,
@@ -113,10 +112,10 @@ export const useForumStore = defineStore("forum", () => {
 
   // 帖子分类配置
   const postCategories = ref<PostCategory[]>([
-    { value: "tech_discussion", label: "技术讨论", color: "blue" },
-    { value: "experience_sharing", label: "经验分享", color: "green" },
-    { value: "q_a", label: "问答求助", color: "yellow" },
-    { value: "resource_sharing", label: "资源分享", color: "purple" },
+    { value: "tech_discussion", label: POST_CATEGORY_LABELS.tech_discussion, color: "blue" },
+    { value: "experience_sharing", label: POST_CATEGORY_LABELS.experience_sharing, color: "green" },
+    { value: "q_a", label: POST_CATEGORY_LABELS.q_a, color: "yellow" },
+    { value: "resource_sharing", label: POST_CATEGORY_LABELS.resource_sharing, color: "purple" },
   ])
 
   // 计算属性
@@ -162,11 +161,6 @@ export const useForumStore = defineStore("forum", () => {
     return category?.label || categoryValue
   })
 
-  const categoryColor = computed(() => (categoryValue: string) => {
-    const category = postCategories.value.find((cat) => cat.value === categoryValue)
-    return category?.color || "gray"
-  })
-
   // Actions
   const setLoading = (state: boolean) => {
     loading.value = state
@@ -180,98 +174,8 @@ export const useForumStore = defineStore("forum", () => {
     posts.value = newPosts
   }
 
-  const appendPosts = (newPosts: Post[]) => {
-    posts.value.push(...newPosts)
-  }
-
-  const updatePost = (postId: number, updates: Partial<Post>) => {
-    const index = posts.value.findIndex((post) => post.id === postId)
-    if (index !== -1) {
-      posts.value[index] = { ...posts.value[index], ...updates }
-    }
-
-    if (currentPost.value && currentPost.value.id === postId) {
-      currentPost.value = { ...currentPost.value, ...updates }
-    }
-  }
-
-  const setCurrentPost = (post: Post | null) => {
-    currentPost.value = post
-  }
-
   const setPostsPagination = (pagination: Partial<PaginationData>) => {
     postsPagination.value = { ...postsPagination.value, ...pagination }
-  }
-
-  const setComments = (newComments: Comment[]) => {
-    comments.value = newComments
-  }
-
-  const appendComment = (comment: Comment, parentId?: number) => {
-    if (parentId) {
-      // 添加子评论到指定父评论
-      const parentComment = findCommentById(parentId)
-      if (parentComment) {
-        if (!parentComment.replies) {
-          parentComment.replies = []
-        }
-        parentComment.replies.push(comment)
-      }
-    } else {
-      // 添加顶级评论
-      comments.value.push(comment)
-    }
-  }
-
-  const removeComment = (commentId: number) => {
-    // 从顶级评论中删除
-    const topLevelIndex = comments.value.findIndex((comment) => comment.id === commentId)
-    if (topLevelIndex !== -1) {
-      comments.value.splice(topLevelIndex, 1)
-      return
-    }
-
-    // 从子评论中删除
-    const parentComment = comments.value.find((comment) =>
-      comment.replies?.some((reply) => reply.id === commentId),
-    )
-    if (parentComment && parentComment.replies) {
-      const replyIndex = parentComment.replies.findIndex((reply) => reply.id === commentId)
-      if (replyIndex !== -1) {
-        parentComment.replies.splice(replyIndex, 1)
-      }
-    }
-  }
-
-  const findCommentById = (commentId: number): Comment | null => {
-    // 在顶级评论中查找
-    const topLevelComment = comments.value.find((comment) => comment.id === commentId)
-    if (topLevelComment) {
-      return topLevelComment
-    }
-
-    // 在子评论中查找
-    for (const parentComment of comments.value) {
-      if (parentComment.replies) {
-        const reply = parentComment.replies.find((reply) => reply.id === commentId)
-        if (reply) {
-          return reply
-        }
-      }
-    }
-
-    return null
-  }
-
-  const updateComment = (commentId: number, updates: Partial<Comment>) => {
-    const comment = findCommentById(commentId)
-    if (comment) {
-      Object.assign(comment, updates)
-    }
-  }
-
-  const setCommentsPagination = (pagination: Partial<PaginationData>) => {
-    commentsPagination.value = { ...commentsPagination.value, ...pagination }
   }
 
   const updateFilters = (newFilters: Partial<typeof filters.value>) => {
@@ -296,56 +200,6 @@ export const useForumStore = defineStore("forum", () => {
       post.isLiked = isLiked
       post.likeCount += isLiked ? 1 : -1
     }
-
-    if (currentPost.value && currentPost.value.id === postId) {
-      currentPost.value.isLiked = isLiked
-      currentPost.value.likeCount += isLiked ? 1 : -1
-    }
-  }
-
-  /** 用服务端最终状态覆盖点赞字段，避免本地 ±1 与真实计数漂移 */
-  const applyPostLikeState = (postId: number, isLiked: boolean, likeCount: number) => {
-    const post = posts.value.find((p) => p.id === postId)
-    if (post) {
-      post.isLiked = isLiked
-      post.likeCount = likeCount
-    }
-
-    if (currentPost.value && currentPost.value.id === postId) {
-      currentPost.value.isLiked = isLiked
-      currentPost.value.likeCount = likeCount
-    }
-  }
-
-  const incrementPostView = (postId: number) => {
-    const post = posts.value.find((p) => p.id === postId)
-    if (post) {
-      post.viewCount += 1
-    }
-
-    if (currentPost.value && currentPost.value.id === postId) {
-      currentPost.value.viewCount += 1
-    }
-  }
-
-  const incrementPostComment = (postId: number) => {
-    const post = posts.value.find((p) => p.id === postId)
-    if (post) {
-      post.commentCount += 1
-    }
-
-    if (currentPost.value && currentPost.value.id === postId) {
-      currentPost.value.commentCount += 1
-    }
-  }
-
-  const clearState = () => {
-    posts.value = []
-    currentPost.value = null
-    comments.value = []
-    error.value = null
-    loading.value = false
-    resetFilters()
   }
 
   return {
@@ -353,10 +207,7 @@ export const useForumStore = defineStore("forum", () => {
     loading,
     error,
     posts,
-    currentPost,
     postsPagination,
-    comments,
-    commentsPagination,
     filters,
     postCategories,
 
@@ -364,27 +215,14 @@ export const useForumStore = defineStore("forum", () => {
     filteredPosts,
     popularPosts,
     categoryLabel,
-    categoryColor,
 
     // 方法
     setLoading,
     setError,
     setPosts,
-    appendPosts,
-    updatePost,
-    setCurrentPost,
     setPostsPagination,
-    setComments,
-    appendComment,
-    removeComment,
-    updateComment,
-    setCommentsPagination,
     updateFilters,
     resetFilters,
     togglePostLike,
-    applyPostLikeState,
-    incrementPostView,
-    incrementPostComment,
-    clearState,
   }
 })

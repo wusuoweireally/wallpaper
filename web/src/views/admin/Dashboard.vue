@@ -76,7 +76,7 @@
             <li v-for="report in recentReports" :key="report.id" class="text-sm">
               <p class="font-medium text-fg">{{ getReasonText(report.reason) }}</p>
               <p class="mt-0.5 text-xs text-faint">
-                {{ report.reporterUsername || "匿名用户" }} · {{ formatDate(report.createdAt) }}
+                {{ report.reporterUsername || "匿名用户" }} · {{ formatTime(report.createdAt) }}
               </p>
             </li>
           </ul>
@@ -99,6 +99,7 @@ import adminService, {
   type RecentActivityItem,
   type ReportReasonValue,
 } from "@/services/admin"
+import { formatTime } from "@/utils/format"
 
 const stats = ref<DashboardStats>({
   totalUsers: 0,
@@ -166,21 +167,6 @@ const getReasonText = (reason: ReportReasonValue) => {
     other: "其他",
   }
   return map[reason] || "新的举报"
-}
-
-const formatDate = (date: string) => {
-  const now = new Date()
-  const diff = now.getTime() - new Date(date).getTime()
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (minutes < 1) return "刚刚"
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-
-  return new Date(date).toLocaleDateString("zh-CN")
 }
 
 onMounted(() => {

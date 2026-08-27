@@ -196,7 +196,7 @@
                 <i class="i-[mdi--eye-outline] text-faint"></i>
                 实时预览
               </h3>
-              <span class="wb-chip">{{ getCategoryName(formData.category) }}</span>
+              <span class="wb-chip">{{ postCategoryLabel(formData.category) }}</span>
             </div>
             <div class="space-y-3">
               <div class="rounded-control border border-line bg-surface p-4">
@@ -232,7 +232,7 @@
             {{ formData.title || "无标题" }}
           </h2>
           <div class="wb-chip mb-4">
-            {{ getCategoryName(formData.category) }}
+            {{ postCategoryLabel(formData.category) }}
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <div
@@ -256,8 +256,9 @@ import { ref, computed, reactive, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { forumService, type UpdatePostDto } from "@/services/forum"
 import type { Post } from "@/stores/forum"
+import { postCategoryLabel } from "@/stores/forum"
 import RichTextEditor from "@/components/RichTextEditor.vue"
-import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { sanitizeHtml, stripHtml } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
 
 const router = useRouter()
@@ -345,25 +346,6 @@ const validateContent = () => {
   } else {
     errors.content = ""
   }
-}
-
-const stripHtml = (html: string): string => {
-  const temp = document.createElement("div")
-  temp.innerHTML = html
-  return temp.textContent || temp.innerText || ""
-}
-
-const getCategoryName = (category: string | "" | undefined): string => {
-  if (!category) {
-    return "未分类"
-  }
-  const categoryMap: Record<string, string> = {
-    tech_discussion: "技术讨论",
-    experience_sharing: "经验分享",
-    q_a: "问答求助",
-    resource_sharing: "资源分享",
-  }
-  return categoryMap[category] || "未分类"
 }
 
 const addTag = () => {

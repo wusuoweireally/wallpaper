@@ -20,6 +20,14 @@ export const formatTime = (iso?: string): string => {
   return date.toLocaleDateString("zh-CN")
 }
 
+/** 完整日期时间：zh-CN 本地格式，无效输入返回空串 */
+export const formatDateTime = (iso?: string): string => {
+  if (!iso) return ""
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toLocaleString("zh-CN")
+}
+
 /** 文件大小：B / KB / MB / GB */
 export const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes <= 0) return "0 B"

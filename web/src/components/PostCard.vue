@@ -32,7 +32,7 @@
         </router-link>
 
         <p class="line-clamp-3 text-sm leading-relaxed text-muted">
-          {{ post.summary ? post.summary : stripHtml(post.content) }}
+          {{ post.summary ? post.summary : truncateHtml(post.content, 200) }}
         </p>
 
         <div v-if="post.tags" class="flex flex-wrap gap-1.5">
@@ -125,8 +125,8 @@ import { useForumStore } from "@/stores/forum"
 import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import type { Post } from "@/stores/forum"
-import { resolveAvatarUrl } from "@/utils/avatar"
-import { stripHtml as stripHtmlUtil } from "@/utils/htmlSanitizer"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
+import { truncateHtml } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
 import { confirmAction } from "@/composables/useConfirm"
 import { formatNumber, formatTime } from "@/utils/format"
@@ -161,15 +161,7 @@ const isAuthor = computed(() => {
   return props.post.authorId === userStore.user?.id
 })
 
-const authorAvatar = computed(() => {
-  const raw = props.post.author?.avatarUrl || props.post.author?.profilePicture || undefined
-  return resolveAvatarUrl(raw)
-})
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-}
+const authorAvatar = computed(() => resolveAvatarUrl(props.post.author?.avatarUrl))
 
 const handlePostClick = () => {
   router.push(`/forums/post/${props.post.id}`)
@@ -256,10 +248,6 @@ const handleShare = async () => {
     await navigator.clipboard.writeText(shareUrl)
     toast.success("链接已复制到剪贴板")
   }
-}
-
-const stripHtml = (html: string) => {
-  return stripHtmlUtil(html).substring(0, 200)
 }
 </script>
 

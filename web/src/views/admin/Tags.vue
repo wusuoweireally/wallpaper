@@ -198,6 +198,7 @@ import tagService, { type Tag } from "@/services/tag"
 import { useGlobalToast } from "@/composables/useToast"
 import { confirmAction } from "@/composables/useConfirm"
 import Pagination from "@/components/Pagination.vue"
+import { formatDateTime as formatDate } from "@/utils/format"
 
 const toast = useGlobalToast()
 const loading = ref(true)
@@ -342,10 +343,6 @@ const deleteTag = async (tag: Tag) => {
     console.error("删除标签失败:", error)
     toast.error("删除标签失败，请稍后重试")
   }
-}
-
-const formatDate = (value: string) => {
-  return new Date(value).toLocaleString("zh-CN")
 }
 
 const getUsageCount = (tag: Tag) =>

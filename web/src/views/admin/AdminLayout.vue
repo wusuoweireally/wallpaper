@@ -29,7 +29,7 @@
           :src="userAvatar"
           alt="管理员"
           class="h-8 w-8 rounded-full object-cover ring-1 ring-line"
-          @error="handleImageError"
+          @error="handleAvatarError"
         />
       </div>
     </header>
@@ -79,6 +79,7 @@ import { useRoute, useRouter } from "vue-router"
 import { useUserStore } from "@/stores/user"
 import adminService from "@/services/admin"
 import { confirmAction } from "@/composables/useConfirm"
+import { handleAvatarError } from "@/utils/avatar"
 
 const router = useRouter()
 const route = useRoute()
@@ -126,11 +127,6 @@ const userAvatar = computed(() => {
   }
   return userStore.user.avatarUrl
 })
-
-const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-}
 
 const logout = async () => {
   const ok = await confirmAction({

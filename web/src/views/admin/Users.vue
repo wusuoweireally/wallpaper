@@ -507,6 +507,7 @@ import adminService, { type AdminUser, type AdminUserQuery } from "@/services/ad
 import { UserRole } from "@/services/user"
 import { confirmAction } from "@/composables/useConfirm"
 import Pagination from "@/components/Pagination.vue"
+import { formatDateTime as formatDate } from "@/utils/format"
 
 interface PaginationMeta {
   page: number
@@ -563,14 +564,6 @@ const getAvatarUrl = (avatarUrl: string) => {
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
-}
-
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
 }
 
 const totalUsers = computed(() => pagination.value.total || 0)

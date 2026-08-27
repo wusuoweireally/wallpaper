@@ -295,6 +295,7 @@ import adminService, {
   type ReportReasonValue,
 } from "@/services/admin"
 import Pagination from "@/components/Pagination.vue"
+import { formatDateTime as formatDate } from "@/utils/format"
 const loading = ref(true)
 const reports = ref<Report[]>([])
 const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
@@ -410,10 +411,6 @@ const getTargetText = (targetType: string) => {
     comment: "评论",
   }
   return map[targetType] || "内容"
-}
-
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleString("zh-CN")
 }
 
 onMounted(() => {

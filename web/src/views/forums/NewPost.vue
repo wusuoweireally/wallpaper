@@ -157,7 +157,7 @@
               </h4>
               <div class="mt-2 text-sm text-muted">
                 <span class="wb-chip">
-                  {{ getCategoryName(formData.category) }}
+                  {{ postCategoryLabel(formData.category) }}
                 </span>
               </div>
               <!-- eslint-disable-next-line vue/no-v-html -->
@@ -179,7 +179,7 @@
         <h3 class="mb-4 text-lg font-bold">帖子预览</h3>
         <div class="custom-prose max-w-none">
           <h2 class="text-xl font-semibold">{{ formData.title || "无标题" }}</h2>
-          <div class="wb-chip mt-2">{{ getCategoryName(formData.category) }}</div>
+          <div class="wb-chip mt-2">{{ postCategoryLabel(formData.category) }}</div>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <div class="mt-4" v-html="sanitizeHtml(formData.content) || '<p>无内容</p>'"></div>
         </div>
@@ -196,8 +196,9 @@ import { ref, computed, reactive, onMounted, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import { forumService, type CreatePostDto } from "@/services/forum"
 import { useUserStore } from "@/stores/user"
+import { postCategoryLabel } from "@/stores/forum"
 import RichTextEditor from "@/components/RichTextEditor.vue"
-import { sanitizeHtml } from "@/utils/htmlSanitizer"
+import { sanitizeHtml, stripHtml } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
 
 const router = useRouter()
@@ -262,22 +263,6 @@ const validateContent = () => {
   } else {
     errors.content = ""
   }
-}
-
-const stripHtml = (html: string): string => {
-  const temp = document.createElement("div")
-  temp.innerHTML = html
-  return temp.textContent || temp.innerText || ""
-}
-
-const getCategoryName = (category: string): string => {
-  const categoryMap: Record<string, string> = {
-    tech_discussion: "技术讨论",
-    experience_sharing: "经验分享",
-    q_a: "问答求助",
-    resource_sharing: "资源分享",
-  }
-  return categoryMap[category] || "未分类"
 }
 
 const saveDraft = () => {

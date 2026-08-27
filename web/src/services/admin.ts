@@ -68,7 +68,6 @@ export interface AdminWallpaper {
   height: number
   fileSize: number
   viewCount: number
-  likeCount: number
   favoriteCount: number
   isFeatured?: boolean
   createdAt: string
@@ -132,16 +131,13 @@ export interface UpdateReportStatus {
 }
 
 export interface ReportStats {
-  total?: number
-  pending?: number
-  reviewing?: number
-  resolved?: number
-  dismissed?: number
   totalReports: number
   pendingReports: number
   processingReports: number
   resolvedReports: number
   rejectedReports: number
+  statsByReason: Array<{ reason: string; count: number }>
+  statsByType: Array<{ targetType: string; count: number }>
 }
 
 export interface DashboardStats {

@@ -143,7 +143,7 @@ import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import type { Comment } from "@/stores/forum"
 import CommentReplyForm from "./CommentReplyForm.vue"
-import { resolveAvatarUrl } from "@/utils/avatar"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 import { sanitizeHtml } from "@/utils/htmlSanitizer"
 import { useGlobalToast } from "@/composables/useToast"
 import { confirmAction } from "@/composables/useConfirm"
@@ -188,15 +188,7 @@ const isAuthor = computed(() => {
   return props.comment.authorId === userStore.user?.id
 })
 
-const avatarSrc = computed(() => {
-  const raw = props.comment.author?.avatarUrl || props.comment.author?.profilePicture || undefined
-  return resolveAvatarUrl(raw)
-})
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-}
+const avatarSrc = computed(() => resolveAvatarUrl(props.comment.author?.avatarUrl))
 
 // 方法
 const handleReply = () => {
