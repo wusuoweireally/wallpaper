@@ -30,9 +30,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # 应用已是纯 COS 链路：不读写本地 uploads/public，镜像只带运行必需产物
-COPY --from=server-build /app/server-runtime/node_modules ./node_modules
-COPY --from=server-build /app/server/dist ./dist
-COPY --from=server-build /app/server/package.json ./package.json
+# 以非 root（基础镜像自带的 node, uid/gid 1000）运行：产物只读，无本地写入诉求
+COPY --from=server-build --chown=node:node /app/server-runtime/node_modules ./node_modules
+COPY --from=server-build --chown=node:node /app/server/dist ./dist
+COPY --from=server-build --chown=node:node /app/server/package.json ./package.json
+
+USER node
 
 EXPOSE 3000
 CMD ["node", "dist/main"]

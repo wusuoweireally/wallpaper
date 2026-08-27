@@ -26,10 +26,12 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       # 带凭据探测，避免初始化阶段（临时实例）误报健康导致 server 过早连库
+      # start_period 覆盖首次冷启动 datadir 初始化（慢盘大卷可能 >1 分钟），期间失败不计入 retries
       test: ["CMD-SHELL", "mysqladmin ping -uroot -p$$MYSQL_ROOT_PASSWORD -h localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 90s
 
   server:
     profiles: ["app"]
