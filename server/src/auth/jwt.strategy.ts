@@ -11,6 +11,8 @@ interface JwtPayload {
   sub: number | string;
   username: string;
   role?: UserRole;
+  /** 凭证版本：与 users.token_version 比对，改密后旧 token 失效 */
+  tv?: number;
   iat?: number;
   exp?: number;
 }
@@ -67,7 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ["id", "username", "role", "status"],
+      select: ["id", "username", "role", "status", "tokenVersion"],
     });
 
     if (!user) {
@@ -75,6 +77,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     if (user.status !== 1) {
       throw new UnauthorizedException("账号已被禁用");
+    }
+    // 旧版 token 无 tv 字段按 0 处理，保证平滑过渡
+    if ((payload.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+      throw new UnauthorizedException("登录态已失效，请重新登录");
     }
 
     return {

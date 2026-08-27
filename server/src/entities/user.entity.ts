@@ -65,6 +65,15 @@ export class User {
   @Column({ type: "tinyint", default: 1, comment: "用户状态 1:正常 0:禁用" })
   status: number;
 
+  /** 凭证版本：改密时 +1，旧 JWT 立即失效 */
+  @Column({
+    name: "token_version",
+    type: "int",
+    default: 0,
+    comment: "JWT 凭证版本号",
+  })
+  tokenVersion: number;
+
   @Column({
     type: "enum",
     enum: UserRole,

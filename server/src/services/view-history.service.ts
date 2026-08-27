@@ -8,10 +8,48 @@ import { normalizePagination } from "../common/pagination";
 
 @Injectable()
 export class ViewHistoryService {
+  /** 游客浏览去重窗口：与登录用户 view_history 的 1 小时窗对齐 */
+  private static readonly GUEST_VIEW_TTL_MS = 60 * 60 * 1000;
+  /** 内存去重表上限，防止恶意 IP 无限撑大 */
+  private static readonly GUEST_VIEW_MAX_ENTRIES = 100_000;
+
+  private readonly guestViewAt = new Map<string, number>();
+
   constructor(
     @InjectRepository(ViewHistory)
     private readonly viewHistoryRepository: Repository<ViewHistory>,
   ) {}
+
+  /**
+   * 游客浏览计数判定（内存版，重启清零可接受）：
+   * 同 IP+壁纸在窗口内只返回 true 一次，调用方据此决定是否累加 viewCount。
+   * 服务端权威判定，不依赖前端上报的 trackView 标记。
+   */
+  recordGuestView(ip: string, wallpaperId: number): boolean {
+    const now = Date.now();
+    if (this.guestViewAt.size > ViewHistoryService.GUEST_VIEW_MAX_ENTRIES) {
+      for (const [key, at] of this.guestViewAt) {
+        if (now - at >= ViewHistoryService.GUEST_VIEW_TTL_MS) {
+          this.guestViewAt.delete(key);
+        }
+      }
+      // 清完仍超限（同窗高频刷）：整体重置，代价只是部分重复计数
+      if (this.guestViewAt.size > ViewHistoryService.GUEST_VIEW_MAX_ENTRIES) {
+        this.guestViewAt.clear();
+      }
+    }
+
+    const key = `${ip}:${wallpaperId}`;
+    const last = this.guestViewAt.get(key);
+    if (
+      last !== undefined &&
+      now - last < ViewHistoryService.GUEST_VIEW_TTL_MS
+    ) {
+      return false;
+    }
+    this.guestViewAt.set(key, now);
+    return true;
+  }
 
   /**
    * 记录浏览并原子计数（浏览量防刷）

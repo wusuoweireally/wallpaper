@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository, Like, IsNull } from "typeorm";
+import { DataSource, Repository, IsNull } from "typeorm";
 import { User, UserRole, isAdminRole } from "../entities/user.entity";
 import {
   ChangePasswordDto,
@@ -150,37 +150,6 @@ export class UserService {
     return user;
   }
 
-  // 查询所有用户
-  async findAll(
-    page = 1,
-    limit = 10,
-  ): Promise<{ users: User[]; total: number }> {
-    const [users, total] = await this.userRepository.findAndCount({
-      where: { deletedAt: IsNull() },
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: "DESC" },
-    });
-
-    return { users, total };
-  }
-
-  // 根据用户名搜索用户
-  async findByUsername(
-    username: string,
-    page = 1,
-    limit = 10,
-  ): Promise<{ users: User[]; total: number }> {
-    const [users, total] = await this.userRepository.findAndCount({
-      where: { username: Like(`%${username}%`), deletedAt: IsNull() },
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: "DESC" },
-    });
-
-    return { users, total };
-  }
-
   // 更新用户信息
   async update(
     id: number,
@@ -255,6 +224,8 @@ export class UserService {
     }
 
     user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    // 凭证版本 +1：已签发的 JWT 全部失效（含被盗会话）
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.userRepository.save(user);
   }
 
@@ -356,13 +327,6 @@ export class UserService {
     await this.uploadService.deleteAvatar(previousAvatar);
   }
 
-  // 禁用/启用用户（翻转当前状态）
-  async toggleStatus(id: number, actor?: ActorContext): Promise<User> {
-    const user = await this.findById(id);
-    const nextStatus = user.status === 1 ? 0 : 1;
-    return this.setStatus(id, nextStatus, actor);
-  }
-
   async setStatus(
     id: number,
     status: number,
@@ -394,6 +358,11 @@ export class UserService {
         }
       }
 
+      // 禁用即吊销：递增凭证版本让禁用前签发的 JWT 全部失效，
+      // 否则被冻结用户手里的旧 token 直到过期前仍然全站可用
+      if (nextStatus === 0) {
+        user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+      }
       user.status = nextStatus;
       return repository.save(user);
     });
@@ -524,6 +493,9 @@ export class UserService {
       }
       if (passwordHash) {
         user.passwordHash = passwordHash;
+        // 管理员重置密码与本人改密同语义：递增凭证版本吊销全部已签发 JWT
+        //（被盗账号处置路径的关键一步，否则旧 token 最长存活 30 天）
+        user.tokenVersion = (user.tokenVersion ?? 0) + 1;
       }
 
       return repository.save(user);

@@ -4,12 +4,15 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { MulterError } from "multer";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -47,6 +50,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message = responseMessage;
         }
       }
+    }
+
+    // 非 HttpException 的未知异常必须留痕，否则生产 500 无法定位
+    if (!isHttpException && !isMulterError) {
+      this.logger.error(
+        `未处理异常 ${request.method} ${request.url}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     }
 
     response.status(status).json({

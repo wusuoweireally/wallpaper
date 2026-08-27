@@ -15,7 +15,13 @@ export class AuthService {
   }
 
   login(user: User) {
-    const payload = { username: user.username, sub: user.id, role: user.role };
+    // tv = 凭证版本：改密后 +1，旧 token 在 JwtStrategy 校验不过即失效
+    const payload = {
+      username: user.username,
+      sub: user.id,
+      role: user.role,
+      tv: user.tokenVersion ?? 0,
+    };
     const token = this.jwtService.sign(payload);
 
     return {

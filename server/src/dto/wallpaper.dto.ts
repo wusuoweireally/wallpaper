@@ -170,6 +170,7 @@ export class WallpaperQueryDto {
 
   @Transform(readAsArray)
   @IsArray()
+  @ArrayMaxSize(10)
   @IsString({ each: true })
   @MaxLength(50, { each: true })
   @IsOptional()

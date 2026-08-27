@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ConflictException,
   HttpException,
   InternalServerErrorException,
   Logger,
@@ -35,6 +36,8 @@ import { verifyOwnership } from "../decorators/ownership.decorator";
 import { WallpaperStatus } from "../entities/wallpaper.entity";
 import { ViewHistoryService } from "../services/view-history.service";
 import { sanitizeUser } from "../utils/sanitize";
+import { resolveAvatarUrl } from "../utils/avatar";
+import { buildPaginationMeta } from "../common/pagination";
 
 interface CreateWallpaperData extends CreateWallpaperDto {
   fileUrl: string;
@@ -46,6 +49,7 @@ interface CreateWallpaperData extends CreateWallpaperDto {
   aspectRatio: number;
   dominantColor?: string | null;
   colorBucket?: string | null;
+  palette?: string[] | null;
   contentHash?: string | null;
   status: WallpaperStatus;
 }
@@ -119,6 +123,11 @@ export class WallpaperController {
       }
 
       if (error instanceof HttpException) throw error;
+      // 并发上传同一文件时双双通过预检、插入阶段才撞 content_hash 唯一索引：
+      // 转成与预检一致的重复提示，避免用户白付一次审核费还看到笼统 500
+      if ((error as { code?: string })?.code === "ER_DUP_ENTRY") {
+        throw new ConflictException("检测到重复壁纸，请勿重复上传相同内容");
+      }
       this.logger.error("壁纸数据写入失败", error);
       throw new InternalServerErrorException("上传失败，请稍后重试");
     }
@@ -188,20 +197,20 @@ export class WallpaperController {
     return {
       success: true,
       data: result.data,
-      pagination: {
+      pagination: buildPaginationMeta({
+        ...result,
         page: Number(page),
         limit: Number(limit),
-        total: result.total,
-        pages: Math.ceil(result.total / Number(limit)),
-      },
+      }),
     };
   }
 
   /**
    * 按 sha256 查重（选图阶段用，避免上传后才发现重复）
-   * 必须在 @Get(":id") 之前，否则会被参数化路由吞掉
+   * 必须在 @Get(":id") 之前，否则会被参数化路由吞掉；登录可用，防内容存在性探测
    */
   @Get("check-hash")
+  @UseGuards(JwtAuthGuard)
   async checkContentHash(@Query("hash") hash: string) {
     if (!hash || !/^[0-9a-f]{64}$/.test(hash)) {
       throw new BadRequestException("无效的内容哈希");
@@ -260,14 +269,13 @@ export class WallpaperController {
 
   /**
    * 获取壁纸详情
+   * 浏览计数：登录按用户+壁纸 1 小时去重；游客按 IP+壁纸 服务端去重（不信任前端标记），
+   * 且本路由恢复全局限流——viewCount 是热门排序公式的输入，必须防匿名刷榜
    */
   @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
-  async getWallpaper(
-    @Param("id") id: string,
-    @Query("trackView") trackView: string | undefined,
-    @Req() request: Request,
-  ) {
+  @SkipThrottle({ default: false })
+  async getWallpaper(@Param("id") id: string, @Req() request: Request) {
     const wallpaperId = Number(id);
     if (isNaN(wallpaperId)) {
       throw new BadRequestException("无效的壁纸ID");
@@ -281,12 +289,12 @@ export class WallpaperController {
 
     let isFavorited = false;
 
-    // 浏览量防刷：1 小时内重复浏览不计数
-    // 登录用户服务端原子判断（recordView）；游客由前端 localStorage 标记 trackView=0
     if (wallpaper.status === WallpaperStatus.APPROVED) {
       if (authUser?.userId) {
         await this.viewHistoryService.recordView(authUser.userId, wallpaperId);
-      } else if (trackView !== "0") {
+      } else if (
+        this.viewHistoryService.recordGuestView(request.ip ?? "", wallpaperId)
+      ) {
         await this.wallpaperService.incrementViewCount(wallpaperId);
       }
     }
@@ -300,9 +308,7 @@ export class WallpaperController {
 
     // 头像：COS 完整 URL，否则用默认头像
     const uploader = wallpaper.uploader;
-    const avatarUrl = uploader?.avatarUrl?.startsWith("http")
-      ? uploader.avatarUrl
-      : "/defaultAvatar.png";
+    const avatarUrl = resolveAvatarUrl(uploader?.avatarUrl);
 
     return {
       success: true,
