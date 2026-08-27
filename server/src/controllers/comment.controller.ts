@@ -22,13 +22,13 @@ import {
   CreateCommentDto,
   UpdateCommentDto,
 } from "../dto/comment.dto";
-import { PaginationQueryDto } from "../dto/pagination.dto";
 import { CommentService } from "../services/comment.service";
 
 /**
  * 评论控制器
  *
  * 异常处理由全局 HttpExceptionFilter 统一负责。
+ * 仅保留前端实际调用的端点；列表/状态查询能力已内联在帖子详情与点赞响应里。
  */
 @Controller("comments")
 export class CommentController {
@@ -68,68 +68,6 @@ export class CommentController {
     };
   }
 
-  @Get("stats/:postId")
-  async getCommentStats(@Param("postId", ParseIntPipe) postId: number) {
-    const stats = await this.commentService.getCommentStats(postId);
-    return { success: true, data: stats };
-  }
-
-  @Get("user/my")
-  @UseGuards(JwtAuthGuard)
-  async getMyComments(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.commentService.getUserComments(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  @Get("latest/list")
-  async getLatestComments(@Query("limit") limit: number = 10) {
-    const comments = await this.commentService.getLatestComments(limit);
-    return { success: true, data: comments };
-  }
-
-  @Get("user/liked")
-  @UseGuards(JwtAuthGuard)
-  async getMyLikedComments(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.commentService.getUserLikedComments(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  @Get(":id")
-  async getComment(@Param("id", ParseIntPipe) id: number) {
-    const comment = await this.commentService.findById(id);
-    return { success: true, data: comment };
-  }
-
-  @Get(":parentCommentId/replies")
-  async getCommentReplies(
-    @Param("parentCommentId", ParseIntPipe) parentCommentId: number,
-  ) {
-    const replies = await this.commentService.getChildComments(parentCommentId);
-    return { success: true, data: replies };
-  }
-
   @Put(":id")
   @UseGuards(JwtAuthGuard)
   async updateComment(
@@ -155,6 +93,7 @@ export class CommentController {
     return { success: true, message: "评论删除成功" };
   }
 
+  /** 点赞切换：isLiked 与 likeCount 随响应返回，无需独立的状态查询接口 */
   @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async toggleCommentLike(
@@ -167,19 +106,5 @@ export class CommentController {
       message: result.isLiked ? "评论点赞成功" : "取消点赞成功",
       data: result,
     };
-  }
-
-  @Get(":id/like-status")
-  @UseGuards(JwtAuthGuard)
-  async getCommentLikeStatus(
-    @Param("id", ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const isLiked = await this.commentService.isCommentLikedByUser(
-      id,
-      user.userId,
-    );
-    const stats = await this.commentService.getCommentLikeStats(id);
-    return { success: true, data: { isLiked, likeCount: stats.likeCount } };
   }
 }

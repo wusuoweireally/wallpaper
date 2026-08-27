@@ -33,23 +33,6 @@ export class AuthController {
     private authService: AuthService,
   ) {}
 
-  @Get("providers")
-  getProviders() {
-    const github = [
-      "GITHUB_CLIENT_ID",
-      "GITHUB_CLIENT_SECRET",
-      "GITHUB_CALLBACK_URL",
-    ].every((key) => {
-      const value = this.configService.get<string>(key)?.trim();
-      return Boolean(value && !value.toLowerCase().includes("placeholder"));
-    });
-
-    return {
-      success: true,
-      data: { github },
-    };
-  }
-
   /**
    * 发起 GitHub OAuth 登录
    * 重定向到 GitHub 授权页面

@@ -329,59 +329,6 @@ export class ReportService {
 
     return await this.getReportById(id);
   }
-
-  /**
-   * 获取用户的举报历史
-   */
-  async getUserReports(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<{
-    data: UserReportSummary[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [reports, total] = await this.reportRepository.findAndCount({
-      where: { userId },
-      select: [
-        "id",
-        "targetType",
-        "targetId",
-        "reason",
-        "description",
-        "status",
-        "createdAt",
-        "updatedAt",
-      ],
-      order: { createdAt: "DESC", id: "DESC" },
-      skip,
-      take: limit,
-    });
-
-    const data = reports.map((report) => ({
-      id: Number(report.id),
-      targetType: report.targetType,
-      targetId: Number(report.targetId),
-      reason: report.reason,
-      description: report.description,
-      status: report.status,
-      createdAt: report.createdAt,
-      updatedAt: report.updatedAt,
-      resolution:
-        report.status === ReportStatus.RESOLVED ||
-        report.status === ReportStatus.DISMISSED
-          ? { status: report.status }
-          : null,
-    }));
-
-    return { data, total, page, limit };
-  }
-
   /**
    * 获取举报统计信息
    */
@@ -457,32 +404,6 @@ export class ReportService {
 
     return !existingReport;
   }
-
-  /**
-   * 检查是否可以举报（公开接口）
-   */
-  async checkCanReport(
-    userId: number,
-    targetType: ReportTargetType,
-    targetId: number,
-  ): Promise<{ canReport: boolean; reason?: string }> {
-    try {
-      await this.getPublicTargetSnapshot(targetType, targetId);
-    } catch (error) {
-      if (!(error instanceof NotFoundException)) throw error;
-      return {
-        canReport: false,
-        reason: "举报目标不存在或不可见",
-      };
-    }
-
-    const canReport = await this.canReport(userId, targetType, targetId);
-    return {
-      canReport,
-      reason: canReport ? undefined : "您已经举报过此内容",
-    };
-  }
-
   /**
    * 获取举报原因选项
    */

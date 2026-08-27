@@ -35,30 +35,13 @@ function assertStaticGetsBeforeParamGets(paths: string[]) {
 describe("forum GET route order", () => {
   it("declares PostController static paths before :id", () => {
     const paths = getGetPaths(PostController);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        "user/bookmarks",
-        "popular/list",
-        "latest/list",
-        "user/my",
-        ":id",
-      ]),
-    );
+    expect(paths).toEqual(expect.arrayContaining([":id"]));
     assertStaticGetsBeforeParamGets(paths);
   });
 
   it("declares CommentController static paths before :id", () => {
     const paths = getGetPaths(CommentController);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        "post/:postId",
-        "stats/:postId",
-        "user/my",
-        "latest/list",
-        "user/liked",
-        ":id",
-      ]),
-    );
+    expect(paths).toEqual(expect.arrayContaining(["post/:postId"]));
     assertStaticGetsBeforeParamGets(paths);
   });
 });

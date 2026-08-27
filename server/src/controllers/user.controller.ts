@@ -38,11 +38,11 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { CurrentUser } from "../decorators/current-user.decorator";
 import type { CurrentUserType } from "../decorators/current-user.decorator";
 import { User } from "../entities/user.entity";
-import { RolesGuard } from "../guards/roles.guard";
-import { Roles } from "../decorators/roles.decorator";
-import { UserRole, isAdminRole } from "../entities/user.entity";
+import { isAdminRole } from "../entities/user.entity";
 import { getAuthCookieOptions } from "../utils/cookie";
+import { resolveAvatarUrl } from "../utils/avatar";
 import { getJwtCookieMaxAge } from "../utils/duration";
+import { buildPaginationMeta } from "../common/pagination";
 
 @Controller("users")
 export class UserController {
@@ -139,9 +139,7 @@ export class UserController {
     const { passwordHash, ...result } = user;
 
     // 头像：COS 完整 URL，否则用默认头像
-    const avatarUrl = result.avatarUrl?.startsWith("http")
-      ? result.avatarUrl
-      : "/defaultAvatar.png";
+    const avatarUrl = resolveAvatarUrl(result.avatarUrl);
 
     return {
       success: true,
@@ -152,48 +150,7 @@ export class UserController {
     };
   }
 
-  // 查询所有用户（分页）
-
-  @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async findAll(
-    @Query("page") page = 1,
-    @Query("limit") limit = 10,
-    @Query("username") username?: string,
-  ) {
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 10;
-
-    let result: { users: User[]; total: number };
-    if (username) {
-      result = await this.userService.findByUsername(
-        username,
-        pageNum,
-        limitNum,
-      );
-    } else {
-      result = await this.userService.findAll(pageNum, limitNum);
-    }
-
-    // 移除密码哈希
-    const users = result.users.map((user: User) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { passwordHash, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
-
-    return {
-      success: true,
-      data: {
-        users,
-        total: result.total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(result.total / limitNum),
-      },
-    };
-  }
+  // 用户管理列表走 /admin/users（admin-user.controller），此处不再重复提供 GET /users
 
   @Patch("password")
   @UseGuards(JwtAuthGuard)
@@ -219,7 +176,7 @@ export class UserController {
     // 转换并验证ID
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
-      throw new BadRequestException("用户ID无效2");
+      throw new BadRequestException("用户ID无效");
     }
 
     // 仅允许本人或管理员修改
@@ -253,7 +210,7 @@ export class UserController {
     // 转换并验证ID
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
-      throw new BadRequestException("用户ID无效3");
+      throw new BadRequestException("用户ID无效");
     }
 
     // 仅允许本人或管理员删除
@@ -271,29 +228,7 @@ export class UserController {
     };
   }
 
-  // 禁用/启用用户
-  @Patch(":id/toggle-status")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async toggleStatus(
-    @Param("id") id: string,
-    @CurrentUser() currentUser: CurrentUserType,
-  ) {
-    // 转换并验证ID
-    const userId = Number(id);
-    if (isNaN(userId) || userId <= 0) {
-      throw new BadRequestException("用户ID无效4");
-    }
-
-    const user = await this.userService.toggleStatus(userId, currentUser);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
-    return {
-      success: true,
-      message: user.status === 1 ? "用户已启用" : "用户已禁用",
-      data: result,
-    };
-  }
+  // 禁用/启用用户统一走 PATCH /admin/users/:id/status 显式设值，不再提供翻转式端点
 
   // 上传头像
   @Post(":id/avatar")
@@ -312,7 +247,7 @@ export class UserController {
     // 转换并验证ID
     const userId = Number(id);
     if (isNaN(userId) || userId <= 0) {
-      throw new BadRequestException("用户ID无效6");
+      throw new BadRequestException("用户ID无效");
     }
 
     // 仅允许本人或管理员上传
@@ -487,7 +422,7 @@ export class UserController {
     };
   }
 
-  /** 构建统分页响应，消除 4 处重复的 `Math.ceil` + Array.isArray 样板 */
+  /** 构建统一分页响应：数据兜底后复用 buildPaginationMeta */
   private buildPaginatedResponse(
     result: { data: unknown[]; total: number },
     page: number,
@@ -498,12 +433,12 @@ export class UserController {
     return {
       success: true,
       data: safeData,
-      pagination: {
+      pagination: buildPaginationMeta({
+        data: safeData,
+        total: totalCount,
         page,
         limit,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limit),
-      },
+      }),
     };
   }
 }

@@ -108,25 +108,14 @@ export class Wallpaper {
   @Index("idx_view_count_desc")
   viewCount: number;
 
-  @Column({ name: "like_count", type: "int", default: 0, comment: "点赞数" })
-  @Index("idx_like_count")
-  likeCount: number;
-
   @Column({
     name: "favorite_count",
     type: "int",
     default: 0,
     comment: "收藏数",
   })
+  @Index("idx_favorite_count")
   favoriteCount: number;
-
-  @Column({
-    name: "download_count",
-    type: "int",
-    default: 0,
-    comment: "下载次数",
-  })
-  downloadCount: number;
 
   @Column({
     type: "tinyint",
@@ -165,6 +154,15 @@ export class Wallpaper {
   })
   @Index("idx_color_bucket")
   colorBucket: string | null;
+
+  /** 主色板 hex 数组，按像素占比降序，最多 5 个 */
+  @Column({
+    name: "palette",
+    type: "json",
+    nullable: true,
+    comment: "主色板 hex 数组",
+  })
+  palette: string[] | null;
 
   @CreateDateColumn({ name: "created_at", comment: "创建时间" })
   @Index("idx_created_at_desc")

@@ -22,7 +22,6 @@ import {
   PostListQueryDto,
   UpdatePostDto,
 } from "../dto/post.dto";
-import { PaginationQueryDto } from "../dto/pagination.dto";
 import { PostService } from "../services/post.service";
 
 /**
@@ -30,6 +29,7 @@ import { PostService } from "../services/post.service";
  *
  * 异常处理由全局 HttpExceptionFilter 统一负责，
  * 控制器方法直接返回 {success, data, message} 即可。
+ * 仅保留前端实际调用的端点；详情的 isLiked/isBookmarked 随 GET /posts/:id 一次返回。
  */
 @Controller("posts")
 export class PostController {
@@ -50,55 +50,6 @@ export class PostController {
   async getPosts(@Query() query: PostListQueryDto, @Req() req: Request) {
     const user = req.user as CurrentUserType | undefined;
     const result = await this.postService.findAll(query, user?.userId);
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  // 静态路径必须在 :id 之前，否则 popular/user 会被当成 id
-  @Get("user/bookmarks")
-  @UseGuards(JwtAuthGuard)
-  async getMyBookmarks(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.postService.getUserBookmarks(
-      user.userId,
-      query.page,
-      query.limit,
-    );
-    return {
-      success: true,
-      data: result.data,
-      pagination: buildPaginationMeta(result),
-    };
-  }
-
-  @Get("popular/list")
-  async getPopularPosts(@Query("limit") limit: number = 10) {
-    const posts = await this.postService.getPopularPosts(limit);
-    return { success: true, data: posts };
-  }
-
-  @Get("latest/list")
-  async getLatestPosts(@Query("limit") limit: number = 10) {
-    const posts = await this.postService.getLatestPosts(limit);
-    return { success: true, data: posts };
-  }
-
-  @Get("user/my")
-  @UseGuards(JwtAuthGuard)
-  async getMyPosts(
-    @Query() query: PaginationQueryDto,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const result = await this.postService.getUserPosts(
-      user.userId,
-      query.page,
-      query.limit,
-    );
     return {
       success: true,
       data: result.data,
@@ -143,6 +94,7 @@ export class PostController {
     return { success: true, message: "帖子删除成功" };
   }
 
+  /** 点赞切换：isLiked 与 likeCount 随响应返回，无需独立的状态查询接口 */
   @Post(":id/like")
   @UseGuards(JwtAuthGuard)
   async likePost(
@@ -152,7 +104,7 @@ export class PostController {
     const result = await this.postService.addLike(id, user.userId);
     return {
       success: true,
-      message: "点赞成功",
+      message: result.isLiked ? "点赞成功" : "已取消点赞",
       data: result,
     };
   }
@@ -165,16 +117,6 @@ export class PostController {
   ) {
     const result = await this.postService.removeLike(id, user.userId);
     return { success: true, message: "已取消点赞", data: result };
-  }
-
-  @Get(":id/like")
-  @UseGuards(JwtAuthGuard)
-  async checkLikeStatus(
-    @Param("id", ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const hasLiked = await this.postService.hasLiked(id, user.userId);
-    return { success: true, data: { hasLiked } };
   }
 
   @Post(":id/share")
@@ -201,15 +143,5 @@ export class PostController {
   ) {
     await this.postService.unbookmarkPost(id, user.userId);
     return { success: true, message: "取消收藏成功" };
-  }
-
-  @Get(":id/bookmark")
-  @UseGuards(JwtAuthGuard)
-  async checkBookmarkStatus(
-    @Param("id", ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserType,
-  ) {
-    const hasBookmarked = await this.postService.hasBookmarked(id, user.userId);
-    return { success: true, data: { hasBookmarked } };
   }
 }

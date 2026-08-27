@@ -100,15 +100,6 @@ describe("ReportService", () => {
     expect(reportRepository.save).not.toHaveBeenCalled();
   });
 
-  it("does not hide database errors behind canReport=false", async () => {
-    const databaseError = new Error("database unavailable");
-    postRepository.findOne.mockRejectedValue(databaseError);
-
-    await expect(
-      service.checkCanReport(3, ReportTargetType.POST, 9),
-    ).rejects.toBe(databaseError);
-  });
-
   it("updates status only when the previously read status still matches", async () => {
     reportRepository.findOne
       .mockResolvedValueOnce({ id: 1, status: ReportStatus.PENDING })
@@ -154,41 +145,5 @@ describe("ReportService", () => {
     await expect(
       service.updateReportStatus(1, { status: ReportStatus.DISMISSED }, 5),
     ).rejects.toThrow("其他管理员");
-  });
-
-  it("returns a user-safe history with normalized pagination", async () => {
-    reportRepository.findAndCount.mockResolvedValue([
-      [
-        {
-          id: 2,
-          targetType: ReportTargetType.POST,
-          targetId: 9,
-          reason: ReportReason.SPAM,
-          description: null,
-          status: ReportStatus.RESOLVED,
-          reviewedBy: 88,
-          reviewNote: "内部备注",
-          createdAt: new Date("2026-01-01"),
-          updatedAt: new Date("2026-01-02"),
-        },
-      ],
-      1,
-    ]);
-
-    const result = await service.getUserReports(3, -1, 9999);
-
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(100);
-    expect(result.data[0]).not.toHaveProperty("reviewedBy");
-    expect(result.data[0]).not.toHaveProperty("reviewNote");
-    expect(result.data[0].resolution).toEqual({
-      status: ReportStatus.RESOLVED,
-    });
-    expect(reportRepository.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({
-        order: { createdAt: "DESC", id: "DESC" },
-        take: 100,
-      }),
-    );
   });
 });

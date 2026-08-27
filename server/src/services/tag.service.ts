@@ -9,7 +9,7 @@ import { Tag } from "../entities/tag.entity";
 import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { CreateTagDto } from "../dto/tag.dto";
-import { normalizeLimit, normalizePagination } from "../common/pagination";
+import { normalizePagination } from "../common/pagination";
 
 @Injectable()
 export class TagService {
@@ -24,24 +24,6 @@ export class TagService {
 
   private generateSlug(name: string): string {
     return name.trim().toLowerCase().replace(/\s+/g, "-");
-  }
-
-  /**
-   * 搜索标签
-   * @param keyword 搜索关键词
-   * @param limit 返回数量限制
-   */
-  async searchTags(keyword?: string, limit: number = 10): Promise<Tag[]> {
-    limit = normalizeLimit(limit, 10, 50);
-    const queryBuilder = this.tagRepository.createQueryBuilder("tag");
-
-    if (keyword) {
-      queryBuilder.where("tag.name LIKE :keyword", { keyword: `%${keyword}%` });
-    }
-
-    queryBuilder.orderBy("tag.usageCount", "DESC").take(limit);
-
-    return queryBuilder.getMany();
   }
 
   /**
@@ -189,28 +171,6 @@ export class TagService {
       await manager.delete(WallpaperTag, { tagId: id });
       await manager.delete(Tag, id);
     });
-  }
-
-  /**
-   * 增加标签使用次数
-   * @param tagId 标签ID
-   */
-
-  async incrementUsageCount(tagId: number): Promise<void> {
-    await this.tagRepository.increment({ id: tagId }, "usageCount", 1);
-  }
-
-  /**
-   * 减少标签使用次数
-   * @param tagId 标签ID
-   */
-  async decrementUsageCount(tagId: number): Promise<void> {
-    await this.tagRepository
-      .createQueryBuilder()
-      .update(Tag)
-      .set({ usageCount: () => "GREATEST(usage_count - 1, 0)" })
-      .where("id = :tagId", { tagId })
-      .execute();
   }
 
   /** 壁纸挂标签（上传入口，新标签自动创建） */
