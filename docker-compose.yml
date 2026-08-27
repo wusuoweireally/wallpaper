@@ -8,6 +8,12 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    # json-file 默认无上限会撑爆磁盘，三服务统一轮转（50m x 5）
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请配置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE:-wallpaper_site}
@@ -40,6 +46,13 @@ services:
       dockerfile: Dockerfile
       target: server
     restart: unless-stopped
+    # 优雅停机窗口：配合 server 的 enableShutdownHooks 等在途请求收尾（默认 10s 偏短）
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     depends_on:
       mysql:
         condition: service_healthy
@@ -72,6 +85,11 @@ services:
       dockerfile: Dockerfile
       target: web
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     depends_on:
       # nginx 反代只需 server DNS 存在，无需等健康；串行等待会拖慢冷启动
       - server

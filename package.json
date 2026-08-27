@@ -15,9 +15,12 @@
     "test": "pnpm -r run test",
     "db:up": "docker compose --env-file server/.env.development up -d mysql",
     "db:down": "docker compose --env-file server/.env.development stop mysql",
+    "db:reset": "docker compose --env-file server/.env.development down -v && docker compose --env-file server/.env.development up -d mysql",
     "deploy": "docker compose --env-file server/.env.production --profile app up -d --build",
     "deploy:down": "docker compose --env-file server/.env.production --profile app down",
-    "deploy:logs": "docker compose --env-file server/.env.production --profile app logs -f --tail=200"
+    "deploy:logs": "docker compose --env-file server/.env.production --profile app logs -f --tail=200",
+    "backup": "sh scripts/backup-mysql.sh",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {

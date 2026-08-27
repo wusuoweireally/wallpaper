@@ -172,3 +172,7 @@ ses_*.md
 
 # 本机 AI 工具配置（可能包含访问令牌）
 .claude/settings.json
+
+# 数据库备份产物（含全站数据，严禁提交；pnpm backup 输出目录）
+backups/
+*.sql.gz
