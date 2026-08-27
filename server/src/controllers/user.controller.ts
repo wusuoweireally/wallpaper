@@ -18,6 +18,7 @@ import {
   UploadedFile,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -46,6 +47,8 @@ import { buildPaginationMeta } from "../common/pagination";
 
 @Controller("users")
 export class UserController {
+  private readonly logger = new Logger(UserController.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
@@ -109,17 +112,64 @@ export class UserController {
   }
 
   // 用户退出登录
+  // SameSite=Lax 挡不住跨站 POST 的 Set-Cookie 生效：来源不可信时跳过清 Cookie，
+  // 响应体保持一致，不向攻击面泄露差异行为（恶意页面拿到 success 也踢不掉受害者）
   @Post("logout")
   @UseGuards(OptionalJwtAuthGuard)
   logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    response.clearCookie("Authentication", getAuthCookieOptions(request));
+    if (this.isTrustedOrigin(request)) {
+      response.clearCookie("Authentication", getAuthCookieOptions(request));
+    }
     return {
       success: true,
       message: "退出登录成功",
     };
+  }
+
+  /**
+   * 登出防 CSRF：Origin 白名单取 FRONTEND_URL 与 ALLOWED_FRONTEND_ORIGINS。
+   * 两侧都经 new URL().origin 归一化比较（容忍尾斜杠/大小写手滑）；
+   * 变量均未配置时按开发缺省 http://localhost:1234 放行（生产由 env.validation
+   * 强制配置 FRONTEND_URL，该兜底不会在生产生效）。
+   * 无 Origin 的同源/服务端调用放行；拒绝时留 warn 日志便于排查"退不出登录"。
+   */
+  private isTrustedOrigin(request: Request): boolean {
+    const raw = request.headers["origin"];
+    if (!raw || Array.isArray(raw)) return true;
+
+    let requestOrigin: string;
+    try {
+      requestOrigin = new URL(raw).origin.toLowerCase();
+    } catch {
+      return false;
+    }
+
+    const allowed = new Set<string>();
+    for (const item of [
+      ...(process.env.ALLOWED_FRONTEND_ORIGINS ?? "").split(","),
+      process.env.FRONTEND_URL ?? "",
+    ]) {
+      try {
+        const parsed = new URL(item.trim());
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          allowed.add(parsed.origin.toLowerCase());
+        }
+      } catch {
+        // 非法条目忽略，其余条目继续生效
+      }
+    }
+    if (allowed.size === 0) {
+      allowed.add("http://localhost:1234");
+    }
+
+    if (!allowed.has(requestOrigin)) {
+      this.logger.warn(`登出来源不在白名单，已跳过清除凭据: ${requestOrigin}`);
+      return false;
+    }
+    return true;
   }
 
   // 获取当前用户信息

@@ -41,7 +41,9 @@ pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api、/uploads�
 ```bash
 cp server/.env.production.example server/.env.production
 # 必填：DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥32)、COS_*、
-# ADMIN_*、FRONTEND_URL(https)、COOKIE_SECURE=true；OAuth 按需
+# FRONTEND_URL(https)、COOKIE_SECURE=true；OAuth 按需。
+# ADMIN_* 建议配置：未配置则启动后没有超级管理员（环境校验不会拦截），
+# 需事后补配并重启容器完成创建。
 
 pnpm deploy         # 构建并后台启动 mysql + server + web
 pnpm deploy:logs    # 看日志

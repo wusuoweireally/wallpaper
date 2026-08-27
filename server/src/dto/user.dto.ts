@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsEmail,
   Length,
+  ValidateIf,
 } from "class-validator";
 import { Transform } from "class-transformer";
 
@@ -31,7 +32,8 @@ export class CreateUserDto {
   bio?: string;
 }
 
-export class UpdateUserDto {
+/** 用户名与简介：自助与管理端更新共用基座（email 各路径 null 语义不同，由子类各自建模） */
+export class UserUpdatableDto {
   @IsOptional()
   @IsString()
   @Length(1, 50, { message: "用户名长度必须在1-50个字符之间" })
@@ -41,16 +43,20 @@ export class UpdateUserDto {
   username?: string;
 
   @IsOptional()
+  @IsString()
+  @Length(0, 500, { message: "个人简介长度不能超过500个字符" })
+  bio?: string;
+}
+
+export class UpdateUserDto extends UserUpdatableDto {
+  /** 自助端禁止 null 清空邮箱：只接受合规字符串或不出示该字段 */
+  @ValidateIf((_, value) => value !== undefined)
+  @IsString({ message: "邮箱格式不正确" })
   @IsEmail({}, { message: "邮箱格式不正确" })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim().toLowerCase() : value,
   )
-  email?: string | null;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 500, { message: "个人简介长度不能超过500个字符" })
-  bio?: string;
+  email?: string;
 }
 
 export class ChangePasswordDto {

@@ -25,6 +25,13 @@ export interface ActorContext {
   role?: UserRole;
 }
 
+/** MySQL 唯一索引冲突：查重在事务锁外完成，并发提交的撞库兜底要用 */
+const isUniqueConflict = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "ER_DUP_ENTRY";
+
 @Injectable()
 export class UserService {
   constructor(
@@ -101,12 +108,7 @@ export class UserService {
     try {
       return await this.userRepository.save(user);
     } catch (error: unknown) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ER_DUP_ENTRY"
-      ) {
+      if (isUniqueConflict(error)) {
         throw new ConflictException("用户名或邮箱已被使用");
       }
       throw error;
@@ -206,7 +208,15 @@ export class UserService {
       user.bio = updateUserDto.bio;
     }
 
-    return await this.userRepository.save(user);
+    try {
+      return await this.userRepository.save(user);
+    } catch (error: unknown) {
+      // 查重在锁外完成，并发提交撞唯一索引时给出业务化冲突而非 500
+      if (isUniqueConflict(error)) {
+        throw new ConflictException("用户名或邮箱已被使用");
+      }
+      throw error;
+    }
   }
 
   async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {
@@ -477,16 +487,21 @@ export class UserService {
         }
         user.username = updateDto.username;
       }
-      if (updateDto.email !== undefined && updateDto.email !== user.email) {
-        if (updateDto.email) {
+      // 管理端邮箱与注册/自助路径同口径：去空格并统一小写后再查重落库
+      const email =
+        typeof updateDto.email === "string"
+          ? updateDto.email.trim().toLowerCase()
+          : updateDto.email;
+      if (email !== undefined && email !== user.email) {
+        if (email) {
           const existingEmail = await repository.findOne({
-            where: { email: updateDto.email },
+            where: { email },
           });
           if (existingEmail) {
             throw new ConflictException("邮箱已被使用");
           }
         }
-        user.email = updateDto.email;
+        user.email = email;
       }
       if (updateDto.bio !== undefined) {
         user.bio = updateDto.bio;
@@ -498,7 +513,14 @@ export class UserService {
         user.tokenVersion = (user.tokenVersion ?? 0) + 1;
       }
 
-      return repository.save(user);
+      try {
+        return await repository.save(user);
+      } catch (error: unknown) {
+        if (isUniqueConflict(error)) {
+          throw new ConflictException("用户名或邮箱已被使用");
+        }
+        throw error;
+      }
     });
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import * as bcrypt from "bcryptjs";
 import { User, UserRole } from "../entities/user.entity";
 
@@ -20,7 +20,9 @@ export class AdminSeedService implements OnModuleInit {
     const adminPassword = this.configService.get<string>("ADMIN_USER_PASSWORD");
 
     if (!adminIdRaw || !adminPassword) {
-      this.logger.log("未配置管理员初始化信息，跳过创建管理员。");
+      this.logger.warn(
+        "未配置 ADMIN_*，跳过管理员引导：启动后系统将没有超级管理员账号。",
+      );
       return;
     }
 
@@ -38,11 +40,11 @@ export class AdminSeedService implements OnModuleInit {
       return;
     }
 
-    // 仅当系统中已存在超级管理员时才跳过；
+    // 仅当系统中已存在（未注销的）超级管理员时才跳过；
     // 否则即使存在普通 ADMIN，也需要把指定账号提升为 SUPER_ADMIN，
     // 避免引入角色层级护栏后出现“无人拥有超级管理员权限、无法管理角色”的死锁。
     const existingSuperAdmin = await this.userRepository.findOne({
-      where: { role: UserRole.SUPER_ADMIN },
+      where: { role: UserRole.SUPER_ADMIN, deletedAt: IsNull() },
     });
     if (existingSuperAdmin) {
       this.logger.log("已存在超级管理员账号，跳过初始化。");
@@ -57,11 +59,19 @@ export class AdminSeedService implements OnModuleInit {
       where: { id: adminId },
     });
 
+    if (existingById?.deletedAt) {
+      // 指定 ID 已软删：同 ID 受主键约束无法重建，交由运营改配 ADMIN_USER_ID
+      this.logger.warn(
+        "指定 ADMIN_USER_ID 的账号已注销且无法同号重建，请更换后重启。",
+      );
+      return;
+    }
+
     if (existingById) {
       // 如果指定 ID 已存在（如旧的 ADMIN），则提升为超级管理员并更新凭证
       if (adminEmail) {
         const emailOwner = await this.userRepository.findOne({
-          where: { email: adminEmail },
+          where: { email: adminEmail, deletedAt: IsNull() },
         });
         if (!emailOwner || emailOwner.id === existingById.id) {
           existingById.email = adminEmail;
@@ -72,7 +82,7 @@ export class AdminSeedService implements OnModuleInit {
 
       if (adminUsername) {
         const usernameOwner = await this.userRepository.findOne({
-          where: { username: adminUsername },
+          where: { username: adminUsername, deletedAt: IsNull() },
         });
         if (!usernameOwner || usernameOwner.id === existingById.id) {
           existingById.username = adminUsername;
@@ -84,6 +94,8 @@ export class AdminSeedService implements OnModuleInit {
       existingById.passwordHash = passwordHash;
       existingById.role = UserRole.SUPER_ADMIN;
       existingById.status = 1;
+      // 与管理员重置密码同语义：种子换凭证也递增版本，吊销升级前的旧会话
+      existingById.tokenVersion = (existingById.tokenVersion ?? 0) + 1;
 
       await this.userRepository.save(existingById);
       this.logger.log("管理员账号已存在并完成升级。");
@@ -93,7 +105,7 @@ export class AdminSeedService implements OnModuleInit {
     // 创建新的管理员账号
     let finalUsername = adminUsername?.trim() || "admin";
     const usernameOwner = await this.userRepository.findOne({
-      where: { username: finalUsername },
+      where: { username: finalUsername, deletedAt: IsNull() },
     });
     if (usernameOwner) {
       finalUsername = `admin${adminId}`;
@@ -102,7 +114,7 @@ export class AdminSeedService implements OnModuleInit {
     let finalEmail: string | undefined;
     if (adminEmail) {
       const emailOwner = await this.userRepository.findOne({
-        where: { email: adminEmail },
+        where: { email: adminEmail, deletedAt: IsNull() },
       });
       if (!emailOwner) {
         finalEmail = adminEmail;
