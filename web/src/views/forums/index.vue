@@ -377,9 +377,13 @@ const handleEdit = (post: Post) => {
   router.push(`/forums/edit/${post.id}`)
 }
 
-/** PostCard 内已确认并调删除 API，这里只同步 store 移除卡片 */
+/** PostCard 内已确认并调删除 API，这里经 store 同步移除与分页扣减；删空当前页时回退末页重拉 */
 const handleDelete = (post: Post) => {
-  forumStore.setPosts(forumStore.posts.filter((p) => p.id !== post.id))
+  const targetPage = forumStore.removePost(post.id)
+  if (targetPage !== null) {
+    fetchPosts()
+    syncQuery()
+  }
 }
 
 const handleShare = (post: Post) => {

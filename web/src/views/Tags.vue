@@ -86,6 +86,7 @@ import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import tagService, { type Tag } from "@/services/tag"
 import Pagination from "@/components/Pagination.vue"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 
 const router = useRouter()
 const loading = ref(true)
@@ -115,7 +116,11 @@ const syncQuery = () => {
   router.replace({ query })
 }
 
+/** 列表请求代数：快速切换排序/搜索/翻页时仅最新一代允许写回 */
+const tagsGen = createFetchGeneration()
+
 const loadTags = async () => {
+  const gen = tagsGen.next()
   try {
     loading.value = true
     const response = await tagService.getTags({
@@ -125,12 +130,14 @@ const loadTags = async () => {
       page: currentPage.value,
       limit: pageSize,
     })
+    // 过期响应守卫：已有更新请求发出时丢弃，避免慢的旧响应覆盖新结果
+    if (!tagsGen.isCurrent(gen)) return
     tags.value = response.data
     totalPages.value = response.pagination?.pages ?? 1
   } catch (error) {
     console.error("加载标签列表失败:", error)
   } finally {
-    loading.value = false
+    if (tagsGen.isCurrent(gen)) loading.value = false
   }
 }
 

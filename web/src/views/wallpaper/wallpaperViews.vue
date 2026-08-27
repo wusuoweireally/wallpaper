@@ -167,6 +167,10 @@ const hasActiveFilters = computed(() => hasActiveBrowseFilters(filters.value))
 
 let observer: IntersectionObserver | null = null
 
+/** 追加失败后的自动重试冷却：冷却期内观察器不再滚动驱动同一页，手动重试按钮不受限 */
+const APPEND_RETRY_COOLDOWN_MS = 3000
+let appendRetryBlockedUntil = 0
+
 const setupObserver = () => {
   if (observer) {
     observer.disconnect()
@@ -177,7 +181,13 @@ const setupObserver = () => {
   observer = new IntersectionObserver(
     (entries) => {
       const entry = entries[0]
-      if (entry.isIntersecting && !loading.value && !noMore.value && wallpapers.value.length > 0) {
+      if (
+        entry.isIntersecting &&
+        !loading.value &&
+        !noMore.value &&
+        wallpapers.value.length > 0 &&
+        Date.now() >= appendRetryBlockedUntil
+      ) {
         loadMore()
       }
     },
@@ -205,6 +215,14 @@ const writeFiltersToRoute = () => {
   router.replace({ path: route.path, query })
 }
 
+/** 取消在途的超时自动重试：任何新一轮首屏加载开始前先掐断，避免重试与新请求交错双写 */
+const clearRetryTimer = () => {
+  if (fetchTimeoutId.value) {
+    clearTimeout(fetchTimeoutId.value)
+    fetchTimeoutId.value = null
+  }
+}
+
 onMounted(() => {
   applyRouteQuery()
   fetchWallpapers(false)
@@ -219,6 +237,8 @@ watch(
   filters,
   () => {
     if (syncingFromRoute.value) return
+    // 用户动了筛选：立刻取消挂起的超时重试，防抖结束后由唯一入口重新加载
+    clearRetryTimer()
     if (filterDebounceId.value) clearTimeout(filterDebounceId.value)
     filterDebounceId.value = setTimeout(() => {
       writeFiltersToRoute()
@@ -238,11 +258,12 @@ watch(
   () => route.fullPath,
   () => {
     if (route.path !== "/wallpapers") return
-    // 取消还没触发的筛选防抖：否则 back 还原列表后，旧防抖到点会再发一次请求并重掷随机池
+    // 取消还没触发的筛选防抖与超时重试：否则 back 还原列表后旧定时器到点会再发一次请求
     if (filterDebounceId.value) {
       clearTimeout(filterDebounceId.value)
       filterDebounceId.value = null
     }
+    clearRetryTimer()
     const next = filtersFromRouteQuery(route.query as Record<string, unknown>)
     const cur = filtersToRouteQuery(filters.value)
     const nxt = filtersToRouteQuery(next)
@@ -318,6 +339,8 @@ const fetchWallpapers = async (append: boolean) => {
       // 追加失败：页码回退，保留已加载内容，行内提示重试
       currentPage.value = Math.max(1, currentPage.value - 1)
       appendError.value = errObj.message || "加载更多失败，请稍后重试"
+      // 给接口一段冷静期：哨兵仍在视口时不因小幅滚动反复重试同一页
+      appendRetryBlockedUntil = Date.now() + APPEND_RETRY_COOLDOWN_MS
     } else {
       wallpapers.value = []
       totalCount.value = 0
@@ -364,7 +387,7 @@ const scrollToTop = () => {
 
 onUnmounted(() => {
   if (observer) observer.disconnect()
-  if (fetchTimeoutId.value) clearTimeout(fetchTimeoutId.value)
+  clearRetryTimer()
   if (filterDebounceId.value) clearTimeout(filterDebounceId.value)
   window.removeEventListener("scroll", handleScroll)
   loading.value = false

@@ -194,6 +194,28 @@ export const useForumStore = defineStore("forum", () => {
     postsPagination.value.currentPage = 1
   }
 
+  /**
+   * 从列表移除帖子并同步分页推导：扣减 totalCount、收缩 totalPages。
+   * 若当前页因此被删空且不在首页，则把页码回退到剩余内容的最后一页，
+   * 返回该目标页码供视图重新拉取；未触发翻页时返回 null
+   */
+  const removePost = (postId: number): number | null => {
+    posts.value = posts.value.filter((p) => p.id !== postId)
+    postsPagination.value.totalCount = Math.max(0, postsPagination.value.totalCount - 1)
+    const remainingTotalPages = Math.max(
+      1,
+      Math.ceil(postsPagination.value.totalCount / postsPagination.value.pageSize),
+    )
+    postsPagination.value.totalPages = remainingTotalPages
+
+    if (filteredPosts.value.length === 0 && postsPagination.value.currentPage > 1) {
+      const targetPage = Math.min(postsPagination.value.currentPage - 1, remainingTotalPages)
+      postsPagination.value.currentPage = targetPage
+      return targetPage
+    }
+    return null
+  }
+
   const togglePostLike = (postId: number, isLiked: boolean) => {
     const post = posts.value.find((p) => p.id === postId)
     if (post) {
@@ -223,6 +245,7 @@ export const useForumStore = defineStore("forum", () => {
     setPostsPagination,
     updateFilters,
     resetFilters,
+    removePost,
     togglePostLike,
   }
 })

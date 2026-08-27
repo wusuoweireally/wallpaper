@@ -91,6 +91,7 @@ import tagService, { type Tag } from "@/services/tag"
 import wallpaperService from "@/services/wallpaper"
 import WallpaperGrid from "@/components/WallpaperGrid.vue"
 import Pagination from "@/components/Pagination.vue"
+import { createFetchGeneration } from "@/utils/fetchGeneration"
 import type { Wallpaper } from "@/services/wallpaper"
 
 type TagUsage = Tag & { useCount?: number }
@@ -131,7 +132,14 @@ const loadTag = async () => {
   }
 }
 
+/** 壁纸列表请求代数：同页快速连点筛选/翻页时仅最新一代可写回 */
+const wallpapersGen = createFetchGeneration()
+/** 相关标签独立代数：与壁纸并行首屏，互不作废 */
+const relatedTagsGen = createFetchGeneration()
+
 const loadWallpapers = async () => {
+  const requestedId = route.params.id
+  const gen = wallpapersGen.next()
   try {
     wallpaperLoading.value = true
     loadError.value = false
@@ -156,6 +164,9 @@ const loadWallpapers = async () => {
       ...sortParams,
     })
 
+    // 过期响应守卫：期间已切到别的标签或有更新请求发出时丢弃，避免旧结果顶掉新页面
+    if (requestedId !== route.params.id || !wallpapersGen.isCurrent(gen)) return
+
     if (Array.isArray(response.data)) {
       wallpapers.value = response.data
     } else {
@@ -167,18 +178,24 @@ const loadWallpapers = async () => {
     }
   } catch (error) {
     console.error("加载壁纸列表失败:", error)
-    loadError.value = true
+    if (requestedId === route.params.id && wallpapersGen.isCurrent(gen)) loadError.value = true
   } finally {
-    wallpaperLoading.value = false
+    if (requestedId === route.params.id && wallpapersGen.isCurrent(gen)) {
+      wallpaperLoading.value = false
+    }
   }
 }
 
 const loadRelatedTags = async () => {
+  const requestedId = route.params.id
+  const gen = relatedTagsGen.next()
   try {
     const response = await tagService.getTags({
       sortBy: "usageCount",
       sortOrder: "DESC",
     })
+    // 过期响应守卫：期间已切标签或有更新请求时丢弃
+    if (requestedId !== route.params.id || !relatedTagsGen.isCurrent(gen)) return
     const tagList = Array.isArray(response.data) ? response.data : []
     relatedTags.value = tagList.filter((t) => t.id !== tag.value?.id).slice(0, 10)
   } catch (error) {

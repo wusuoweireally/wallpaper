@@ -62,7 +62,9 @@ const handleRetry = () => {
 
 const initializeAuth = async () => {
   try {
-    await userStore.fetchCurrentUser()
+    // 本页自带错误展示分支：Cookie 校验失败的 401 由页面呈现原因，
+    // 跳过全局 auth-expired 重定向，避免错误界面被顶替成登录页且 redirect 归一
+    await userStore.fetchCurrentUser({ skipAuthExpiredHandler: true })
 
     if (user.value) {
       status.value = "success"
