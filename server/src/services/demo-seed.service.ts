@@ -29,7 +29,7 @@ interface DemoWallpaperRow {
 
 /**
  * 演示数据：写入开发环境已上传到 COS 的壁纸记录（URL 直连同一桶）。
- * 不重新上传、不走内容审核。库里已有壁纸则跳过。
+ * 不重新上传、不走内容审核。逐条按自然键判重，缺失行补种（中途崩溃重启可续）。
  */
 @Injectable()
 export class DemoSeedService implements OnApplicationBootstrap {
@@ -56,12 +56,6 @@ export class DemoSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    const existingWallpapers = await this.wallpaperRepository.count();
-    if (existingWallpapers > 0) {
-      this.logger.log("检测到已有壁纸数据，跳过演示数据初始化。");
-      return;
-    }
-
     const uploader = await this.userRepository.findOne({
       where: { role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN]) },
       order: { createdAt: "ASC" },
@@ -78,13 +72,38 @@ export class DemoSeedService implements OnApplicationBootstrap {
     }
 
     const selected = rows.slice(0, this.getSeedLimit(rows.length));
+
+    // 逐条判重（fileUrl 为自然键，contentHash 有唯一索引一并排除）：
+    // 整库 count>0 短路会因中途崩溃留下的半量数据永久跳过补种
+    const existingWallpapers = await this.wallpaperRepository.find({
+      select: ["fileUrl", "contentHash"],
+    });
+    const existingFileUrls = new Set(
+      existingWallpapers.map((wallpaper) => wallpaper.fileUrl),
+    );
+    const existingHashes = new Set(
+      existingWallpapers
+        .map((wallpaper) => wallpaper.contentHash)
+        .filter((hash): hash is string => Boolean(hash)),
+    );
+    const missing = selected.filter(
+      (row) =>
+        !existingFileUrls.has(row.fileUrl) &&
+        !(row.contentHash && existingHashes.has(row.contentHash)),
+    );
+    if (!missing.length) {
+      this.logger.log("演示壁纸数据已齐，无需补种。");
+      return;
+    }
+
     const tagsByName = new Map<string, Tag>();
-    for (const name of new Set(selected.flatMap((row) => row.tags))) {
+    for (const name of new Set(missing.flatMap((row) => row.tags))) {
       tagsByName.set(name, await this.ensureTag(name));
     }
 
+    // 仅统计本次补种行的标签用量，增量累加到既有计数上
     const tagUsage = new Map<number, number>();
-    const entities = selected.map((row) => {
+    const entities = missing.map((row) => {
       const tags = row.tags
         .map((name) => tagsByName.get(name))
         .filter((tag): tag is Tag => Boolean(tag));
@@ -113,15 +132,19 @@ export class DemoSeedService implements OnApplicationBootstrap {
       });
     });
 
-    await this.wallpaperRepository.save(entities);
+    // 壁纸行与标签计数同一事务落库：中途崩溃整体回滚，重启补种时计数不丢
+    await this.wallpaperRepository.manager.transaction(async (manager) => {
+      await manager.save(entities);
 
-    for (const tag of tagsByName.values()) {
-      tag.usageCount = tagUsage.get(tag.id) || 0;
-    }
-    await this.tagRepository.save([...tagsByName.values()]);
+      for (const tag of tagsByName.values()) {
+        // 增量累加：保留既有壁纸（含上次崩溃前已种行）贡献的用量
+        tag.usageCount = (tag.usageCount ?? 0) + (tagUsage.get(tag.id) || 0);
+      }
+      await manager.save([...tagsByName.values()]);
+    });
 
     this.logger.log(
-      `已初始化 ${entities.length} 条演示壁纸数据（COS 直链，未重新上传）。`,
+      `已补种 ${entities.length} 条演示壁纸数据（COS 直链，未重新上传）。`,
     );
   }
 

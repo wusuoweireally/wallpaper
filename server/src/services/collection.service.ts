@@ -94,9 +94,17 @@ export class CollectionService {
     if (existing) return existing;
 
     try {
-      return await this.itemRepo.save(
-        this.itemRepo.create({ collectionId, wallpaperId }),
-      );
+      // 增删项与合集行 updatedAt 同事务更新：列表按 updatedAt DESC 排序，
+      // 不显式赋值的话关联表操作不会带动合集行，"最近操作的合集在前"会失效
+      return await this.itemRepo.manager.transaction(async (manager) => {
+        const saved = await manager.save(
+          manager.create(CollectionWallpaper, { collectionId, wallpaperId }),
+        );
+        await manager.update(Collection, collectionId, {
+          updatedAt: new Date(),
+        });
+        return saved;
+      });
     } catch (err) {
       // 并发双击撞唯一键：按幂等处理返回已有记录
       if ((err as { code?: string }).code !== "ER_DUP_ENTRY") throw err;
@@ -112,7 +120,17 @@ export class CollectionService {
     wallpaperId: number,
   ): Promise<void> {
     await this.requireOwned(userId, collectionId);
-    await this.itemRepo.delete({ collectionId, wallpaperId });
+    await this.itemRepo.manager.transaction(async (manager) => {
+      const result = await manager.delete(CollectionWallpaper, {
+        collectionId,
+        wallpaperId,
+      });
+      // 实际移除才刷新排序键，重复删除不产生假"最近操作"
+      if (!result.affected) return;
+      await manager.update(Collection, collectionId, {
+        updatedAt: new Date(),
+      });
+    });
   }
 
   async listItems(

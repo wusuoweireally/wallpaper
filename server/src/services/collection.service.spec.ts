@@ -52,24 +52,32 @@ describe("CollectionService", () => {
               Number(i.wallpaperId) === Number(where.wallpaperId),
           ),
       ),
-      create: jest.fn((data: Partial<CollectionWallpaper>) =>
-        Object.assign(new CollectionWallpaper(), { id: 10, ...data }),
+      // 兼容两种调用：repo.create(data) 与 manager.create(Entity, data)
+      create: jest.fn(
+        (targetOrData: unknown, maybeData?: Partial<CollectionWallpaper>) =>
+          Object.assign(new CollectionWallpaper(), {
+            id: 10,
+            ...(maybeData ?? (targetOrData as Partial<CollectionWallpaper>)),
+          }),
       ),
       save: jest.fn((row: CollectionWallpaper) => {
         items.push(row);
         return row;
       }),
-      delete: jest.fn(
-        (where: { collectionId: number; wallpaperId: number }) => {
-          const idx = items.findIndex(
-            (i) =>
-              Number(i.collectionId) === Number(where.collectionId) &&
-              Number(i.wallpaperId) === Number(where.wallpaperId),
-          );
-          if (idx >= 0) items.splice(idx, 1);
-          return { affected: idx >= 0 ? 1 : 0 };
-        },
-      ),
+      // 兼容两种调用：repo.delete(where) 与 manager.delete(Entity, where)
+      delete: jest.fn((targetOrWhere: unknown, maybeWhere?: unknown) => {
+        const where = (maybeWhere ?? targetOrWhere) as {
+          collectionId: number;
+          wallpaperId: number;
+        };
+        const idx = items.findIndex(
+          (i) =>
+            Number(i.collectionId) === Number(where.collectionId) &&
+            Number(i.wallpaperId) === Number(where.wallpaperId),
+        );
+        if (idx >= 0) items.splice(idx, 1);
+        return { affected: idx >= 0 ? 1 : 0 };
+      }),
       createQueryBuilder: jest.fn(() => {
         const chain = {
           innerJoinAndSelect: jest.fn().mockReturnThis(),
@@ -95,6 +103,23 @@ describe("CollectionService", () => {
       }),
     };
 
+    // 增删项走 itemRepo.manager.transaction 顺带刷新合集 updatedAt；
+    // 事务内管理器复用同一份 items 数据，collectionUpdate 记录排序键刷新调用
+    const collectionUpdate = jest.fn(() => Promise.resolve());
+    const txManager = {
+      create: itemRepo.create,
+      save: itemRepo.save,
+      delete: itemRepo.delete,
+      update: collectionUpdate,
+    };
+    Object.assign(itemRepo, {
+      manager: {
+        transaction: jest.fn((cb: (m: typeof txManager) => unknown) =>
+          Promise.resolve(cb(txManager)),
+        ),
+      },
+    });
+
     const wallpaperRepo = {
       findOne: jest.fn(({ where }: { where: { id: number; status: number } }) =>
         wallpapers.find(
@@ -111,7 +136,14 @@ describe("CollectionService", () => {
       wallpaperRepo as unknown as Repository<Wallpaper>,
     );
 
-    return { service, collectionRepo, itemRepo, wallpaperRepo, items };
+    return {
+      service,
+      collectionRepo,
+      itemRepo,
+      wallpaperRepo,
+      items,
+      collectionUpdate,
+    };
   };
 
   it("creates a named collection for user", async () => {
@@ -139,7 +171,7 @@ describe("CollectionService", () => {
       id: 42,
       status: 1,
     });
-    const { service, items } = createService({
+    const { service, items, collectionUpdate } = createService({
       collections: [collection],
       wallpapers: [wallpaper],
       items: [],
@@ -148,14 +180,29 @@ describe("CollectionService", () => {
     const added = await service.addWallpaper(userId, 1, 42);
     expect(added.wallpaperId).toBe(42);
     expect(items).toHaveLength(1);
+    // 实际增删会刷新合集 updatedAt（列表按 updatedAt DESC 排序）
+    expect(collectionUpdate).toHaveBeenCalledWith(Collection, 1, {
+      updatedAt: expect.any(Date),
+    });
+    collectionUpdate.mockClear();
 
-    // idempotent add
+    // idempotent add：未发生真实增删，不刷新排序键
     const again = await service.addWallpaper(userId, 1, 42);
     expect(again.wallpaperId).toBe(42);
     expect(items).toHaveLength(1);
+    expect(collectionUpdate).not.toHaveBeenCalled();
 
     await service.removeWallpaper(userId, 1, 42);
     expect(items).toHaveLength(0);
+    expect(collectionUpdate).toHaveBeenCalledWith(Collection, 1, {
+      updatedAt: expect.any(Date),
+    });
+    collectionUpdate.mockClear();
+
+    // 重复删除：affected=0，不刷新排序键
+    await service.removeWallpaper(userId, 1, 42);
+    expect(items).toHaveLength(0);
+    expect(collectionUpdate).not.toHaveBeenCalled();
   });
 
   it("forbids mutating another user's collection", async () => {

@@ -49,7 +49,8 @@ export class AdminDashboardService {
   async getDashboardStats(): Promise<DashboardStats> {
     const { start, end } = this.getCurrentMonthRange();
 
-    // 合并同类 Count 查询：相同表的多条件计数用 CASE WHEN 一次扫描完成
+    // 合并同类 Count 查询：相同表的多条件计数用 CASE WHEN 一次扫描完成；
+    // deletedAt 为普通列，QueryBuilder 计数不会自动滤软删，须显式排除以对齐列表口径
     const [usersRow, wallpapersRow, postsRow, reportsRow] = await Promise.all([
       this.userRepository
         .createQueryBuilder("u")
@@ -58,6 +59,7 @@ export class AdminDashboardService {
           "SUM(CASE WHEN u.status = 1 THEN 1 ELSE 0 END)",
           "activeUsers",
         )
+        .where("u.deletedAt IS NULL")
         .getRawOne<{ totalUsers: string; activeUsers: string }>(),
       this.wallpaperRepository
         .createQueryBuilder("w")
@@ -66,6 +68,7 @@ export class AdminDashboardService {
           "SUM(CASE WHEN w.status = 1 AND w.createdAt BETWEEN :start AND :end THEN 1 ELSE 0 END)",
           "newWallpapersThisMonth",
         )
+        .where("w.deletedAt IS NULL")
         .setParameters({ start, end })
         .getRawOne<{
           totalWallpapers: string;
@@ -78,6 +81,7 @@ export class AdminDashboardService {
           "SUM(CASE WHEN p.status = :published AND p.createdAt BETWEEN :start AND :end THEN 1 ELSE 0 END)",
           "newPostsThisMonth",
         )
+        .where("p.deletedAt IS NULL")
         .setParameters({ start, end, published: PostStatus.PUBLISHED })
         .getRawOne<{ totalPosts: string; newPostsThisMonth: string }>(),
       this.reportRepository

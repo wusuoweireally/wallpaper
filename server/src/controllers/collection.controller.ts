@@ -19,7 +19,7 @@ import {
   CreateCollectionDto,
   UpdateCollectionDto,
 } from "../dto/wallpaper.dto";
-import { buildPaginationMeta } from "../common/pagination";
+import { buildPaginationMeta, normalizePagination } from "../common/pagination";
 
 @Controller("collections")
 export class CollectionController {
@@ -80,10 +80,13 @@ export class CollectionController {
     @Query("page") page = "1",
     @Query("limit") limit = "20",
   ) {
+    // 先归一化分页参数：非法输入时 meta 与数据实际回落页保持一致（而非输出 null）
+    const { page: normalizedPage, limit: normalizedLimit } =
+      normalizePagination(Number(page), Number(limit));
     const result = await this.collectionService.listItems(
       id,
-      Number(page),
-      Number(limit),
+      normalizedPage,
+      normalizedLimit,
       user.userId,
     );
     return {
@@ -91,9 +94,10 @@ export class CollectionController {
       data: result.data,
       collection: result.collection,
       pagination: buildPaginationMeta({
-        ...result,
-        page: Number(page),
-        limit: Number(limit),
+        data: result.data,
+        total: result.total,
+        page: normalizedPage,
+        limit: normalizedLimit,
       }),
     };
   }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
 import { RolesGuard } from "../../guards/roles.guard";
 import { Roles } from "../../decorators/roles.decorator";
 import { UserRole } from "../../entities/user.entity";
+import { WallpaperStatus } from "../../entities/wallpaper.entity";
 import { WallpaperService } from "../../services/wallpaper.service";
 import { UploadService } from "../../services/upload.service";
 import { TagService } from "../../services/tag.service";
@@ -94,11 +96,21 @@ export class AdminWallpaperController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: AdminUpdateWallpaperTagsDto,
   ) {
-    const tags = await this.tagService.replaceWallpaperTags(id, dto.tags || []);
+    // 不变量：公开壁纸必须至少一个标签（与 setStatusWithManager 发布门槛一致）；
+    // 非公开壁纸仍允许清空重填
+    const tags = (dto.tags || []).map((t) => t.trim()).filter(Boolean);
+    const wallpaper = await this.wallpaperService.findById(id);
+    if (wallpaper.status === WallpaperStatus.APPROVED && tags.length === 0) {
+      throw new BadRequestException(`壁纸 #${id} 已公开，请至少保留一个标签`);
+    }
+    const updated = await this.tagService.replaceWallpaperTags(
+      id,
+      dto.tags || [],
+    );
     return {
       success: true,
       message: "标签已更新",
-      data: tags,
+      data: updated,
     };
   }
 
