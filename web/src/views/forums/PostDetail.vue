@@ -517,18 +517,28 @@ const retryLoadComments = () => {
 
 const toggleLike = async () => {
   if (!userStore.isLoggedIn || !post.value) return
+  const requestedId = postId.value
 
   try {
     likeLoading.value = true
 
     if (isLiked.value) {
-      await forumService.unlikePost(postId.value)
-      isLiked.value = false
-      post.value.likeCount = Math.max(0, (post.value.likeCount || 0) - 1)
+      await forumService.unlikePost(requestedId)
+      // 慢响应守卫：期间已切换帖子则丢弃过期状态写入
+      if (requestedId === postId.value) {
+        isLiked.value = false
+        if (post.value) {
+          post.value.likeCount = Math.max(0, (post.value.likeCount || 0) - 1)
+        }
+      }
     } else {
-      await forumService.likePost(postId.value)
-      isLiked.value = true
-      post.value.likeCount = (post.value.likeCount || 0) + 1
+      await forumService.likePost(requestedId)
+      if (requestedId === postId.value) {
+        isLiked.value = true
+        if (post.value) {
+          post.value.likeCount = (post.value.likeCount || 0) + 1
+        }
+      }
     }
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
@@ -541,16 +551,22 @@ const toggleLike = async () => {
 
 const toggleBookmark = async () => {
   if (!userStore.isLoggedIn || !post.value) return
+  const requestedId = postId.value
 
   try {
     bookmarkLoading.value = true
 
     if (isBookmarked.value) {
-      await forumService.unbookmarkPost(postId.value)
-      isBookmarked.value = false
+      await forumService.unbookmarkPost(requestedId)
+      // 慢响应守卫：期间已切换帖子则丢弃过期状态写入
+      if (requestedId === postId.value) {
+        isBookmarked.value = false
+      }
     } else {
-      await forumService.bookmarkPost(postId.value)
-      isBookmarked.value = true
+      await forumService.bookmarkPost(requestedId)
+      if (requestedId === postId.value) {
+        isBookmarked.value = true
+      }
     }
   } catch (err: unknown) {
     const errObj = err as Error & { message?: string }
@@ -563,20 +579,23 @@ const toggleBookmark = async () => {
 
 const submitComment = async () => {
   if (!userStore.isLoggedIn || !post.value || !newComment.value.trim()) return
+  const requestedId = post.value.id
 
   try {
     commentSubmitting.value = true
 
     const comment = await forumService.createComment({
       content: newComment.value.trim(),
-      postId: post.value.id,
+      postId: requestedId,
     })
 
-    comments.value.unshift(comment)
-    newComment.value = ""
     toast.success("评论发表成功")
 
-    // 更新帖子评论数
+    // 慢响应守卫：期间已切换帖子，旧帖评论不写进新帖评论区；
+    // 输入框也只在仍是原帖时清空，别误清新帖里敲了一半的草稿
+    if (requestedId !== postId.value) return
+    newComment.value = ""
+    comments.value.unshift(comment)
     if (post.value) {
       post.value.commentCount = (post.value.commentCount || 0) + 1
     }
@@ -681,6 +700,8 @@ const shareToWeibo = () => {
     recordShare()
     window.open(
       `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
+      "_blank",
+      "noopener",
     )
   }
 }

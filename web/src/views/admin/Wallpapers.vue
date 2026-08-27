@@ -712,9 +712,9 @@ const categoryOptions = [
 
 type WallpaperTagLike = string | AdminWallpaperTag
 
-const DEFAULT_WALLPAPER_PLACEHOLDER =
-  "https://via.placeholder.com/600x900/0f172a/FFFFFF?text=Wallpaper"
-const DEFAULT_AVATAR_PLACEHOLDER = "https://api.dicebear.com/7.x/avataaars/svg?seed=artist"
+// 占位图走本地静态资源，避免外链不可达/CSP 不合规
+const DEFAULT_WALLPAPER_PLACEHOLDER = "/defaultWallpaper.svg"
+const DEFAULT_AVATAR_PLACEHOLDER = "/defaultAvatar.png"
 
 let notificationTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -805,12 +805,14 @@ const loadWallpapers = async () => {
 
 const refreshList = () => {
   pagination.value.page = 1
+  selectedIds.value.clear()
   loadWallpapers()
 }
 
 const changePage = (page: number) => {
   if (page < 1 || (pagination.value.pages && page > pagination.value.pages)) return
   pagination.value.page = page
+  selectedIds.value.clear()
   loadWallpapers()
 }
 
@@ -1045,12 +1047,7 @@ const submitWallpaperUpload = async () => {
 
     const uploadResponse = response as ApiResponse<AdminWallpaper>
     if (uploadResponse.success && uploadResponse.data) {
-      const uploadedWallpaper = uploadResponse.data
-      if (uploadForm.category) {
-        await adminService.adminUpdateWallpaper(uploadedWallpaper.id, {
-          category: uploadForm.category,
-        })
-      }
+      // 分类已随上传 FormData 提交，无需再补偿 PATCH
       showNotification("壁纸上传成功")
       closeUploadModal()
       await loadWallpapers()
@@ -1068,17 +1065,18 @@ const submitWallpaperUpload = async () => {
 }
 
 const handleImageError = (event: Event) => {
+  // 本地占位图兜底且只回退一次，避免坏地址反复触发 error
   const img = event.target as HTMLImageElement
-  if (img.src !== DEFAULT_WALLPAPER_PLACEHOLDER) {
-    img.src = DEFAULT_WALLPAPER_PLACEHOLDER
-  }
+  if (img.dataset.imageFallback === "1") return
+  img.dataset.imageFallback = "1"
+  img.src = DEFAULT_WALLPAPER_PLACEHOLDER
 }
 
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  if (img.src !== DEFAULT_AVATAR_PLACEHOLDER) {
-    img.src = DEFAULT_AVATAR_PLACEHOLDER
-  }
+  if (img.dataset.avatarFallback === "1") return
+  img.dataset.avatarFallback = "1"
+  img.src = DEFAULT_AVATAR_PLACEHOLDER
 }
 
 // 批量选择
@@ -1091,8 +1089,9 @@ const toggleSelect = (id: number) => {
 }
 
 const toggleSelectAll = () => {
-  if (selectedIds.value.size === wallpapers.value.length) {
-    selectedIds.value.clear()
+  if (isAllSelected.value) {
+    // 只反选当前页可见项，不误伤其他页保留的勾选
+    wallpapers.value.forEach((w) => selectedIds.value.delete(w.id))
   } else {
     wallpapers.value.forEach((w) => selectedIds.value.add(w.id))
   }
@@ -1101,8 +1100,9 @@ const toggleSelectAll = () => {
 const isSelected = (id: number) => selectedIds.value.has(id)
 
 const hasSelection = computed(() => selectedIds.value.size > 0)
+// 全选判定只看当前页可见项是否都在集合内
 const isAllSelected = computed(
-  () => wallpapers.value.length > 0 && selectedIds.value.size === wallpapers.value.length,
+  () => wallpapers.value.length > 0 && wallpapers.value.every((w) => selectedIds.value.has(w.id)),
 )
 
 // 单卡推荐切换：复用批量接口传单个 id

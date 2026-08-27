@@ -562,8 +562,11 @@ const getAvatarUrl = (avatarUrl: string) => {
 }
 
 const handleImageError = (event: Event) => {
+  // 本地默认头像兜底且只回退一次，避免坏地址反复触发 error
   const img = event.target as HTMLImageElement
-  img.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
+  if (img.dataset.avatarFallback === "1") return
+  img.dataset.avatarFallback = "1"
+  img.src = "/defaultAvatar.png"
 }
 
 const totalUsers = computed(() => pagination.value.total || 0)
