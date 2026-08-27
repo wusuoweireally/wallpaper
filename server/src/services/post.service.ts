@@ -15,7 +15,8 @@ import { Post, PostStatus } from "../entities/post.entity";
 import { PostLike } from "../entities/post-like.entity";
 import { PostBookmark } from "../entities/post-bookmark.entity";
 import { sanitizeUser } from "../utils/sanitize";
-import { normalizeLimit, normalizePagination } from "../common/pagination";
+import { normalizePagination } from "../common/pagination";
+import { applyReaction } from "../common/reaction";
 
 /**
  * 帖子服务
@@ -338,33 +339,17 @@ export class PostService {
     userId: number,
   ): Promise<{ isLiked: true; likeCount: number }> {
     return await this.dataSource.transaction(async (manager) => {
-      const postLikeRepo = manager.getRepository(PostLike);
-      const postRepo = manager.getRepository(Post);
-
-      const post = await postRepo
-        .createQueryBuilder("post")
-        .setLock("pessimistic_write")
-        .where("post.id = :postId AND post.status = :status", {
-          postId,
-          status: PostStatus.PUBLISHED,
-        })
-        .getOne();
-      if (!post) {
-        throw new NotFoundException(`帖子 ID ${postId} 不存在或未发布`);
-      }
-
-      const existingLike = await postLikeRepo.findOne({
-        where: { postId, userId },
+      const { count } = await applyReaction(manager, {
+        parentEntity: Post,
+        parentWhere: { id: postId, status: PostStatus.PUBLISHED },
+        relationEntity: PostLike,
+        relationWhere: { postId, userId },
+        countField: "likeCount",
+        countColumn: "like_count",
+        notFoundMessage: `帖子 ID ${postId} 不存在或未发布`,
+        mode: "add",
       });
-
-      if (existingLike) {
-        return { isLiked: true, likeCount: post.likeCount };
-      }
-
-      const postLike = postLikeRepo.create({ postId, userId });
-      await postLikeRepo.save(postLike);
-      await postRepo.increment({ id: postId }, "likeCount", 1);
-      return { isLiked: true, likeCount: post.likeCount + 1 };
+      return { isLiked: true, likeCount: count };
     });
   }
 
@@ -375,91 +360,19 @@ export class PostService {
     postId: number,
     userId: number,
   ): Promise<{ isLiked: false; likeCount: number }> {
-    return await this.dataSource.transaction(async (manager) => {
-      const postRepo = manager.getRepository(Post);
-      const post = await postRepo
-        .createQueryBuilder("post")
-        .setLock("pessimistic_write")
-        .where("post.id = :postId", { postId })
-        .getOne();
-      if (!post) {
-        throw new NotFoundException(`帖子 ID ${postId} 不存在`);
-      }
-
-      const result = await manager.delete(PostLike, { postId, userId });
-      if (result.affected) {
-        await postRepo
-          .createQueryBuilder()
-          .update(Post)
-          .set({ likeCount: () => "GREATEST(like_count - 1, 0)" })
-          .where("id = :postId", { postId })
-          .execute();
-      }
-      return {
-        isLiked: false,
-        likeCount: result.affected
-          ? Math.max(0, post.likeCount - 1)
-          : post.likeCount,
-      };
+    return this.dataSource.transaction(async (manager) => {
+      const { count } = await applyReaction(manager, {
+        parentEntity: Post,
+        parentWhere: { id: postId },
+        relationEntity: PostLike,
+        relationWhere: { postId, userId },
+        countField: "likeCount",
+        countColumn: "like_count",
+        notFoundMessage: `帖子 ID ${postId} 不存在或未发布`,
+        mode: "remove",
+      });
+      return { isLiked: false, likeCount: count };
     });
-  }
-
-  /**
-   * 获取热门帖子
-   *
-   * @param limit 限制数量
-   * @returns 热门帖子列表
-   */
-  async getPopularPosts(limit: number = 10): Promise<Post[]> {
-    limit = normalizeLimit(limit, 10, 50);
-    const posts = await this.buildPublishedPostQuery()
-      .orderBy("post.viewCount", "DESC")
-      .addOrderBy("post.likeCount", "DESC")
-      .take(limit)
-      .getMany();
-    return this.sanitizePostAuthors(posts);
-  }
-
-  /**
-   * 获取最新帖子
-   *
-   * @param limit 限制数量
-   * @returns 最新帖子列表
-   */
-  async getLatestPosts(limit: number = 10): Promise<Post[]> {
-    limit = normalizeLimit(limit, 10, 50);
-    const posts = await this.buildPublishedPostQuery()
-      .orderBy("post.createdAt", "DESC")
-      .take(limit)
-      .getMany();
-    return this.sanitizePostAuthors(posts);
-  }
-
-  /**
-   * 获取用户发布的帖子
-   *
-   * @param userId 用户ID
-   * @param page 页码
-   * @param limit 每页数量
-   * @returns 分页结果
-   */
-  async getUserPosts(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<Post>> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [posts, total] = await this.postRepository.findAndCount({
-      where: { authorId: userId, status: PostStatus.PUBLISHED },
-      relations: ["author"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
-
-    return { data: this.sanitizePostAuthors(posts), total, page, limit };
   }
 
   /**
@@ -502,40 +415,5 @@ export class PostService {
       where: { postId, userId },
     });
     return !!bookmark;
-  }
-
-  /**
-   * 获取用户收藏的帖子列表
-   *
-   * @param userId 用户ID
-   * @param page 页码
-   * @param limit 每页数量
-   * @returns 分页结果
-   */
-  async getUserBookmarks(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<Post>> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [bookmarks, total] = await this.postBookmarkRepository
-      .createQueryBuilder("bookmark")
-      .innerJoinAndSelect(
-        "bookmark.post",
-        "post",
-        "post.status = :status AND post.deletedAt IS NULL",
-        { status: PostStatus.PUBLISHED },
-      )
-      .leftJoinAndSelect("post.author", "author")
-      .where("bookmark.userId = :userId", { userId })
-      .orderBy("bookmark.createdAt", "DESC")
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    const posts = bookmarks.map((b) => b.post);
-    return { data: this.sanitizePostAuthors(posts), total, page, limit };
   }
 }

@@ -5,12 +5,9 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
-import { DataSource, In, IsNull, Repository } from "typeorm";
-import {
-  normalizeLimit,
-  normalizePagination,
-  PaginatedResult,
-} from "../common/pagination";
+import { DataSource, EntityManager, In, IsNull, Repository } from "typeorm";
+import { normalizePagination, PaginatedResult } from "../common/pagination";
+import { applyReaction } from "../common/reaction";
 import { CommentQueryDto, CreateCommentDto } from "../dto/comment.dto";
 import { Comment } from "../entities/comment.entity";
 import { Post, PostStatus } from "../entities/post.entity";
@@ -22,6 +19,8 @@ type CommentWithReplies = Comment & {
 };
 
 const MAX_COMMENT_DEPTH = 3;
+/** attachReplies 每层拉取的回复上限 */
+const MAX_REPLIES_PER_LEVEL = 100;
 
 /**
  * 评论服务
@@ -66,8 +65,12 @@ export class CommentService {
         );
   }
 
-  private async assertPublishedPost(postId: number): Promise<void> {
-    const post = await this.postRepository.findOne({
+  private async assertPublishedPost(
+    postId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = manager ? manager.getRepository(Post) : this.postRepository;
+    const post = await repo.findOne({
       where: { id: postId, status: PostStatus.PUBLISHED },
       select: { id: true },
     });
@@ -259,12 +262,14 @@ export class CommentService {
       depth <= MAX_COMMENT_DEPTH && parentIds.length > 0;
       depth += 1
     ) {
+      // 每层限量：热门帖整树可能上千条，无上限会拖垮单次请求
       const replies = await this.createPublishedCommentQuery()
         .leftJoin("comment.author", "author")
         .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
         .where("comment.postId = :postId", { postId })
         .andWhere("comment.parentId IN (:...parentIds)", { parentIds })
         .orderBy("comment.createdAt", "ASC")
+        .take(MAX_REPLIES_PER_LEVEL)
         .getMany();
 
       parentIds = [];
@@ -299,21 +304,6 @@ export class CommentService {
     }
 
     return rootComments;
-  }
-
-  /**
-   * 获取评论的所有子评论
-   *
-   * @param parentCommentId 父评论ID
-   * @returns 子评论列表
-   */
-  async getChildComments(parentCommentId: number): Promise<Comment[]> {
-    return await this.createPublishedCommentQuery()
-      .leftJoin("comment.author", "author")
-      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
-      .where("comment.parentId = :parentCommentId", { parentCommentId })
-      .orderBy("comment.createdAt", "ASC")
-      .getMany();
   }
 
   /**
@@ -422,80 +412,7 @@ export class CommentService {
   }
 
   /**
-   * 获取用户发布的评论
-   *
-   * @param userId 用户ID
-   * @param page 页码
-   * @param limit 每页数量
-   * @returns 分页结果
-   */
-  async getUserComments(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<Comment>> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [comments, total] = await this.createPublishedCommentQuery(
-      this.commentRepository,
-      true,
-    )
-      .leftJoin("comment.author", "author")
-      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
-      .where("comment.authorId = :userId", { userId })
-      .orderBy("comment.createdAt", "DESC")
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    return { data: comments, total, page, limit };
-  }
-
-  /**
-   * 获取帖子的评论总数统计
-   *
-   * @param postId 帖子ID
-   * @returns 评论统计信息
-   */
-  async getCommentStats(postId: number): Promise<{
-    totalComments: number;
-    topLevelComments: number;
-  }> {
-    await this.assertPublishedPost(postId);
-    const query = this.createPublishedCommentQuery().where(
-      "comment.postId = :postId",
-      { postId },
-    );
-    const [totalComments, topLevelComments] = await Promise.all([
-      query.clone().getCount(),
-      query.clone().andWhere("comment.parentId IS NULL").getCount(),
-    ]);
-
-    return {
-      totalComments,
-      topLevelComments,
-    };
-  }
-
-  /**
-   * 获取最新评论
-   *
-   * @param limit 限制数量
-   * @returns 最新评论列表
-   */
-  async getLatestComments(limit: number = 10): Promise<Comment[]> {
-    limit = normalizeLimit(limit, 10, 50);
-    return await this.createPublishedCommentQuery(this.commentRepository, true)
-      .leftJoin("comment.author", "author")
-      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
-      .orderBy("comment.createdAt", "DESC")
-      .take(limit)
-      .getMany();
-  }
-
-  /**
-   * 点赞评论
+   * 点赞/取消点赞评论（按当前状态切换）
    *
    * @param commentId 评论ID
    * @param userId 用户ID
@@ -508,140 +425,41 @@ export class CommentService {
     isLiked: boolean;
     likeCount: number;
   }> {
-    return await this.dataSource.transaction(async (manager) => {
-      const commentRepo = manager.getRepository(Comment);
-      const likeRepo = manager.getRepository(CommentLike);
-
-      const comment = await this.createPublishedCommentQuery(commentRepo)
-        .setLock("pessimistic_write")
-        .where("comment.id = :commentId", { commentId })
-        .getOne();
-      if (!comment) {
-        throw new NotFoundException(`评论 ID ${commentId} 不存在`);
-      }
-
-      const existingLike = await likeRepo.findOne({
-        where: { commentId, userId },
-      });
-
-      if (existingLike) {
-        const result = await likeRepo.delete(existingLike.id);
-        if (result.affected) {
-          await commentRepo
-            .createQueryBuilder()
-            .update(Comment)
-            .set({ likeCount: () => "GREATEST(like_count - 1, 0)" })
-            .where("id = :commentId", { commentId })
-            .execute();
-        }
-
-        const updatedComment = await commentRepo.findOne({
-          where: { id: commentId },
-        });
-
-        return {
-          isLiked: false,
-          likeCount: updatedComment?.likeCount || 0,
-        };
-      }
-
-      const like = likeRepo.create({ commentId, userId });
-      await likeRepo.save(like);
-      await commentRepo.increment({ id: commentId }, "likeCount", 1);
-
-      const updatedComment = await commentRepo.findOne({
-        where: { id: commentId },
-      });
-
-      return {
-        isLiked: true,
-        likeCount: updatedComment?.likeCount || 0,
-      };
+    // 帖子未发布则视同评论不存在（与旧 join 锁行行为一致）
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId },
+      select: ["postId"],
     });
-  }
-
-  /**
-   * 检查用户是否对评论点赞
-   *
-   * @param commentId 评论ID
-   * @param userId 用户ID
-   * @returns 是否点赞
-   */
-  async isCommentLikedByUser(
-    commentId: number,
-    userId: number,
-  ): Promise<boolean> {
-    const result = await this.commentLikeRepository
-      .createQueryBuilder("like")
-      .innerJoin("like.comment", "comment")
-      .innerJoin("comment.post", "post", "post.status = :publishedStatus", {
-        publishedStatus: PostStatus.PUBLISHED,
-      })
-      .where("like.commentId = :commentId", { commentId })
-      .andWhere("like.userId = :userId", { userId })
-      .getExists();
-    return result;
-  }
-
-  /**
-   * 获取用户点赞的评论列表
-   *
-   * @param userId 用户ID
-   * @param page 页码
-   * @param limit 每页数量
-   * @returns 分页结果
-   */
-  async getUserLikedComments(
-    userId: number,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<Comment>> {
-    ({ page, limit } = normalizePagination(page, limit));
-    const skip = (page - 1) * limit;
-
-    const [commentLikes, total] = await this.commentLikeRepository
-      .createQueryBuilder("like")
-      .leftJoinAndSelect("like.comment", "comment")
-      .leftJoin("comment.author", "author")
-      .addSelect(CommentService.AUTHOR_PUBLIC_FIELDS)
-      .innerJoinAndSelect(
-        "comment.post",
-        "post",
-        "post.status = :publishedStatus",
-        { publishedStatus: PostStatus.PUBLISHED },
-      )
-      .where("like.userId = :userId", { userId })
-      .orderBy("like.createdAt", "DESC")
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    const comments = commentLikes.map((like) => like.comment);
-
-    return { data: comments, total, page, limit };
-  }
-
-  /**
-   * 获取评论点赞统计
-   *
-   * @param commentId 评论ID
-   * @returns 点赞统计信息
-   */
-  async getCommentLikeStats(commentId: number): Promise<{
-    likeCount: number;
-    isLikedByCurrentUser?: boolean;
-  }> {
-    // 获取评论点赞数
-    const comment = await this.createPublishedCommentQuery()
-      .where("comment.id = :commentId", { commentId })
-      .getOne();
-
     if (!comment) {
       throw new NotFoundException(`评论 ID ${commentId} 不存在`);
     }
+    await this.assertPublishedPost(comment.postId);
 
-    return {
-      likeCount: comment.likeCount,
-    };
+    return await this.dataSource.transaction(async (manager) => {
+      // 先持评论行锁再校验发布态：复刻旧 join 锁的临界区语义，
+      // 消除"预检通过 → 下架 → 点赞落库"的无保护窗口
+      const locked = await manager
+        .getRepository(Comment)
+        .createQueryBuilder("comment")
+        .setLock("pessimistic_write")
+        .where("comment.id = :id", { id: commentId })
+        .getOne();
+      if (!locked) {
+        throw new NotFoundException(`评论 ID ${commentId} 不存在`);
+      }
+      await this.assertPublishedPost(locked.postId, manager);
+
+      const { active, count } = await applyReaction(manager, {
+        parentEntity: Comment,
+        parentWhere: { id: commentId },
+        relationEntity: CommentLike,
+        relationWhere: { commentId, userId },
+        countField: "likeCount",
+        countColumn: "like_count",
+        notFoundMessage: `评论 ID ${commentId} 不存在`,
+        mode: "toggle",
+      });
+      return { isLiked: active, likeCount: count };
+    });
   }
 }

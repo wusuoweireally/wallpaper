@@ -97,17 +97,20 @@ describe("PostService force-like semantics", () => {
   });
 
   it("removeLike is idempotent when like is absent", async () => {
-    const managerDelete = jest.fn().mockResolvedValue({ affected: 0 });
-    const { service } = createService({}, managerDelete);
+    const likes = {
+      findOne: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue({ affected: 0 }),
+    };
+    const { service } = createService(likes);
 
     await expect(service.removeLike(42, 7)).resolves.toEqual({
       isLiked: false,
       likeCount: 5,
     });
+    expect(likes.delete).not.toHaveBeenCalled();
   });
 
   it("removeLike decrements count when like existed", async () => {
-    const managerDelete = jest.fn().mockResolvedValue({ affected: 1 });
     const updateExecute = jest.fn().mockResolvedValue({ affected: 1 });
     const updateQuery = {
       update: jest.fn(),
@@ -119,6 +122,10 @@ describe("PostService force-like semantics", () => {
       if (method !== updateExecute) method.mockReturnValue(updateQuery);
     });
 
+    const likes = {
+      findOne: jest.fn().mockResolvedValue({ id: 9, postId: 42, userId: 7 }),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
     const lockedQuery = createLockedPostQuery(post);
     const postRepository = {
       createQueryBuilder: jest
@@ -128,12 +135,9 @@ describe("PostService force-like semantics", () => {
       increment: jest.fn(),
     };
     const getRepository = jest.fn((target: unknown) =>
-      target === Post ? postRepository : {},
+      target === Post ? postRepository : likes,
     );
-    const manager = {
-      getRepository,
-      delete: managerDelete,
-    };
+    const manager = { getRepository };
     const dataSource = {
       transaction: jest.fn(
         (callback: (transactionManager: typeof manager) => unknown) =>
@@ -142,7 +146,7 @@ describe("PostService force-like semantics", () => {
     };
     const service = new PostService(
       {} as Repository<Post>,
-      {} as Repository<PostLike>,
+      likes as unknown as Repository<PostLike>,
       {} as Repository<PostBookmark>,
       dataSource as unknown as DataSource,
     );
@@ -151,10 +155,7 @@ describe("PostService force-like semantics", () => {
       isLiked: false,
       likeCount: 4,
     });
-    expect(managerDelete).toHaveBeenCalledWith(PostLike, {
-      postId: 42,
-      userId: 7,
-    });
+    expect(likes.delete).toHaveBeenCalledWith({ postId: 42, userId: 7 });
   });
 
   it("addLike rejects unpublished posts", async () => {

@@ -14,6 +14,7 @@ import { TagService } from "./tag.service";
 import { Tag } from "../entities/tag.entity";
 import { sanitizeUser } from "../utils/sanitize";
 import { normalizeLimit, normalizePagination } from "../common/pagination";
+import { applyReaction } from "../common/reaction";
 import { isAdminRole, UserRole } from "../entities/user.entity";
 import {
   aspectRatioBounds,
@@ -136,6 +137,7 @@ export class WallpaperService {
       aspectRatio: number;
       dominantColor?: string | null;
       colorBucket?: string | null;
+      palette?: string[] | null;
       contentHash?: string | null;
     },
     uploaderId: number,
@@ -455,51 +457,67 @@ export class WallpaperService {
 
   /**
    * 更新壁纸信息（普通字段直写）
-   * status 走 setStatus：事务内做标签校验与 usageCount 记账，绕不过发布约束
+   * 带 status 时与字段更新同一事务执行，避免"字段已改、状态未改"的中间态；
+   * 状态切换在锁内做标签校验与 usageCount 记账，绕不过发布约束
    */
   async update(id: number, updateData: Partial<Wallpaper>): Promise<Wallpaper> {
     const { status, ...fields } = updateData;
-    if (Object.keys(fields).length > 0) {
-      await this.wallpaperRepository.update(id, fields);
+    const hasFields = Object.keys(fields).length > 0;
+
+    if (status === undefined) {
+      if (hasFields) {
+        await this.wallpaperRepository.update(id, fields);
+      }
+      return await this.findById(id);
     }
-    if (status !== undefined) {
-      await this.setStatus(id, status);
-    }
+
+    await this.dataSource.transaction(async (manager) => {
+      if (hasFields) {
+        await manager.update(Wallpaper, id, fields);
+      }
+      await this.setStatusWithManager(manager, id, status);
+    });
     return await this.findById(id);
   }
 
   /** 状态切换（0=下架草稿 1=公开）：与 publish/delete 同一套 usageCount 记账 */
-  private async setStatus(id: number, status: WallpaperStatus): Promise<void> {
+  async setStatus(id: number, status: WallpaperStatus): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const wallpaper = await manager
-        .getRepository(Wallpaper)
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :id", { id })
-        .getOne();
-      if (!wallpaper) {
-        throw new NotFoundException(`壁纸 ID ${id} 不存在`);
-      }
-      if (wallpaper.status === status) return;
-
-      if (status === WallpaperStatus.APPROVED) {
-        const tagCount = await manager.count(WallpaperTag, {
-          where: { wallpaperId: id },
-        });
-        if (tagCount === 0) {
-          throw new BadRequestException(
-            `壁纸 #${id} 请至少添加一个标签后再公开`,
-          );
-        }
-        await manager.update(Wallpaper, id, { status });
-        await this.adjustTagUsageCount(manager, id, 1);
-      } else {
-        await manager.update(Wallpaper, id, {
-          status: WallpaperStatus.PENDING,
-        });
-        await this.adjustTagUsageCount(manager, id, -1);
-      }
+      await this.setStatusWithManager(manager, id, status);
     });
+  }
+
+  private async setStatusWithManager(
+    manager: EntityManager,
+    id: number,
+    status: WallpaperStatus,
+  ): Promise<void> {
+    const wallpaper = await manager
+      .getRepository(Wallpaper)
+      .createQueryBuilder("wallpaper")
+      .setLock("pessimistic_write")
+      .where("wallpaper.id = :id", { id })
+      .getOne();
+    if (!wallpaper) {
+      throw new NotFoundException(`壁纸 ID ${id} 不存在`);
+    }
+    if (wallpaper.status === status) return;
+
+    if (status === WallpaperStatus.APPROVED) {
+      const tagCount = await manager.count(WallpaperTag, {
+        where: { wallpaperId: id },
+      });
+      if (tagCount === 0) {
+        throw new BadRequestException(`壁纸 #${id} 请至少添加一个标签后再公开`);
+      }
+      await manager.update(Wallpaper, id, { status });
+      await this.adjustTagUsageCount(manager, id, 1);
+    } else {
+      await manager.update(Wallpaper, id, {
+        status: WallpaperStatus.PENDING,
+      });
+      await this.adjustTagUsageCount(manager, id, -1);
+    }
   }
 
   private async adjustTagUsageCount(
@@ -625,37 +643,17 @@ export class WallpaperService {
     wallpaperId: number,
   ): Promise<{ isFavorited: true; favoriteCount: number }> {
     return await this.dataSource.transaction(async (manager) => {
-      const userFavoriteRepo = manager.getRepository(UserFavorite);
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :wallpaperId", { wallpaperId })
-        .andWhere("wallpaper.status = :status", { status: 1 })
-        .getOne();
-      if (!wallpaper) {
-        throw new NotFoundException(`壁纸 ID ${wallpaperId} 不存在`);
-      }
-
-      const existingFavorite = await userFavoriteRepo.findOne({
-        where: { userId, wallpaperId },
+      const { count } = await applyReaction(manager, {
+        parentEntity: Wallpaper,
+        parentWhere: { id: wallpaperId, status: 1 },
+        relationEntity: UserFavorite,
+        relationWhere: { userId, wallpaperId },
+        countField: "favoriteCount",
+        countColumn: "favorite_count",
+        notFoundMessage: `壁纸 ID ${wallpaperId} 不存在`,
+        mode: "add",
       });
-
-      if (existingFavorite) {
-        return {
-          isFavorited: true,
-          favoriteCount: wallpaper.favoriteCount,
-        };
-      }
-
-      const userFavorite = userFavoriteRepo.create({ userId, wallpaperId });
-      await userFavoriteRepo.save(userFavorite);
-      await wallpaperRepo.increment({ id: wallpaperId }, "favoriteCount", 1);
-      return {
-        isFavorited: true,
-        favoriteCount: wallpaper.favoriteCount + 1,
-      };
+      return { isFavorited: true, favoriteCount: count };
     });
   }
 
@@ -667,34 +665,17 @@ export class WallpaperService {
     wallpaperId: number,
   ): Promise<{ isFavorited: false; favoriteCount: number }> {
     return this.dataSource.transaction(async (manager) => {
-      const wallpaperRepo = manager.getRepository(Wallpaper);
-      const wallpaper = await wallpaperRepo
-        .createQueryBuilder("wallpaper")
-        .setLock("pessimistic_write")
-        .where("wallpaper.id = :wallpaperId", { wallpaperId })
-        .getOne();
-      if (!wallpaper) {
-        throw new NotFoundException(`壁纸 ID ${wallpaperId} 不存在`);
-      }
-
-      const result = await manager.delete(UserFavorite, {
-        userId,
-        wallpaperId,
+      const { count } = await applyReaction(manager, {
+        parentEntity: Wallpaper,
+        parentWhere: { id: wallpaperId },
+        relationEntity: UserFavorite,
+        relationWhere: { userId, wallpaperId },
+        countField: "favoriteCount",
+        countColumn: "favorite_count",
+        notFoundMessage: `壁纸 ID ${wallpaperId} 不存在`,
+        mode: "remove",
       });
-      if (result.affected) {
-        await wallpaperRepo
-          .createQueryBuilder()
-          .update(Wallpaper)
-          .set({ favoriteCount: () => "GREATEST(favorite_count - 1, 0)" })
-          .where("id = :wallpaperId", { wallpaperId })
-          .execute();
-      }
-      return {
-        isFavorited: false,
-        favoriteCount: result.affected
-          ? Math.max(0, wallpaper.favoriteCount - 1)
-          : wallpaper.favoriteCount,
-      };
+      return { isFavorited: false, favoriteCount: count };
     });
   }
 
@@ -842,13 +823,6 @@ export class WallpaperService {
     }
 
     return { updatedCount, failedIds };
-  }
-
-  async updateWallpaperTags(
-    wallpaperId: number,
-    tags: string[],
-  ): Promise<Tag[]> {
-    return this.tagService.replaceWallpaperTags(wallpaperId, tags);
   }
 
   /**

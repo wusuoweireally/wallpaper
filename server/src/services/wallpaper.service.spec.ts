@@ -166,13 +166,17 @@ describe("WallpaperService idempotent interactions", () => {
   });
 
   it("keeps the favorite count unchanged when removing an absent favorite", async () => {
-    const remove = jest.fn().mockResolvedValue({ affected: 0 });
-    const { service } = createService({}, remove);
+    const remove = {
+      findOne: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue({ affected: 0 }),
+    };
+    const { service } = createService(remove);
 
     await expect(service.removeFavorite(7, 42)).resolves.toEqual({
       isFavorited: false,
       favoriteCount: 3,
     });
+    expect(remove.delete).not.toHaveBeenCalled();
   });
 });
 

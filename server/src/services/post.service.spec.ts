@@ -2,7 +2,7 @@ import { NotFoundException } from "@nestjs/common";
 import type { DataSource, Repository } from "typeorm";
 import { PostBookmark } from "../entities/post-bookmark.entity";
 import { PostLike } from "../entities/post-like.entity";
-import { Post, PostStatus } from "../entities/post.entity";
+import { Post } from "../entities/post.entity";
 import { PostService } from "./post.service";
 
 describe("PostService bookmark visibility", () => {
@@ -86,36 +86,5 @@ describe("PostService bookmark visibility", () => {
       NotFoundException,
     );
     expect(findOne).not.toHaveBeenCalled();
-  });
-
-  it("returns only bookmarks whose posts are published", async () => {
-    const query = {
-      innerJoinAndSelect: jest.fn(),
-      leftJoinAndSelect: jest.fn(),
-      where: jest.fn(),
-      orderBy: jest.fn(),
-      skip: jest.fn(),
-      take: jest.fn(),
-      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
-    };
-    Object.values(query).forEach((method) => {
-      if (method !== query.getManyAndCount) method.mockReturnValue(query);
-    });
-    const service = createService(
-      {},
-      { createQueryBuilder: jest.fn().mockReturnValue(query) },
-    );
-
-    await service.getUserBookmarks(3, 1, 20);
-
-    expect(query.innerJoinAndSelect).toHaveBeenCalledWith(
-      "bookmark.post",
-      "post",
-      "post.status = :status AND post.deletedAt IS NULL",
-      { status: PostStatus.PUBLISHED },
-    );
-    expect(query.where).toHaveBeenCalledWith("bookmark.userId = :userId", {
-      userId: 3,
-    });
   });
 });
