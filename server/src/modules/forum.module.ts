@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Post } from "../entities/post.entity";
+import { Wallpaper } from "../entities/wallpaper.entity";
 import { Comment } from "../entities/comment.entity";
 import { PostLike } from "../entities/post-like.entity";
 import { PostBookmark } from "../entities/post-bookmark.entity";
@@ -32,6 +33,7 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
       PostBookmark, // 帖子收藏实体
       CommentLike, // 评论点赞实体
       Report, // 举报实体
+      Wallpaper, // 壁纸实体（举报快照用）
       User, // 用户实体（用于关联查询）
     ]),
   ],

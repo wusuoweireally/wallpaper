@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -19,6 +21,7 @@ import {
 } from "../entities/report.entity";
 import { Post, PostStatus } from "../entities/post.entity";
 import { Comment } from "../entities/comment.entity";
+import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { User } from "../entities/user.entity";
 import { normalizePagination } from "../common/pagination";
 
@@ -43,10 +46,12 @@ interface ReportUserSummary {
 interface ReportTargetSummary {
   id: number;
   type: ReportTargetType;
-  title: string | null;
-  content: string;
-  authorId: number;
-  postId: number;
+  title?: string | null;
+  content?: string;
+  authorId?: number;
+  postId?: number;
+  thumbnailUrl?: string | null;
+  uploaderName?: string | null;
 }
 
 export type SafeReport = Omit<
@@ -57,18 +62,6 @@ export type SafeReport = Omit<
   reviewer: ReportUserSummary | null;
   target: ReportTargetSummary | null;
 };
-
-export interface UserReportSummary {
-  id: number;
-  targetType: ReportTargetType;
-  targetId: number;
-  reason: ReportReason;
-  description: string | null;
-  status: ReportStatus;
-  createdAt: Date;
-  updatedAt: Date;
-  resolution: { status: ReportStatus.RESOLVED | ReportStatus.DISMISSED } | null;
-}
 
 const ALLOWED_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   [ReportStatus.PENDING]: [
@@ -90,6 +83,9 @@ export class ReportService {
     private postRepository: Repository<Post>,
     @InjectRepository(Comment)
     private commentRepository: Repository<Comment>,
+    /** 壁纸举报快照用；可选注入，单测手装时可省 */
+    @Optional()
+    private readonly wallpaperRepository?: Repository<Wallpaper>,
   ) {}
 
   private toUserSummary(user?: User | null): ReportUserSummary | null {
@@ -136,6 +132,10 @@ export class ReportService {
     targetType: ReportTargetType,
     targetId: number,
   ): Promise<ReportTargetSnapshot> {
+    if (targetType === ReportTargetType.WALLPAPER) {
+      return await this.getWallpaperSnapshot(targetId);
+    }
+
     if (targetType === ReportTargetType.POST) {
       const post = await this.postRepository.findOne({
         where: { id: targetId, status: PostStatus.PUBLISHED },
@@ -162,6 +162,24 @@ export class ReportService {
       content: comment.content,
       authorId: Number(comment.authorId),
       postId: Number(comment.postId),
+    };
+  }
+
+  /** 壁纸快照：仅公开态可被举报；带缩略图与上传者概要供后台核图 */
+  private async getWallpaperSnapshot(
+    targetId: number,
+  ): Promise<ReportTargetSnapshot> {
+    const wallpaper = await this.wallpaperRepository?.findOne({
+      where: { id: targetId, status: WallpaperStatus.APPROVED },
+      select: ["id", "thumbnailUrl", "previewUrl"],
+      relations: ["uploader"],
+    });
+    if (!wallpaper) throw new NotFoundException("举报目标不存在或不可见");
+    return {
+      title: null,
+      content: "",
+      thumbnailUrl: wallpaper.thumbnailUrl ?? wallpaper.previewUrl ?? null,
+      uploaderName: wallpaper.uploader?.username ?? null,
     };
   }
 
@@ -302,6 +320,12 @@ export class ReportService {
 
   /**
    * 更新举报状态（管理员功能）
+   *
+   * action.hideTarget 仅在 status=resolved 时生效。下架先于状态行翻转执行：
+   * 两步各自幂等，翻转沿用条件更新乐观锁语义，失败可刷新重试；
+   * 最坏情形只是内容已下架而举报仍待处理，重新处置即可收敛，
+   * 绝不会出现「状态已 resolved 但内容仍在线」的治理缺口。
+   * 下架不借道 PostService/CommentService——其公开方法带作者归属校验，不适用于管理员侧。
    */
   async updateReportStatus(
     id: number,
@@ -312,6 +336,40 @@ export class ReportService {
 
     if (!ALLOWED_TRANSITIONS[report.status].includes(updateReportDto.status)) {
       throw new ConflictException("举报状态已变更或不允许执行该操作");
+    }
+
+    // 下架动作只在「标记已解决」时提交才合法，避免误勾后静默生效
+    if (
+      updateReportDto.action === "hideTarget" &&
+      updateReportDto.status !== ReportStatus.RESOLVED
+    ) {
+      throw new BadRequestException("下架被举报内容仅在标记为已解决时生效");
+    }
+
+    // 一键下架仅支持帖子/评论目标；其余类型走各自内容管理的上下架流程
+    const hideableTarget =
+      report.targetType === ReportTargetType.POST ||
+      report.targetType === ReportTargetType.COMMENT;
+    if (updateReportDto.action === "hideTarget" && !hideableTarget) {
+      throw new BadRequestException(
+        "该类型被举报对象不支持一键下架，请在对应内容管理中单独处理",
+      );
+    }
+
+    // 处置联动：状态流转前先把被举报目标下架（重复执行无副作用）
+    if (updateReportDto.action === "hideTarget") {
+      if (report.targetType === ReportTargetType.POST) {
+        await this.postRepository.update(
+          { id: report.targetId },
+          { status: PostStatus.HIDDEN },
+        );
+      } else {
+        // 评论软删除：置 deletedAt，保留原树结构与计数，不做硬删
+        await this.commentRepository.update(
+          { id: report.targetId },
+          { deletedAt: new Date() },
+        );
+      }
     }
 
     const result = await this.reportRepository.update(
@@ -386,24 +444,6 @@ export class ReportService {
     };
   }
 
-  /**
-   * 检查用户是否可以举报某个内容
-   */
-  async canReport(
-    userId: number,
-    targetType: ReportTargetType,
-    targetId: number,
-  ): Promise<boolean> {
-    const existingReport = await this.reportRepository.findOne({
-      where: {
-        userId,
-        targetType,
-        targetId,
-      },
-    });
-
-    return !existingReport;
-  }
   /**
    * 获取举报原因选项
    */

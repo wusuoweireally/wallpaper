@@ -54,8 +54,7 @@
             <ul class="mt-1 space-y-1 text-sm">
               <li>• 请确保举报内容真实有效</li>
               <li>• 恶意举报可能会影响您的账户信誉</li>
-              <li>• 我们会在24小时内处理您的举报</li>
-              <li>• 处理结果将通过通知告知您</li>
+              <li>• 我们会尽快核实并处理您的举报</li>
             </ul>
           </div>
         </div>
@@ -84,7 +83,7 @@ import { confirmAction } from "@/composables/useConfirm"
 
 // Props
 interface Props {
-  targetType: "post" | "comment"
+  targetType: "post" | "comment" | "wallpaper"
   targetId: number
 }
 

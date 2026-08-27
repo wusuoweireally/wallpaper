@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -43,6 +44,11 @@ export class UpdateReportDto {
 
   @IsEnum(ReportStatus)
   status: ReportStatus;
+
+  /** 处置动作：none=仅改状态（默认）；hideTarget=标记 resolved 时同步下架被举报内容，仅 resolved 生效 */
+  @IsIn(["none", "hideTarget"], { message: "处置动作无效" })
+  @IsOptional()
+  action?: "none" | "hideTarget";
 }
 
 export class GetReportsDto extends PaginationQueryDto {

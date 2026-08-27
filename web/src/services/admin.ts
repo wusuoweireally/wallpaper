@@ -91,6 +91,8 @@ export interface AdminWallpaperQuery {
 
 export interface UpdateAdminWallpaper {
   category?: "general" | "anime" | "people"
+  /** 公开状态：0=下架，1=公开（管理端上下架与本人切换共用 PATCH） */
+  status?: number
 }
 
 export interface UpdateWallpaperTags {
@@ -128,6 +130,8 @@ export interface GetReportsQuery {
 export interface UpdateReportStatus {
   status?: ReportStatusValue
   reviewNote?: string
+  /** 处置动作：hideTarget 仅在 status=resolved 时生效，同步下架被举报内容 */
+  action?: "none" | "hideTarget"
 }
 
 export interface ReportStats {

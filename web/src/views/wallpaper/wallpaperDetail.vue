@@ -55,7 +55,7 @@
               :key="`prev-${wallpaper.id}`"
               :src="wallpaper.previewUrl"
               class="absolute inset-0 h-full w-full cursor-zoom-in select-none object-contain"
-              :alt="`壁纸 ${wallpaper.id} 预览`"
+              :alt="`${displayTitle} 壁纸预览`"
               draggable="false"
               @click="openLightbox"
             />
@@ -64,7 +64,7 @@
             v-show="imageLoaded"
             :src="imageSrc"
             class="absolute inset-0 h-full w-full cursor-zoom-in select-none object-contain"
-            :alt="`壁纸 ${wallpaper.id}`"
+            :alt="`${displayTitle} 高清壁纸 · ${wallpaper.width}×${wallpaper.height}`"
             draggable="false"
             @load="imageLoaded = true"
             @error="imageError = true"
@@ -234,6 +234,20 @@
           {{ shareNotice }}
         </p>
 
+        <!-- 举报入口：仅登录用户可达，弹窗内再做一次校验 -->
+        <div class="mb-5 flex justify-end">
+          <button type="button" class="wb-btn-ghost wb-btn-sm gap-1 text-muted" @click="openReport">
+            <i class="i-[mdi--flag-outline] text-base" aria-hidden="true"></i>
+            举报
+          </button>
+        </div>
+        <ReportModal
+          ref="reportModalRef"
+          :target-type="'wallpaper'"
+          :target-id="Number(wallpaper?.id ?? 0)"
+          @success="handleReportSuccess"
+        />
+
         <!-- 主色板：多个主色块，点击按该色筛选 -->
         <section v-if="colorSwatches.length" class="mb-4">
           <h2 class="mb-2 text-xs font-bold tracking-wide text-primary">主色</h2>
@@ -364,7 +378,7 @@
                 :src="item.thumbnailUrl || item.fileUrl"
                 class="h-full w-full object-cover opacity-90 transition group-hover:scale-105 group-hover:opacity-100"
                 loading="lazy"
-                alt=""
+                :alt="relatedAlt(item)"
               />
             </div>
           </button>
@@ -443,7 +457,9 @@ import { wallpaperService, type Collection } from "@/services/wallpaper"
 import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
 import CropScaleDownload from "@/components/CropScaleDownload.vue"
+import ReportModal from "@/components/ReportModal.vue"
 import { createFetchGeneration } from "@/utils/fetchGeneration"
+import { wallpaperDisplayTitle } from "@/utils/wallpaperLayout"
 
 interface WallpaperDetail {
   id: number
@@ -498,6 +514,17 @@ const shareNotice = ref("")
 const favoriting = ref(false)
 const downloading = ref(false)
 const cropScaleOpen = ref(false)
+const reportModalRef = ref<InstanceType<typeof ReportModal>>()
+
+/** 举报当前壁纸：未登录先提示，登录则打开举报弹窗 */
+const openReport = () => {
+  if (!userStore.isLoggedIn) {
+    toast.warning("请先登录后再举报")
+    return
+  }
+  reportModalRef.value?.openModal()
+}
+const handleReportSuccess = () => {}
 const lightboxVisible = ref(false)
 const showCollectionMenu = ref(false)
 const myCollections = ref<Collection[]>([])
@@ -548,6 +575,18 @@ const categoryLabelMap = {
   people: "真人",
 } as const
 const categoryLabel = computed(() => categoryLabelMap[wallpaper.value.category] || "其他")
+
+/** 展示名：与图墙卡片同款命名法——首个标签回退分类名 */
+const displayTitle = computed(() =>
+  wallpaperDisplayTitle(
+    wallpaper.value.tags.map((name) => ({ name })),
+    wallpaper.value.category,
+  ),
+)
+
+/** 相关推荐无标签数据，同款命名法回退分类名 + ID 兜底成语义 alt */
+const relatedAlt = (item: { id: number; category: string }) =>
+  `${wallpaperDisplayTitle(null, item.category)}壁纸 #${item.id}`
 
 const HEX_RE = /^#[0-9a-f]{6}$/i
 const colorSwatches = computed(() => {
@@ -608,6 +647,18 @@ const fetchWallpaperDetail = async () => {
     isFavorited.value = d.isFavorited || false
     imageLoaded.value = false
     imageError.value = false
+
+    // 详情页 SEO：分享出去的 title/description 随内容走（SPA 约定，离开不还原）
+    document.title = `${displayTitle.value} · ${wallpaper.value.width}×${wallpaper.value.height} - Wallbay`
+    const metaDesc = document.querySelector('meta[name="description"]')
+    if (metaDesc) {
+      metaDesc.setAttribute(
+        "content",
+        `${displayTitle.value}高清壁纸下载 · ${
+          wallpaper.value.tags.slice(0, 5).join("、") || categoryLabel.value
+        }`,
+      )
+    }
 
     if (wallpaper.value.status === 1) {
       wallpaperService

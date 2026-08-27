@@ -1,7 +1,7 @@
 import api, { type ApiResponse } from "@/config/api"
 
 export interface CreateReportDto {
-  targetType: "post" | "comment"
+  targetType: "post" | "comment" | "wallpaper"
   targetId: number
   reason:
     "spam" | "inappropriate" | "harassment" | "violence" | "copyright" | "misinformation" | "other"

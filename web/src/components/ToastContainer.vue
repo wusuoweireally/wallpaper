@@ -32,7 +32,8 @@ const { toasts } = toastComposable
   right: 0;
   margin: 0 auto;
   pointer-events: none;
-  z-index: 9999;
+  /* 层级常量表：需压过详情页灯箱/下载裁剪层（z-index 9999），否则 Toast 反馈会被吞 */
+  z-index: 10050;
   padding: 0 1rem 1rem;
   width: fit-content;
   display: flex;

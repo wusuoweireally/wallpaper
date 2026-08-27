@@ -140,7 +140,7 @@ export class UpdateWallpaperDto {
   @IsOptional()
   subCategory?: string;
 
-  /** 公开状态：0=不公开(草稿/下架)，1=公开（本人切换用） */
+  /** 公开状态：0=不公开(草稿/下架)，1=公开（本人切换与管理端下架/上架共用，走 setStatusWithManager 记账） */
   @IsIn([0, 1])
   @IsOptional()
   status?: number;

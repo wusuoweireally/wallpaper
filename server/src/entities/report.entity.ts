@@ -12,6 +12,7 @@ import { User } from "./user.entity";
 export enum ReportTargetType {
   POST = "post",
   COMMENT = "comment",
+  WALLPAPER = "wallpaper",
 }
 
 export enum ReportReason {
@@ -31,11 +32,15 @@ export enum ReportStatus {
   DISMISSED = "dismissed",
 }
 
+/** 快照形状随 targetType 变化：帖子/评论为正文形态；壁纸为缩略图+上传者概要 */
 export interface ReportTargetSnapshot {
-  title: string | null;
-  content: string;
-  authorId: number;
-  postId: number;
+  title?: string | null;
+  content?: string;
+  authorId?: number;
+  postId?: number;
+  /** 壁纸目标专属 */
+  thumbnailUrl?: string | null;
+  uploaderName?: string | null;
 }
 
 @Entity("reports")

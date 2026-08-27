@@ -215,6 +215,38 @@
             <p class="text-muted">
               {{ getTargetText(selectedReport.targetType) }} #{{ selectedReport.targetId }}
             </p>
+            <template v-if="targetSnapshot">
+              <!-- 壁纸目标：缩略图 + 上传者；帖子/评论目标：标题 + 正文 + 原帖链接 -->
+              <img
+                v-if="targetSnapshot.thumbnailUrl"
+                :src="targetSnapshot.thumbnailUrl"
+                class="mt-2 h-40 w-full rounded-control object-cover"
+                alt="被举报壁纸缩略图"
+              />
+              <p
+                v-if="targetSnapshot.uploaderName"
+                class="mt-1 text-xs text-faint"
+              >
+                上传者：{{ targetSnapshot.uploaderName }}
+              </p>
+              <p v-if="targetSnapshot.title" class="mt-2 truncate text-sm font-medium text-fg">
+                {{ targetSnapshot.title }}
+              </p>
+              <p
+                v-if="targetSnapshot.content"
+                class="mt-1 line-clamp-4 whitespace-pre-wrap break-words text-sm text-muted"
+              >
+                {{ targetSnapshot.content }}
+              </p>
+              <RouterLink
+                v-if="targetSnapshot.postId"
+                class="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                :to="`/forums/post/${targetSnapshot.postId}`"
+              >
+                查看原帖
+                <i class="i-[mdi--open-in-new]" aria-hidden="true"></i>
+              </RouterLink>
+            </template>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -262,6 +294,20 @@
                 rows="3"
                 placeholder="处理结果说明…"
               ></textarea>
+              <!-- 处置动作：仅「标记为已解决」时生效，同步对被举报内容执行下架 -->
+              <label class="flex items-start gap-2 text-sm text-muted">
+                <input
+                  v-model="updateForm.hideTarget"
+                  type="checkbox"
+                  class="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-line bg-surface text-primary focus:ring-primary/30"
+                />
+                <span>
+                  同时下架被举报内容
+                  <span class="block text-xs text-faint"
+                    >勾选后标记为已解决时，帖子将被隐藏、评论将被删除；壁纸类型需到壁纸管理单独处理</span
+                  >
+                </span>
+              </label>
               <div class="flex gap-2">
                 <button class="wb-btn-primary flex-1 gap-2" @click="updateStatus('resolved')">
                   <i class="i-[mdi--check]" aria-hidden="true"></i>
@@ -296,11 +342,21 @@ import adminService, {
 } from "@/services/admin"
 import Pagination from "@/components/Pagination.vue"
 import { formatDateTime as formatDate } from "@/utils/format"
+
+// 后端 SafeReport 附带创建举报时的内容快照（含 postId），admin.ts 类型暂未收录，先在本地扩展
+interface ReportDetail extends Report {
+  target?: {
+    type: "post" | "comment"
+    title: string | null
+    content: string
+    postId: number
+  } | null
+}
 const loading = ref(true)
 const reports = ref<Report[]>([])
 const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
 const reportModal = ref<HTMLDialogElement | null>(null)
-const selectedReport = ref<Report | null>(null)
+const selectedReport = ref<ReportDetail | null>(null)
 
 const filters = reactive({
   status: "",
@@ -310,7 +366,12 @@ const filters = reactive({
 
 const updateForm = reactive({
   reviewNote: "",
+  /** 处置动作勾选：仅「标记为已解决」时随请求下发 action=hideTarget */
+  hideTarget: false,
 })
+
+// 目标被删后内容快照是唯一现场凭证，详情里必须可见
+const targetSnapshot = computed(() => selectedReport.value?.target ?? null)
 
 const pendingCount = computed(() => {
   return reports.value.filter((r) => r.status === "pending").length
@@ -340,6 +401,7 @@ const viewReport = async (id: number) => {
     const response = await adminService.getReportById(id)
     selectedReport.value = response.data
     updateForm.reviewNote = response.data.reviewNote || ""
+    updateForm.hideTarget = false
     reportModal.value?.showModal()
   } catch (error) {
     console.error("获取举报详情失败:", error)
@@ -350,6 +412,7 @@ const closeReportModal = () => {
   reportModal.value?.close()
   selectedReport.value = null
   updateForm.reviewNote = ""
+  updateForm.hideTarget = false
 }
 
 const updateStatus = async (status: ReportStatusValue) => {
@@ -359,6 +422,8 @@ const updateStatus = async (status: ReportStatusValue) => {
     await adminService.updateReportStatus(selectedReport.value.id, {
       status,
       reviewNote: updateForm.reviewNote,
+      // 下架动作只在已解决时提交，与后端「仅 resolved 生效」约束对齐
+      ...(status === "resolved" && updateForm.hideTarget ? { action: "hideTarget" as const } : {}),
     })
     await loadReports()
     closeReportModal()
@@ -409,6 +474,7 @@ const getTargetText = (targetType: string) => {
   const map: Record<string, string> = {
     post: "帖子",
     comment: "评论",
+    wallpaper: "壁纸",
   }
   return map[targetType] || "内容"
 }

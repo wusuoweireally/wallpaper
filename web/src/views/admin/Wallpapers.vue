@@ -295,6 +295,21 @@
                       </button>
                     </li>
                     <li>
+                      <button
+                        :class="{ 'text-error': wallpaper.status === 1 }"
+                        :disabled="actionLoadingId === wallpaper.id"
+                        @click="toggleWallpaperStatus(wallpaper)"
+                      >
+                        <i
+                          :class="
+                            wallpaper.status === 1 ? 'i-[mdi--eye-off]' : 'i-[mdi--eye-check]'
+                          "
+                          aria-hidden="true"
+                        ></i>
+                        {{ wallpaper.status === 1 ? "下架" : "重新上架" }}
+                      </button>
+                    </li>
+                    <li>
                       <button @click="openEditModal(wallpaper)">
                         <i class="i-[mdi--pencil]" aria-hidden="true"></i>
                         编辑信息
@@ -732,8 +747,8 @@ const showNotification = (text: string, type: "success" | "error" = "success") =
 const getWallpaperImage = (url?: string | null) => {
   if (!url) return DEFAULT_WALLPAPER_PLACEHOLDER
   if (/^(https?:)?\/\//.test(url) || url.startsWith("data:")) return url
-  if (url.startsWith("/")) return `${url}?t=${Date.now()}`
-  return `/api/uploads/wallpapers/${url}?t=${Date.now()}`
+  if (url.startsWith("/")) return url
+  return `/api/uploads/wallpapers/${url}`
 }
 
 const getUploaderAvatar = (url?: string | null) => {
@@ -1116,6 +1131,34 @@ const toggleFeatured = async (wallpaper: AdminWallpaper) => {
   } catch (error) {
     console.error("切换推荐失败:", error)
     showNotification("切换推荐失败", "error")
+  } finally {
+    actionLoadingId.value = null
+  }
+}
+
+// 下架/重新上架：走管理端通用 PATCH（服务端内部走公开状态切换的标签门槛与 COS 记账）
+const toggleWallpaperStatus = async (wallpaper: AdminWallpaper) => {
+  const hide = wallpaper.status === 1
+  const confirmed = await confirmAction({
+    title: hide ? "下架壁纸" : "重新上架",
+    message: hide
+      ? `确认下架壁纸 #${wallpaper.id}？下架后前台不再展示，可随时恢复。`
+      : `确认将壁纸 #${wallpaper.id} 重新上架？`,
+    confirmText: hide ? "下架" : "上架",
+    danger: hide,
+  })
+  if (!confirmed) return
+  if (actionLoadingId.value === wallpaper.id) return
+  actionLoadingId.value = wallpaper.id
+  try {
+    await adminService.adminUpdateWallpaper(wallpaper.id, { status: hide ? 0 : 1 })
+    // 本地即时翻转保观感，最终以 loadWallpapers 回源为准
+    wallpaper.status = hide ? 0 : 1
+    showNotification(hide ? "已下架" : "已重新上架")
+    await loadWallpapers()
+  } catch (error) {
+    console.error("切换上下架失败:", error)
+    showNotification("操作失败，请稍后重试", "error")
   } finally {
     actionLoadingId.value = null
   }
