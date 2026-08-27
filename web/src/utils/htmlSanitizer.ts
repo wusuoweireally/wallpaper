@@ -51,17 +51,12 @@ const ALLOWED_ATTR = ["href", "title", "target", "rel", "class"]
  * DOMPurify 配置
  */
 const SANITIZE_CONFIG = {
+  // 白名单外的标签/属性一律剔除（注意：不可加 USE_PROFILES，否则 DOMPurify 会忽略白名单）
   ALLOWED_TAGS,
   ALLOWED_ATTR,
-  // 允许数据 URI（用于图片）
   ALLOW_DATA_ATTR: false,
-  // 允许 svg 标签
-  USE_PROFILES: { html: true },
-  // 添加安全属性到链接
-  ADD_ATTR: ["target"],
   // 链接自动添加 rel="noopener noreferrer"
-  FORBID_TAGS: ["script", "style", "iframe", "embed", "object", "form", "input", "button"],
-  FORBID_ATTR: ["onerror", "onclick", "onload", "onmouseover"],
+  ADD_ATTR: ["target"],
 }
 
 /**
