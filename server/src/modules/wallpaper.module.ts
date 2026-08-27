@@ -19,6 +19,7 @@ import { CollectionWallpaper } from "../entities/collection-wallpaper.entity";
 import { TagModule } from "./tag.module";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { DemoSeedService } from "../services/demo-seed.service";
+import { PaletteBackfillService } from "../services/palette-backfill.service";
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DemoSeedService } from "../services/demo-seed.service";
     CosService,
     ViewHistoryService,
     DemoSeedService,
+    PaletteBackfillService,
     OptionalJwtAuthGuard,
   ],
   exports: [

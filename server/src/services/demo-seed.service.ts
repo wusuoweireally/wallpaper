@@ -23,6 +23,7 @@ interface DemoWallpaperRow {
   isFeatured: boolean;
   dominantColor: string | null;
   colorBucket: string | null;
+  palette?: string[] | null;
   tags: string[];
 }
 
@@ -45,6 +46,13 @@ export class DemoSeedService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     if (process.env.ENABLE_DEMO_SEED !== "true") {
+      return;
+    }
+    // 演示数据不走内容审核且挂在管理员名下，生产库禁止灌入
+    if (process.env.NODE_ENV === "production") {
+      this.logger.warn(
+        "生产环境忽略 ENABLE_DEMO_SEED=true：演示数据会绕过内容审核，请勿在生产库启用。",
+      );
       return;
     }
 
@@ -99,6 +107,7 @@ export class DemoSeedService implements OnApplicationBootstrap {
         isFeatured: row.isFeatured,
         dominantColor: row.dominantColor,
         colorBucket: row.colorBucket,
+        palette: row.palette ?? undefined,
         uploaderId: uploader.id,
         tags,
       });

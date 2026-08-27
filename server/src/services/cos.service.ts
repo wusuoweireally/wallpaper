@@ -63,6 +63,23 @@ export class CosService {
         FilePath: tmpPath,
         SliceSize: SLICE_SIZE_BYTES,
       });
+    } catch (err) {
+      // SDK 的 uploadFile 错误路径不会自动中止 multipart 会话，
+      // 残留 UploadId 与已传分片会一直占用存储计费——显式中止
+      await new Promise<void>((resolve) => {
+        this.cos.abortUploadTask(
+          { Bucket: this.bucket, Region: this.region, Key: key, Level: "file" },
+          (abortErr) => {
+            if (abortErr) {
+              this.logger.warn(
+                `中止 COS 分片会话失败（对象可能残留分片）: ${key} - ${abortErr.message}`,
+              );
+            }
+            resolve();
+          },
+        );
+      });
+      throw err;
     } finally {
       await fs.rm(tmpPath, { force: true });
     }
@@ -132,16 +149,23 @@ export class CosService {
     return { passed, label, score: maxScore };
   }
 
-  /** 删除对象（幂等，失败仅告警不抛错） */
-  async deleteObject(key: string): Promise<void> {
+  /**
+   * 删除对象（幂等）。失败不抛错但返回 false 并记 error 级日志——
+   * 调用方的"不留孤儿对象"承诺依赖这里至少留下痕迹。
+   */
+  async deleteObject(key: string): Promise<boolean> {
     try {
       await this.cos.deleteObject({
         Bucket: this.bucket,
         Region: this.region,
         Key: key,
       });
+      return true;
     } catch (err) {
-      this.logger.warn(`COS 删除失败: ${key} - ${(err as Error).message}`);
+      this.logger.error(
+        `COS 删除失败(对象可能残留): ${key} - ${(err as Error).message}`,
+      );
+      return false;
     }
   }
 

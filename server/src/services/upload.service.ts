@@ -9,7 +9,8 @@ import { Repository } from "typeorm";
 import sharp from "sharp";
 import { createHash, randomBytes } from "crypto";
 import { CosService, type AuditResult } from "./cos.service";
-import { rgbToColorBucket, rgbToHex } from "./wallpaper-filters";
+import { hexToColorBucket } from "./wallpaper-filters";
+import { samplePaletteFromImage } from "./color-palette";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import {
   resolutionRequirementMessage,
@@ -33,8 +34,13 @@ export interface UploadedFileInfo {
   aspectRatio: number;
   dominantColor: string;
   colorBucket: string;
+  /** 主色板 hex，按占比降序 */
+  palette: string[];
   contentHash: string;
 }
+
+/** sharp 解码像素上限（约 8K 图），防构造图打爆内存 */
+const SHARP_PIXEL_LIMIT = 40_000_000;
 
 /**
  * 图片上传处理：上传 COS 后同步调用腾讯云审核
@@ -107,9 +113,17 @@ export class UploadService {
       await this.cos.setPublicRead(previewKey);
     } catch (err) {
       this.logger.error("文件发布失败", (err as Error).message);
-      await this.cos.deleteObject(fileKey);
-      await this.cos.deleteObject(thumbKey);
-      await this.cos.deleteObject(previewKey);
+      // 清理已公开的对象；删失败的记录 key 留痕（公有读残留是真实风险）
+      const keys = [fileKey, thumbKey, previewKey];
+      const results = await Promise.all(
+        keys.map((k) => this.cos.deleteObject(k)),
+      );
+      const failedKeys = keys.filter((_, i) => !results[i]);
+      if (failedKeys.length > 0) {
+        this.logger.error(
+          `发布失败后对象清理未完成，需人工处理: ${failedKeys.join(", ")}`,
+        );
+      }
       throw new InternalServerErrorException("文件发布失败，请稍后重试");
     }
 
@@ -124,6 +138,7 @@ export class UploadService {
       aspectRatio: info.aspectRatio,
       dominantColor: info.dominantColor,
       colorBucket: info.colorBucket,
+      palette: info.palette,
       contentHash: info.contentHash,
     };
   }
@@ -145,6 +160,7 @@ export class UploadService {
     aspectRatio: number;
     dominantColor: string;
     colorBucket: string;
+    palette: string[];
     thumbnailBuffer: Buffer;
     previewBuffer: Buffer;
   }> {
@@ -178,10 +194,9 @@ export class UploadService {
     let previewBuffer: Buffer;
     let dominantColor = "#808080";
     let colorBucket = "gray";
+    let palette = ["#808080"];
     try {
-      const pipeline = sharp(buffer, {
-        limitInputPixels: 100_000_000,
-      });
+      const pipeline = sharp(buffer, { limitInputPixels: SHARP_PIXEL_LIMIT });
       metadata = await pipeline.metadata();
       const format = metadata.format as keyof typeof EXTENSIONS | undefined;
       if (
@@ -199,37 +214,34 @@ export class UploadService {
         throw new Error("mime type does not match image content");
       }
 
-      // 主色：缩小采样 stats（确定性、轻量）
-      const { dominant } = await sharp(buffer, {
-        limitInputPixels: 100_000_000,
-      })
-        .rotate()
-        .resize(64, 64, { fit: "inside" })
-        .stats();
-      const r = dominant.r ?? 128;
-      const g = dominant.g ?? 128;
-      const b = dominant.b ?? 128;
-      dominantColor = rgbToHex(r, g, b);
-      colorBucket = rgbToColorBucket(r, g, b);
-
-      thumbnailBuffer = await sharp(buffer, {
-        limitInputPixels: 100_000_000,
-      })
+      thumbnailBuffer = await pipeline
+        .clone()
         .rotate()
         .resize(640, 640, { fit: "inside", withoutEnlargement: true })
         .webp({ quality: 86 })
         .toBuffer();
 
       // 预览图：详情页占位 / 卡片 hover 大图（1600px，省掉原图流量）
-      previewBuffer = await sharp(buffer, {
-        limitInputPixels: 100_000_000,
-      })
+      previewBuffer = await pipeline
+        .clone()
         .rotate()
         .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
         .webp({ quality: 88 })
         .toBuffer();
+
+      // 主色板：从已生成的 640px 缩略图采样（64px 直方图量化），
+      // 免去对原图的又一次全量解码
+      palette = await samplePaletteFromImage(thumbnailBuffer);
+      dominantColor = palette[0] ?? "#808080";
+      colorBucket = hexToColorBucket(dominantColor) ?? "gray";
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
+      // 超出像素上限的合法大图要给出可自救的提示，不能混进"文件损坏"
+      if (err instanceof Error && err.message.includes("exceeds pixel limit")) {
+        throw new BadRequestException(
+          `图片分辨率超过上限（约 ${Math.floor(SHARP_PIXEL_LIMIT / 1_000_000)}MP），请压缩后再上传`,
+        );
+      }
       throw new BadRequestException("图片文件已损坏或格式无效");
     }
 
@@ -256,6 +268,7 @@ export class UploadService {
       aspectRatio: Number((width / height).toFixed(2)),
       dominantColor,
       colorBucket,
+      palette,
       thumbnailBuffer,
       previewBuffer,
     };
@@ -277,7 +290,9 @@ export class UploadService {
 
     let avatarBuffer: Buffer;
     try {
-      avatarBuffer = await sharp(file.buffer, { limitInputPixels: 25_000_000 })
+      avatarBuffer = await sharp(file.buffer, {
+        limitInputPixels: SHARP_PIXEL_LIMIT,
+      })
         .rotate()
         .resize(512, 512, { fit: "cover" })
         .webp({ quality: 85 })
@@ -296,7 +311,9 @@ export class UploadService {
       await this.cos.setPublicRead(avatarKey);
       return this.cos.publicUrl(avatarKey);
     } catch (err) {
-      await this.cos.deleteObject(avatarKey);
+      if (!(await this.cos.deleteObject(avatarKey))) {
+        this.logger.error(`头像对象清理失败，可能残留: ${avatarKey}`);
+      }
       if (err instanceof BadRequestException) throw err;
       this.logger.error("头像上传/审核失败", (err as Error).message);
       throw new InternalServerErrorException("头像上传失败，请稍后重试");

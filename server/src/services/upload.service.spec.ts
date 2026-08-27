@@ -129,6 +129,8 @@ describe("UploadService wallpaper processing", () => {
     expect(result.dominantColor).toMatch(/^#[0-9a-f]{6}$/i);
     expect(typeof result.colorBucket).toBe("string");
     expect(result.colorBucket.length).toBeGreaterThan(0);
+    expect(result.palette.length).toBeGreaterThan(0);
+    expect(result.palette[0]).toBe(result.dominantColor);
     expect(cos.putObject).toHaveBeenCalledTimes(3);
     expect(cos.auditImage).toHaveBeenCalledTimes(1);
     expect(cos.setPublicRead).toHaveBeenCalledTimes(3);
