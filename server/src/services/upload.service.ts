@@ -105,6 +105,8 @@ export class UploadService {
     }
 
     // 3. 审核通过：原图公开 + 缩略图/预览图上传并公开
+    // 上传即公读是已知取舍：前后端直链预览 UX 依赖它，草稿态公读可接受；
+    // 壁纸退出公开态时由 revokePublicAccess 尽力回收（见下）
     try {
       await this.cos.setPublicRead(fileKey);
       await this.cos.putObject(thumbKey, info.thumbnailBuffer, "image/webp");
@@ -347,5 +349,61 @@ export class UploadService {
       .filter((u): u is string => !!u && u.startsWith("http"))
       .map((u) => this.cos.keyFromUrl(u));
     await Promise.all(keys.map((k) => this.cos.deleteObject(k)));
+  }
+
+  /** 壁纸退出公开态（下架等）后回收三个对象的公有读，尽力而为：
+   * 失败仅记 error 日志留痕、不抛错（对齐 deleteObject 兜底风格），不影响主流程
+   */
+  async revokePublicAccess(
+    fileUrl: string,
+    thumbnailUrl?: string,
+    previewUrl?: string,
+  ): Promise<void> {
+    const keys = [fileUrl, thumbnailUrl, previewUrl]
+      .filter((u): u is string => !!u && u.startsWith("http"))
+      .map((u) => this.cos.keyFromUrl(u));
+    const results = await Promise.all(
+      keys.map((k) => this.cos.setObjectPrivate(k)),
+    );
+    const failedKeys = keys.filter((_, i) => !results[i]);
+    if (failedKeys.length > 0) {
+      this.logger.error(
+        `对象转私有未完成，直链可能仍可访问，需人工处理: ${failedKeys.join(", ")}`,
+      );
+    }
+  }
+
+  /**
+   * 与 revokePublicAccess 对称：壁纸重新进入公开态（下架后再上架等）恢复
+   * 三个对象的公有读——缺了这半边，下架重发的直链会一直 403 裂图。
+   * 失败仅记 error 日志留痕、不抛错
+   */
+  async restorePublicAccess(
+    fileUrl: string,
+    thumbnailUrl?: string,
+    previewUrl?: string,
+  ): Promise<void> {
+    const keys = [fileUrl, thumbnailUrl, previewUrl]
+      .filter((u): u is string => !!u && u.startsWith("http"))
+      .map((u) => this.cos.keyFromUrl(u));
+    const results = await Promise.all(
+      keys.map(async (k) => {
+        try {
+          await this.cos.setPublicRead(k);
+          return true;
+        } catch (err) {
+          this.logger.error(
+            `COS 恢复公有读失败(直链可能 403): ${k} - ${(err as Error).message}`,
+          );
+          return false;
+        }
+      }),
+    );
+    const failedKeys = keys.filter((_, i) => !results[i]);
+    if (failedKeys.length > 0) {
+      this.logger.error(
+        `对象恢复公有读未完成，直链可能仍 403，需人工处理: ${failedKeys.join(", ")}`,
+      );
+    }
   }
 }

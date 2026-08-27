@@ -96,6 +96,27 @@ export class CosService {
   }
 
   /**
+   * 对象切回继承桶权限（私有读）：壁纸退出公开态后回收直链用。
+   * 失败不抛错但返回 false 并记 error 日志——调用方的"不留公读残留"承诺依赖这里留下痕迹。
+   */
+  async setObjectPrivate(key: string): Promise<boolean> {
+    try {
+      await this.cos.putObjectAcl({
+        Bucket: this.bucket,
+        Region: this.region,
+        Key: key,
+        ACL: "default",
+      });
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `COS 转私有失败(公有读可能残留): ${key} - ${(err as Error).message}`,
+      );
+      return false;
+    }
+  }
+
+  /**
    * 同步内容审核：命中任一维度（HitFlag!=0，含疑似）则视为违规
    * 任一维度 Code!=0 视为审核服务异常，抛 BadGatewayException 让调用方兜底
    * 注意：ci-process 值是 sensitive-content-recognition（连字符，下划线会 Action mismatch）

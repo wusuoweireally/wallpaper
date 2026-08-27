@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
 import { Repository, DataSource, EntityManager } from "typeorm";
@@ -11,6 +12,7 @@ import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { UserFavorite } from "../entities/user-favorite.entity";
 import { CreateWallpaperDto } from "../dto/wallpaper.dto";
 import { TagService } from "./tag.service";
+import { UploadService } from "./upload.service";
 import { Tag } from "../entities/tag.entity";
 import { sanitizeUser } from "../utils/sanitize";
 import { normalizeLimit, normalizePagination } from "../common/pagination";
@@ -29,6 +31,12 @@ import {
  */
 const CI_PREVIEW_PARAMS =
   "imageMogr2/thumbnail/1600x1600/format/webp/quality/88";
+
+/** 状态切换事务的可见性对齐载荷：toPublic 区分回收/恢复 COS 公读两个方向 */
+interface WallpaperStatusTransition {
+  wallpaper: Wallpaper;
+  toPublic: boolean;
+}
 
 /** 列表查询参数（替代超长位置参数） */
 export interface WallpaperListQuery {
@@ -93,6 +101,8 @@ export class WallpaperService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private tagService: TagService,
+    /** 仅用于退出公开态后回收 COS 公读；可选注入，单测手装时可省 */
+    @Optional() private readonly uploadService?: UploadService,
   ) {}
 
   private sanitizeWallpaperUser(wallpaper: Wallpaper): Wallpaper;
@@ -386,12 +396,13 @@ export class WallpaperService {
         queryBuilder.orderBy("RAND()");
       }
     } else if (sortBy === "popular" || sortBy === "toplist") {
-      // toplist / popular：加权综合评分
+      // toplist / popular：加权综合评分；id 次序键保证海量 0 分平票区间翻页确定
       queryBuilder.addSelect(
         WallpaperService.POPULARITY_SCORE,
         "popularity_score",
       );
       queryBuilder.orderBy("popularity_score", "DESC");
+      queryBuilder.addOrderBy("wallpaper.id", "DESC");
     } else {
       const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
       queryBuilder.orderBy(`wallpaper.${sortField}`, sortOrder);
@@ -463,6 +474,7 @@ export class WallpaperService {
   async update(id: number, updateData: Partial<Wallpaper>): Promise<Wallpaper> {
     const { status, ...fields } = updateData;
     const hasFields = Object.keys(fields).length > 0;
+    let transition: WallpaperStatusTransition | null = null;
 
     if (status === undefined) {
       if (hasFields) {
@@ -475,23 +487,30 @@ export class WallpaperService {
       if (hasFields) {
         await manager.update(Wallpaper, id, fields);
       }
-      await this.setStatusWithManager(manager, id, status);
+      transition = await this.setStatusWithManager(manager, id, status);
     });
+    await this.applyVisibilityOnTransition(transition);
     return await this.findById(id);
   }
 
   /** 状态切换（0=下架草稿 1=公开）：与 publish/delete 同一套 usageCount 记账 */
   async setStatus(id: number, status: WallpaperStatus): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      await this.setStatusWithManager(manager, id, status);
-    });
+    const transition = await this.dataSource.transaction((manager) =>
+      this.setStatusWithManager(manager, id, status),
+    );
+    await this.applyVisibilityOnTransition(transition);
   }
 
+  /**
+   * 状态切换核心：事务内加锁校验并记账。
+   * 返回 null 表示状态未变化；否则携带行快照与方向，
+   * 调用方须在事务提交成功后经 applyVisibilityOnTransition 对齐 COS 可见性
+   */
   private async setStatusWithManager(
     manager: EntityManager,
     id: number,
     status: WallpaperStatus,
-  ): Promise<void> {
+  ): Promise<WallpaperStatusTransition | null> {
     const wallpaper = await manager
       .getRepository(Wallpaper)
       .createQueryBuilder("wallpaper")
@@ -501,7 +520,7 @@ export class WallpaperService {
     if (!wallpaper) {
       throw new NotFoundException(`壁纸 ID ${id} 不存在`);
     }
-    if (wallpaper.status === status) return;
+    if (wallpaper.status === status) return null;
 
     if (status === WallpaperStatus.APPROVED) {
       const tagCount = await manager.count(WallpaperTag, {
@@ -512,11 +531,35 @@ export class WallpaperService {
       }
       await manager.update(Wallpaper, id, { status });
       await this.adjustTagUsageCount(manager, id, 1);
+      return { wallpaper, toPublic: true };
+    }
+
+    await manager.update(Wallpaper, id, {
+      status: WallpaperStatus.PENDING,
+    });
+    await this.adjustTagUsageCount(manager, id, -1);
+    return { wallpaper, toPublic: false };
+  }
+
+  /**
+   * 状态切换事务提交成功后尽力对齐存储层可见性：
+   * 转非公开→回收 COS 公读；重新公开→恢复公读（缺恢复半边则下架重发直链 403）。
+   * 失败仅留痕不影响结果（单测缺省 uploadService 时跳过）
+   */
+  private async applyVisibilityOnTransition(
+    transition: WallpaperStatusTransition | null,
+  ): Promise<void> {
+    if (!transition || !this.uploadService) return;
+    const { wallpaper, toPublic } = transition;
+    const urls = [
+      wallpaper.fileUrl,
+      wallpaper.thumbnailUrl,
+      wallpaper.previewUrl,
+    ] as const;
+    if (toPublic) {
+      await this.uploadService.restorePublicAccess(urls[0], urls[1], urls[2]);
     } else {
-      await manager.update(Wallpaper, id, {
-        status: WallpaperStatus.PENDING,
-      });
-      await this.adjustTagUsageCount(manager, id, -1);
+      await this.uploadService.revokePublicAccess(urls[0], urls[1], urls[2]);
     }
   }
 
@@ -729,11 +772,21 @@ export class WallpaperService {
     const qb = this.wallpaperRepository
       .createQueryBuilder("wallpaper")
       .leftJoinAndSelect("wallpaper.uploader", "uploader")
-      .leftJoinAndSelect("wallpaper.tags", "tags");
+      .leftJoinAndSelect("wallpaper.tags", "tags")
+      .distinct(true);
 
     if (filters.search) {
-      const searchTerm = `%${filters.search}%`;
-      qb.andWhere("(tags.name LIKE :search)", { search: searchTerm });
+      const searchTerm = `%${filters.search.trim()}%`;
+      // 关键词搜索：标签名 LIKE 走 EXISTS 子查询（与 findAll 同一套匹配语义），
+      // 避免 join 行倍增把 getManyAndCount 的 COUNT 顶高
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM wallpaper_tags wt
+          INNER JOIN tags t ON t.id = wt.tag_id
+          WHERE wt.wallpaper_id = wallpaper.id AND t.name LIKE :search
+        )`,
+        { search: searchTerm },
+      );
     }
 
     if (filters.status !== undefined) {
@@ -854,14 +907,24 @@ export class WallpaperService {
       if (tags.length === 0) {
         throw new BadRequestException(`壁纸 #${item.id} 请至少添加一个标签`);
       }
-      // 事务内：先设 APPROVED 再换标签（replaceWallpaperTags 按 status 记账 usageCount）
+      // 标签替换按「旧状态」口径记账：草稿期预挂的标签在 PENDING 时从未计入
+      // usageCount，须先趁非公开态完成增删（移除不误扣、新增暂不 +1），再走
+      // setStatusWithManager 统一翻转状态并对最终集合整体记账；已公开壁纸重发
+      // 则 replace 按公开态正常 +/-1 且 setStatus 同状态早退，不重复计数
+      let transition: WallpaperStatusTransition | null = null;
       await this.dataSource.transaction(async (manager) => {
         await manager.update(Wallpaper, item.id, {
           category: item.category,
-          status: WallpaperStatus.APPROVED,
         });
         await this.tagService.replaceWallpaperTags(item.id, tags, manager);
+        transition = await this.setStatusWithManager(
+          manager,
+          item.id,
+          WallpaperStatus.APPROVED,
+        );
       });
+      // 重新公开也要恢复公读（覆盖"下架后再上架"重发的直链）
+      await this.applyVisibilityOnTransition(transition);
       results.push(await this.findById(item.id));
     }
     return this.sanitizeWallpaperUser(results);
