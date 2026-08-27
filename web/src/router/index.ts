@@ -170,6 +170,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "bookmarks",
+        name: "UserBookmarks",
+        component: () => import("@/views/user/components/UserBookmarks.vue"),
+        meta: {
+          title: "收藏的帖子",
+          requiresAuth: true,
+          showNavBar: true,
+        },
+      },
+      {
         path: "history",
         name: "UserHistory",
         component: () => import("@/views/user/components/UserViewHistory.vue"),

@@ -63,6 +63,7 @@ const nav = computed(() => [
   { to: "/user/uploads", label: "我的上传", count: userStore.userStats.uploads },
   { to: "/user/favorites", label: "我的收藏", count: userStore.userStats.favorites },
   { to: "/user/collections", label: "我的合集" },
+  { to: "/user/bookmarks", label: "收藏的帖子" },
   { to: "/user/history", label: "浏览记录" },
   { to: "/user/settings", label: "账号设置" },
 ])

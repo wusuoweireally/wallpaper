@@ -1,5 +1,5 @@
 <template>
-  <footer class="border-t border-line bg-canvas pt-10 pb-6 text-xs">
+  <footer class="border-t border-line bg-canvas pb-6 pt-10 text-xs">
     <div class="wb-container-gallery">
       <div class="flex flex-wrap items-start justify-between gap-10">
         <!-- 品牌区 -->
@@ -16,7 +16,12 @@
         </div>
 
         <!-- 链接三列 -->
-        <nav v-for="group in linkGroups" :key="group.title" class="flex flex-col gap-2" aria-label="group.title">
+        <nav
+          v-for="group in linkGroups"
+          :key="group.title"
+          class="flex flex-col gap-2"
+          :aria-label="group.title"
+        >
           <p class="mb-1 text-sm font-bold text-fg">{{ group.title }}</p>
           <router-link
             v-for="link in group.links"

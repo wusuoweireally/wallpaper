@@ -1,6 +1,6 @@
 <template>
   <div class="wb-page">
-    <div class="sticky top-14 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
+    <div class="sticky top-16 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
       <div class="wb-container-gallery py-2">
         <WallpaperFilter v-model="filters" />
       </div>
@@ -291,12 +291,7 @@ const fetchWallpapers = async (append: boolean) => {
   appendError.value = ""
 
   try {
-    const params = buildApiListQuery(
-      filters.value,
-      currentPage.value,
-      pageSize,
-      randomSeed.value,
-    )
+    const params = buildApiListQuery(filters.value, currentPage.value, pageSize, randomSeed.value)
     const response = await wallpaperService.getWallpapers(params)
     if (!listFetchGeneration.isCurrent(gen)) return
 

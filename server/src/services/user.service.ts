@@ -7,8 +7,11 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository, IsNull } from "typeorm";
+import { DataSource, In, Repository, IsNull } from "typeorm";
 import { User, UserRole, isAdminRole } from "../entities/user.entity";
+import { Post, PostStatus } from "../entities/post.entity";
+import { PostBookmark } from "../entities/post-bookmark.entity";
+import { PostLike } from "../entities/post-like.entity";
 import {
   ChangePasswordDto,
   CreateUserDto,
@@ -18,6 +21,8 @@ import { AdminUpdateUserDto, AdminUserQueryDto } from "../dto/admin.dto";
 import * as bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { UploadService } from "./upload.service";
+import { PaginatedResult, normalizePagination } from "../common/pagination";
+import { sanitizeUser } from "../utils/sanitize";
 
 /** 执行敏感操作的请求者上下文（来自 @CurrentUser），用于权限护栏判断 */
 export interface ActorContext {
@@ -383,6 +388,55 @@ export class UserService {
     const user = await this.findById(id);
     user.avatarUrl = avatarUrl;
     return await this.userRepository.save(user);
+  }
+
+  /**
+   * 当前用户收藏的已发布帖子分页列表（按收藏时间倒序）。
+   * 塑形与论坛列表接口一致：作者脱敏 + isLiked，前端 PostCard 可直接复用。
+   */
+  async getUserBookmarkedPosts(
+    userId: number,
+    requestedPage = 1,
+    requestedLimit = 20,
+  ): Promise<PaginatedResult<Post & { isLiked: boolean }>> {
+    const { page, limit } = normalizePagination(requestedPage, requestedLimit);
+
+    const [bookmarks, total] = await this.dataSource
+      .getRepository(PostBookmark)
+      .createQueryBuilder("bookmark")
+      .innerJoinAndSelect("bookmark.post", "post")
+      .leftJoinAndSelect("post.author", "author")
+      .where("bookmark.userId = :userId", { userId })
+      .andWhere("post.status = :status", { status: PostStatus.PUBLISHED })
+      .andWhere("post.deletedAt IS NULL")
+      .orderBy("bookmark.createdAt", "DESC")
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const posts = bookmarks.map((bookmark) => bookmark.post);
+
+    // 批量查当前用户点赞态，避免逐帖 N+1；postId 为 bigint 统一按字符串比较
+    const likes = posts.length
+      ? await this.dataSource.getRepository(PostLike).find({
+          where: { userId, postId: In(posts.map((post) => post.id)) },
+          select: { postId: true },
+        })
+      : [];
+    const likedPostIds = new Set(likes.map((like) => String(like.postId)));
+
+    return {
+      page,
+      limit,
+      total,
+      data: posts.map((post) => ({
+        ...post,
+        author: sanitizeUser(
+          post.author as unknown as Record<string, unknown>,
+        ) as unknown as Post["author"],
+        isLiked: likedPostIds.has(String(post.id)),
+      })),
+    };
   }
 
   async adminQueryUsers(

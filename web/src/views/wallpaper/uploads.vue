@@ -157,11 +157,11 @@
                   </svg>
                 </div>
 
-                <!-- 删除按钮(hover 显示) -->
+                <!-- 删除按钮(hover 显示；触屏常显见底部 scoped 样式) -->
                 <button
                   v-if="!isUploading && item.status !== 'done'"
                   type="button"
-                  class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
+                  class="pending-remove absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
                   @click="removePendingFile(index)"
                 >
                   <svg
@@ -207,7 +207,10 @@
                     :style="{ width: item.progress + '%' }"
                   ></div>
                 </div>
-                <p v-else-if="item.status === 'pending' && isUploading" class="mt-1.5 text-[11px] text-faint">
+                <p
+                  v-else-if="item.status === 'pending' && isUploading"
+                  class="mt-1.5 text-[11px] text-faint"
+                >
                   排队中…
                 </p>
                 <p v-else-if="item.validating" class="mt-1.5 text-[11px] text-faint">校验中…</p>
@@ -381,6 +384,16 @@
             >
               {{ publishMsg }}
             </p>
+            <!-- 发布结果直达入口：不依赖 800ms 自动跳回列表 -->
+            <button
+              v-if="publishOk && publishedFirstId !== null"
+              type="button"
+              class="wb-btn-ghost wb-btn-xs mt-1 w-full justify-center text-muted hover:text-fg"
+              @click="viewPublished"
+            >
+              <i class="i-[mdi--image-multiple-outline] text-sm"></i>
+              查看刚发布的壁纸
+            </button>
           </div>
 
           <!-- 分类 -->
@@ -656,6 +669,9 @@ const uploadTotal = ref(0)
 const uploadResult = ref<{ success: number; failed: number } | null>(null)
 const publishMsg = ref("")
 const publishOk = ref(false)
+/** 发布成功后首张壁纸 id：结果面板「查看刚发布的壁纸」入口用 */
+const publishedFirstId = ref<number | null>(null)
+let publishRedirectTimer: ReturnType<typeof setTimeout> | null = null
 
 interface PendingFile {
   id: string
@@ -1122,11 +1138,9 @@ const fetchTagSuggestions = async (keyword: string) => {
       sortBy: "usageCount",
       sortOrder: "DESC",
     })
-        if (gen !== tagSuggestGen) return // 过期响应丢弃，防止慢网回显陈旧候选
+    if (gen !== tagSuggestGen) return // 过期响应丢弃，防止慢网回显陈旧候选
     const selected = new Set(selectedTags.value.map((t) => t.toLowerCase()))
-    tagSuggestions.value = (res.data || []).filter(
-      (t) => !selected.has(t.name.toLowerCase()),
-    )
+    tagSuggestions.value = (res.data || []).filter((t) => !selected.has(t.name.toLowerCase()))
     tagHighlight.value = 0
   } catch {
     if (gen !== tagSuggestGen) return
@@ -1241,6 +1255,11 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("beforeunload", onBeforeUnload)
   if (tagSearchTimer) clearTimeout(tagSearchTimer)
+  // 组件卸载后不再把用户拽回上传列表
+  if (publishRedirectTimer) {
+    clearTimeout(publishRedirectTimer)
+    publishRedirectTimer = null
+  }
   // 还排着队的文件其 blob 预览地址一并回收
   pendingFiles.value.forEach((item) => URL.revokeObjectURL(item.previewUrl))
 })
@@ -1275,9 +1294,11 @@ const handlePublish = async () => {
     const res = await wallpaperService.publishWallpapers(items)
     if (res.success) {
       publishOk.value = true
+      publishedFirstId.value = items[0]?.id ?? null
       publishMsg.value = `已发布 ${items.length} 张壁纸`
       toast.success(publishMsg.value)
-      setTimeout(() => router.push("/user/uploads"), 800)
+      // 保留自动回列表兜底；用户若点「查看刚发布的壁纸」则取消之，不抢主动选择
+      publishRedirectTimer = setTimeout(() => router.push("/user/uploads"), 800)
     } else {
       throw new Error(res.message || "发布失败")
     }
@@ -1287,6 +1308,17 @@ const handlePublish = async () => {
     toast.error(publishMsg.value)
   } finally {
     publishing.value = false
+  }
+}
+
+/** 前往刚发布的首张壁纸详情，并取消待触发的自动跳转 */
+const viewPublished = () => {
+  if (publishRedirectTimer) {
+    clearTimeout(publishRedirectTimer)
+    publishRedirectTimer = null
+  }
+  if (publishedFirstId.value !== null) {
+    router.push(`/wallpaper/${publishedFirstId.value}`)
   }
 }
 
@@ -1355,9 +1387,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* dvh 跟随移动端地址栏伸缩；旧浏览器回退 vh */
+/* dvh 跟随移动端地址栏伸缩；旧浏览器回退 vh；4rem 对齐 NavBar 实高 */
 .uploads-fit {
-  height: calc(100vh - 3.5rem);
-  height: calc(100dvh - 3.5rem);
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+}
+
+/* 触屏无 hover：待上传文件的移除按钮常显（照抄 WallpaperCard 已验证方案；
+   双类选择器确保压过 Tailwind 的 opacity-0 / group-hover:opacity-100） */
+@media (hover: none) {
+  .group .pending-remove {
+    opacity: 1;
+  }
 }
 </style>

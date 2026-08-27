@@ -148,6 +148,19 @@ export const forumService = {
     })
   },
 
+  /**
+   * 当前用户收藏的帖子分页列表（输出塑形与 getPosts 一致，PostCard 可直接复用）
+   */
+  async listMyBookmarks(params: { page?: number; limit?: number } = {}) {
+    const payload: any = await api.get("/users/bookmarks", {
+      params: {
+        page: params.page || 1,
+        limit: params.limit || 20,
+      },
+    })
+    return { data: (payload.data as Post[]) || [], pagination: toPagination(payload.pagination) }
+  },
+
   // ========== 评论 ==========
 
   async getPostComments(postId: number, params: CommentsQueryParams = {}) {

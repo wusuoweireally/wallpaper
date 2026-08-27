@@ -410,6 +410,26 @@ export class UserController {
       },
     };
   }
+
+  /**
+   * 获取当前用户收藏的帖子列表
+   * 须放在 :id 之前，避免被通配路由吞掉
+   */
+  @Get("bookmarks")
+  @UseGuards(JwtAuthGuard)
+  async getUserBookmarks(
+    @CurrentUser() user: { userId: number; username: string },
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
+  ) {
+    const result = await this.userService.getUserBookmarkedPosts(
+      user.userId,
+      Number(page),
+      Number(limit),
+    );
+
+    return this.buildPaginatedResponse(result, Number(page), Number(limit));
+  }
   /**
    * 公开：用户已审核上传
    * 须放在 :id 之前（Nest 按声明顺序匹配，但带二级路径仍需独立声明）
