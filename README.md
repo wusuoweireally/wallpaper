@@ -82,6 +82,8 @@ location / {
 |------|------|
 | `pnpm dev` / `build` / `lint` / `type-check` / `test` | 开发与质量 |
 | `pnpm db:up` / `db:down` | 本地 MySQL |
+| `pnpm db:reset` | ⚠️ **删卷重建**本地 MySQL（`down -v`，本地库数据全部清空） |
+| `pnpm backup` | 备份生产库（详见下节） |
 | `pnpm deploy` / `deploy:logs` / `deploy:down` | 生产全栈 |
 | `pnpm -C server\|web …` | 单包子命令（format、typeorm 等） |
 
@@ -89,10 +91,39 @@ location / {
 
 ---
 
+## 备份与恢复
+
+生产库备份脚本读 `server/.env.production` 的凭据（与 compose 同源），在宿主机直接对 mysql 容器执行 `mysqldump`：
+
+```bash
+pnpm backup          # 或 sh scripts/backup-mysql.sh
+# 产物：backups/$(date +%F)_wallpaper_site.sql.gz（权限 600）
+```
+
+每日自动备份，crontab 示例（每天 04:17）：
+
+```cron
+17 4 * * * cd /path/to/wallpaper && mkdir -p backups && sh scripts/backup-mysql.sh >> backups/backup.log 2>&1
+```
+
+恢复（全量覆盖当前库）：
+
+```bash
+PASS=$(grep '^MYSQL_ROOT_PASSWORD=' server/.env.production | cut -d= -f2-)
+gunzip < backups/2026-08-27_wallpaper_site.sql.gz | \
+  docker exec -i -e MYSQL_PWD="$PASS" "$(docker compose --env-file server/.env.production ps -q mysql)" \
+  sh -c 'exec mysql -uroot wallpaper_site'
+```
+
+> `down -v` 会删除数据卷——恢复演练或重置本地库前先确认手里有可用备份。
+
+另：`pnpm install` 会自动执行 `prepare` 脚本绑定 git 钩子目录（`.githooks/`），无需手动启用密钥拦截。
+
+---
+
 ## 数据与约定
 
 - 上传走腾讯云 COS（桶私有写公开读，审核通过即公开）
-- Demo 源图：`server/uploads/壁纸/`（seed 用）
 - 表结构只走 `server/src/migrations/`，禁止 `synchronize: true`
 - 认证：HttpOnly Cookie `Authentication`；接口见 `server/src/controllers/`
 - 编码与 Agent 约束：`AGENTS.md`

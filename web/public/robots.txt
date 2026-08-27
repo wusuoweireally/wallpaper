@@ -1,0 +1,8 @@
+# sitemap 里的域名是动态配置（FRONTEND_URL），静态文件无法内插——
+# 请到各搜索引擎的站长/搜索控制台手动提交：${FRONTEND_URL}/api/sitemap.xml
+User-agent: *
+Allow: /
+Allow: /api/sitemap.xml
+Disallow: /admin
+Disallow: /user
+Disallow: /api

@@ -4,6 +4,7 @@ import router from "./router"
 import { useUserStore } from "./stores/user"
 import { createPinia } from "pinia"
 import { applyTheme, resolveInitialTheme, watchSystemTheme } from "./utils/theme"
+import { installErrorReporting } from "./utils/errorReporting"
 
 import "./style.css"
 
@@ -15,6 +16,9 @@ async function bootstrap() {
 
   const app = createApp(App)
   const pinia = createPinia()
+
+  // 全局错误上报（工具内部仅生产构建生效），尽早安装以覆盖启动期错误
+  installErrorReporting(app)
 
   app.use(pinia)
 

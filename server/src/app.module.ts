@@ -17,6 +17,7 @@ import { WallpaperModule } from "./modules/wallpaper.module";
 import { TagModule } from "./modules/tag.module";
 import { ForumModule } from "./modules/forum.module";
 import { AdminModule } from "./modules/admin.module";
+import { DiagnosticsModule } from "./modules/diagnostics.module";
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AdminModule } from "./modules/admin.module";
     TagModule,
     ForumModule,
     AdminModule,
+    DiagnosticsModule,
   ],
   providers: [
     {
