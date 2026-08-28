@@ -71,7 +71,7 @@
               placeholder="请输入邮箱地址（可选）"
               class="wb-input"
             />
-            <p class="text-xs text-faint">用于接收安全通知</p>
+            <p class="text-xs text-faint">仅用于个人资料展示</p>
           </div>
 
           <!-- 个人简介 -->

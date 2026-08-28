@@ -180,7 +180,7 @@
               type="email"
               class="auth-input"
               :class="{ 'auth-input--error': registerErrors.email }"
-              placeholder="用于找回账号"
+              placeholder="邮箱（选填）"
               autocomplete="email"
               @input="registerErrors.email = ''"
             />
