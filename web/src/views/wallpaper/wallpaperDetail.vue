@@ -17,7 +17,7 @@
 
     <div v-else-if="error" class="flex items-center justify-center px-4 py-20">
       <div
-        class="inline-flex items-center gap-3 rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-4 py-3 text-error"
+        class="wb-alert inline-flex items-center gap-3 px-4 py-3"
       >
         <span>{{ error }}</span>
         <button type="button" class="wb-btn-ghost wb-btn-sm" @click="$router.back()">返回</button>

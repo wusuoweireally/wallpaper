@@ -4,19 +4,21 @@
 
     <main class="flex-1" :class="{ 'min-h-screen': !shouldShowNavBar }">
       <RouterView v-slot="{ Component }">
-        <Suspense>
-          <component :is="Component" />
-          <template #fallback>
-            <div
-              class="mx-auto flex min-h-[50vh] w-full max-w-5xl flex-col gap-4 px-4 py-8"
-              aria-busy="true"
-              aria-label="页面加载中"
-            >
-              <div class="wb-skeleton h-8 w-48 rounded-md"></div>
-              <div class="wb-skeleton h-64 w-full rounded-tile"></div>
-            </div>
-          </template>
-        </Suspense>
+        <Transition name="page" mode="out-in">
+          <Suspense>
+            <component :is="Component" />
+            <template #fallback>
+              <div
+                class="mx-auto flex min-h-[50vh] w-full max-w-5xl flex-col gap-4 px-4 py-8"
+                aria-busy="true"
+                aria-label="页面加载中"
+              >
+                <div class="wb-skeleton h-8 w-48 rounded-md"></div>
+                <div class="wb-skeleton h-64 w-full rounded-tile"></div>
+              </div>
+            </template>
+          </Suspense>
+        </Transition>
       </RouterView>
     </main>
 
@@ -57,3 +59,16 @@ const shouldShowFooter = computed(() => {
   return true
 })
 </script>
+
+<style scoped>
+/* 页面路由切换淡入淡出（内部灯箱等已有自己的过渡，不冲突） */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+</style>

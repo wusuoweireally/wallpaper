@@ -26,7 +26,7 @@
         <!-- 首屏加载失败：还没内容，可整块提示 -->
         <div
           v-if="listError && items.length === 0"
-          class="border-[color:var(--wb-danger)]/30 rounded-tile border bg-[color:var(--wb-danger-subtle)] px-3 py-2 text-sm text-[color:var(--wb-danger)]"
+          class="wb-alert px-3 py-2.5 text-sm"
         >
           {{ listError }}
         </div>

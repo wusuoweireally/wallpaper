@@ -110,7 +110,7 @@
       <!-- 错误提示 -->
       <div
         v-if="error"
-        class="border-[color:var(--wb-danger)]/30 mt-6 flex items-center gap-3 rounded-card border bg-[color:var(--wb-danger-subtle)] p-3"
+        class="wb-alert mt-6 flex items-center gap-3 p-3"
       >
         <span class="text-sm text-[color:var(--wb-danger)]">{{ error }}</span>
       </div>

@@ -6,36 +6,16 @@
     :aria-pressed="theme === 'dark'"
     @click="toggle"
   >
-    <svg
+    <i
       v-if="theme === 'light'"
-      class="h-4 w-4"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M21.752 15.002A9.718 9.718 0 0 1 12 21.75 9.75 9.75 0 0 1 12 2.25c.214 0 .428.007.64.022a.75.75 0 0 1 .42 1.273 7.5 7.5 0 0 0 8.67 11.457.75.75 0 0 1 1.022 1Z"
-      />
-    </svg>
-    <svg
+      class="i-[mdi--weather-night] text-base"
+      aria-hidden="true"
+    ></i>
+    <i
       v-else
-      class="h-4 w-4"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.364-6.364-1.06 1.06M6.697 17.303l-1.06 1.06m12.727 0-1.06-1.06M6.697 6.697l-1.06-1.06M12 7.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5Z"
-      />
-    </svg>
+      class="i-[mdi--white-balance-sunny] text-base"
+      aria-hidden="true"
+    ></i>
   </button>
 </template>
 

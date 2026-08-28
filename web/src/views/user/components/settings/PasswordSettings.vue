@@ -187,7 +187,7 @@
       <!-- 提示信息 -->
       <div
         v-if="error"
-        class="mb-6 flex items-center gap-3 rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] p-4"
+        class="wb-alert mb-6 flex items-center gap-3 p-4"
       >
         <i class="i-[mdi--alert-circle] text-xl text-error"></i>
         <span class="text-error">{{ error }}</span>

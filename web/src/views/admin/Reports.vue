@@ -280,7 +280,7 @@
           <!-- 状态操作 -->
           <div
             v-if="selectedReport.status === 'pending' || selectedReport.status === 'reviewing'"
-            class="rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] p-6"
+            class="wb-alert p-6"
           >
             <h4 class="mb-4 flex items-center gap-2 font-bold text-fg">
               <i class="i-[mdi--hammer]" aria-hidden="true"></i>

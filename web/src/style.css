@@ -426,6 +426,14 @@
     color: var(--wb-muted);
   }
 
+  /* 错误横幅：统一视觉（边框/底色/圆角/文字色），布局类由调用方叠加 */
+  .wb-alert {
+    border: 1px solid color-mix(in oklab, var(--wb-danger) 30%, transparent);
+    border-radius: 0.75rem;
+    background-color: var(--wb-danger-subtle);
+    color: var(--wb-danger);
+  }
+
   .wb-empty {
     border: 1px dashed var(--wb-border);
     border-radius: 0.5rem;

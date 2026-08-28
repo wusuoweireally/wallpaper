@@ -124,7 +124,7 @@
 
           <div
             v-if="loginError"
-            class="rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-3 py-2.5 text-sm text-error"
+            class="wb-alert px-3 py-2.5 text-sm"
             role="alert"
           >
             {{ loginError }}
@@ -236,7 +236,7 @@
 
           <div
             v-if="registerError"
-            class="rounded-control border border-error/30 bg-[color:var(--wb-danger-subtle)] px-3 py-2.5 text-sm text-error"
+            class="wb-alert px-3 py-2.5 text-sm"
             role="alert"
           >
             {{ registerError }}

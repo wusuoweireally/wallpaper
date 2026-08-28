@@ -65,7 +65,7 @@
     <!-- 错误 -->
     <div
       v-else-if="error"
-      class="flex items-center justify-between gap-4 rounded-2xl border border-error/30 bg-[color:var(--wb-danger-subtle)] px-5 py-4"
+      class="wb-alert flex items-center justify-between gap-4 px-5 py-4"
     >
       <span class="text-sm font-medium text-error">{{ error }}</span>
       <button

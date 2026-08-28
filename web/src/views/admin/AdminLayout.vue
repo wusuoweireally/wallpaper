@@ -68,17 +68,19 @@
       </aside>
       <div class="min-w-0 flex-1 overflow-x-auto p-4 xl:p-6">
         <RouterView v-slot="{ Component }">
-          <Suspense>
-            <component :is="Component" />
-            <template #fallback>
-              <div class="space-y-4" aria-busy="true" aria-label="后台加载中">
-                <div class="wb-skeleton h-8 w-40 rounded-md"></div>
-                <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                  <div v-for="i in 4" :key="i" class="wb-skeleton h-24 rounded-lg"></div>
+          <Transition name="page" mode="out-in">
+            <Suspense>
+              <component :is="Component" />
+              <template #fallback>
+                <div class="space-y-4" aria-busy="true" aria-label="后台加载中">
+                  <div class="wb-skeleton h-8 w-40 rounded-md"></div>
+                  <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    <div v-for="i in 4" :key="i" class="wb-skeleton h-24 rounded-lg"></div>
+                  </div>
                 </div>
-              </div>
-            </template>
-          </Suspense>
+              </template>
+            </Suspense>
+          </Transition>
         </RouterView>
       </div>
     </div>
@@ -152,3 +154,15 @@ const logout = async () => {
   router.push("/")
 }
 </script>
+
+<style scoped>
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+</style>
