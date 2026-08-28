@@ -24,8 +24,8 @@ cp server/.env.development.example server/.env.development
 # 填 DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥16)；上传需 COS_*
 
 pnpm db:up          # 起 MySQL → 127.0.0.1:3306
-pnpm -C server typeorm:run   # 首次或迁移变更时
 pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api、/uploads）
+                    # 迁移自动跑（TYPEORM_MIGRATIONS_RUN=true）；手动：pnpm -C server typeorm:run
 ```
 
 | 变量要点 | 本地 |
@@ -50,6 +50,9 @@ pnpm deploy:logs    # 看日志
 pnpm deploy:down    # 停止（加 -v 会删数据卷，慎用）
 ```
 
+> `server/.env.production` 是生产配置唯一来源（compose 插值 + 容器 env_file 同源），
+> 不要在仓库根另放 `.env` / `.env.prod` 副本（脱节后易被误用，见 AGENTS.md）。
+
 | 服务 | 地址 |
 |------|------|
 | web（对外入口） | `127.0.0.1:3001` |
@@ -60,6 +63,7 @@ pnpm deploy:down    # 停止（加 -v 会删数据卷，慎用）
 - 迁移：`TYPEORM_MIGRATIONS_RUN=true` 时 server 启动自动跑
 - **TLS 在宿主机 Nginx/Caddy** 终结，反代到 `http://127.0.0.1:3001`
 - 壁纸/头像存 COS；库数据在 Docker volume，`deploy:down` 默认保留卷
+- 管理后台入口：`https://你的域名/admin`（需要 `ADMIN_*` 配置的超级管理员账号）
 
 宿主机反代示例：
 

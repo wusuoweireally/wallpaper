@@ -1,7 +1,8 @@
 # 本地只起库：pnpm db:up          （仅 mysql）
 # 生产全栈：  pnpm deploy         （mysql + profile app）
 #
-# server 容器固定读 server/.env.production；compose 插值用命令行 --env-file。
+# server 容器固定读 server/.env.production；compose 插值用 --env-file，二者同一文件：
+#   docker compose --env-file server/.env.production --profile app up -d --build
 # 镜像统一由根 Dockerfile 多阶段构建，server / web 为其中的两个 target。
 
 services:

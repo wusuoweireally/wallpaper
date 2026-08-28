@@ -25,6 +25,8 @@
 - **仅根目录** `pnpm-lock.yaml`，禁止子包再生成锁文件。
 - 本地：Docker 只起 MySQL（`pnpm db:up` → `127.0.0.1:3306`），`DB_HOST=127.0.0.1`；生产全栈 `pnpm deploy`，容器内 `DB_HOST=mysql`（compose 写死）。
 - 环境模板：`server/.env.*.example`；真实 `.env` 禁止提交。仅 **一份** `docker-compose.yml`，无 prod override。
+- **生产配置唯一来源是 `server/.env.production`**：它既是 compose 插值环境（`--env-file`）也是 server 容器 `env_file`。禁止在仓库根另放 `.env` / `.env.prod` 等散装副本——脱节后极易被误用作 `--env-file` 导致插值缺变量或密码不匹配（2026-08-28 部署踩过）。
+- 部署等价手动命令：`docker compose --env-file server/.env.production --profile app up -d --build`（即根 `pnpm deploy`）。
 
 根脚本：`pnpm install --frozen-lockfile`（经 `prepare` 自动启用 `.githooks/`）、`dev`、`build`、`lint`、`type-check`、`test`、`db:up`/`db:down`/`db:reset`（删卷重建本地库，慎用）、`backup`、`deploy`/`deploy:logs`/`deploy:down`。
 子包：`pnpm -C server|web dev|build|format`、`pnpm -C server typeorm:run|typeorm:revert|test -- <pattern>`。
