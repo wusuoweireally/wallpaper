@@ -3,7 +3,21 @@
     <NavBar v-if="shouldShowNavBar" />
 
     <main class="flex-1" :class="{ 'min-h-screen': !shouldShowNavBar }">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Suspense>
+          <component :is="Component" />
+          <template #fallback>
+            <div
+              class="mx-auto flex min-h-[50vh] w-full max-w-5xl flex-col gap-4 px-4 py-8"
+              aria-busy="true"
+              aria-label="页面加载中"
+            >
+              <div class="wb-skeleton h-8 w-48 rounded-md"></div>
+              <div class="wb-skeleton h-64 w-full rounded-tile"></div>
+            </div>
+          </template>
+        </Suspense>
+      </RouterView>
     </main>
 
     <SiteFooter v-if="shouldShowFooter" />
@@ -13,18 +27,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { useRoute } from "vue-router"
+import { computed, ref } from "vue"
+import { useRoute, useRouter } from "vue-router"
 import NavBar from "@/components/NavBar.vue"
 import SiteFooter from "@/components/SiteFooter.vue"
 import ToastContainer from "@/components/ToastContainer.vue"
 import ConfirmDialog from "@/components/ConfirmDialog.vue"
 
 const route = useRoute()
+const router = useRouter()
+const pendingPath = ref(route.path)
 
-const shouldShowNavBar = computed(() => route.meta.showNavBar !== false)
+router.beforeEach((to) => {
+  pendingPath.value = to.path
+})
+
+const isAdminShell = computed(
+  () => pendingPath.value.startsWith("/admin") || route.path.startsWith("/admin"),
+)
+
+const shouldShowNavBar = computed(
+  () => !isAdminShell.value && route.meta.showNavBar !== false,
+)
 
 const shouldShowFooter = computed(() => {
+  if (isAdminShell.value) return false
   if (route.meta.hideFooter === true) return false
   if (route.meta.showNavBar === false) return false
   return true

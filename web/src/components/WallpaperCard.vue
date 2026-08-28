@@ -7,7 +7,7 @@
     >
       <RouterLink
         :to="`/wallpaper/${wallpaper.id}`"
-        class="absolute inset-0 block"
+        class="absolute inset-0 z-0 block"
         :title="`${wallpaper.width}×${wallpaper.height}`"
         :aria-label="`查看壁纸 ${displayTitle}`"
       >
@@ -60,7 +60,7 @@
             data-overlay="favorite"
             :aria-label="isFavorited ? '取消收藏' : '收藏壁纸'"
             :aria-pressed="isFavorited"
-            @click="handleFavorite"
+            @click.prevent.stop="handleFavorite"
           >
             <i
               :class="isFavorited ? 'i-[mdi--heart]' : 'i-[mdi--heart-outline]'"

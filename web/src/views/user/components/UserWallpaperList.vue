@@ -130,10 +130,9 @@
             class="relative overflow-hidden"
             :style="{ aspectRatio: `${wallpaper.width}/${wallpaper.height}` }"
           >
-            <button
-              type="button"
+            <RouterLink
+              :to="`/wallpaper/${wallpaper.id}`"
               class="absolute inset-0 block w-full"
-              @click="goToWallpaper(wallpaper)"
             >
               <img
                 :src="wallpaper.thumbnailUrl || wallpaper.fileUrl"
@@ -141,7 +140,7 @@
                 class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                 loading="lazy"
               />
-            </button>
+            </RouterLink>
 
             <span
               v-if="props.type === 'uploads'"
@@ -296,11 +295,6 @@ const fetchData = async (page: number = 1, silent = false) => {
 const handlePageChange = (page: number) => {
   if (page < 1 || page > pagination.value.pages) return
   fetchData(page)
-}
-
-const goToWallpaper = (w: Wallpaper) => {
-  // 草稿进详情可继续完善；也可点卡片底部提示
-  router.push(`/wallpaper/${w.id}`)
 }
 
 /** 公开/不公开切换（本人；公开=1，下架=0） */

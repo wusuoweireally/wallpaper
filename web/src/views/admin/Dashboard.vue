@@ -16,7 +16,7 @@
       </p>
     </header>
 
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
       <div class="wb-card p-4">
         <p class="text-xs text-muted">用户</p>
         <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">{{ stats.totalUsers || 0 }}</p>
@@ -47,7 +47,7 @@
       </div>
     </div>
 
-    <div class="grid gap-4 xl:grid-cols-3">
+    <div class="grid gap-4 2xl:grid-cols-3">
       <div class="wb-card xl:col-span-2">
         <div class="border-b border-line px-4 py-3">
           <h2 class="text-sm font-semibold text-fg">快速操作</h2>

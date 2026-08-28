@@ -1,8 +1,18 @@
 <template>
   <!-- 详情页：主图居左陈列（880 上限）+ 右侧信息栏；跟随站点浅色/深色主题 -->
   <div class="wb-page overflow-x-clip bg-canvas text-fg">
-    <div v-if="loading" class="flex items-center justify-center py-24">
-      <span class="wb-spinner wb-spinner-lg"></span>
+    <div
+      v-if="loading"
+      class="wb-container-gallery flex flex-col gap-8 py-7 lg:flex-row"
+      aria-busy="true"
+      aria-label="壁纸加载中"
+    >
+      <div class="wb-skeleton min-h-[50vh] w-full max-w-[880px] flex-1 rounded-tile"></div>
+      <div class="flex w-full flex-col gap-3 lg:w-80">
+        <div class="wb-skeleton h-8 w-2/3 rounded-md"></div>
+        <div class="wb-skeleton h-24 w-full rounded-md"></div>
+        <div class="wb-skeleton h-10 w-full rounded-md"></div>
+      </div>
     </div>
 
     <div v-else-if="error" class="flex items-center justify-center px-4 py-20">
