@@ -4,6 +4,7 @@ import "./types" // 导入路由类型扩展
 import { useUserStore } from "@/stores/user"
 import { useGlobalToast } from "@/composables/useToast"
 import { storeToRefs } from "pinia"
+import AdminLayout from "@/views/admin/AdminLayout.vue"
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -273,7 +274,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/admin",
     name: "AdminLayout",
-    component: () => import("@/views/admin/AdminLayout.vue"),
+    component: AdminLayout,
     redirect: "/admin/dashboard",
     meta: {
       title: "管理后台",
@@ -449,7 +450,6 @@ router.onError((error) => {
 if (typeof window !== "undefined") {
   const prefetchRoutes = () => {
     for (const record of router.getRoutes()) {
-      if (record.path.startsWith("/admin")) continue
       try {
         const comp = record.components?.default
         if (typeof comp === "function") {

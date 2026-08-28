@@ -32,7 +32,7 @@
       <div class="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
         <p class="text-faint">© {{ year }} Wallbay · 用 ♡ 制作</p>
         <div class="flex gap-4">
-          <a href="https://github.com" target="_blank" rel="noopener" class="font-medium text-muted transition-colors hover:text-fg">
+          <a href="https://github.com/wusuoweireally/wallpaper" target="_blank" rel="noopener" class="font-medium text-muted transition-colors hover:text-fg">
             GitHub
           </a>
         </div>

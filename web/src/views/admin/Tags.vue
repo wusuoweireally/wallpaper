@@ -72,13 +72,13 @@
       </div>
 
       <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
+        <table class="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr class="border-b border-line text-xs uppercase tracking-wide text-faint">
               <th class="px-6 py-4 font-semibold">标签名称</th>
               <th class="px-6 py-4 font-semibold">使用次数</th>
               <th class="px-6 py-4 font-semibold">创建时间</th>
-              <th class="px-6 py-4 font-semibold">操作</th>
+              <th class="whitespace-nowrap px-6 py-4 font-semibold">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +101,7 @@
               <td class="px-6 py-4">
                 <div class="text-muted">{{ formatDate(tag.createdAt) }}</div>
               </td>
-              <td class="px-6 py-4">
+              <td class="whitespace-nowrap px-6 py-4">
                 <div class="flex gap-2">
                   <button class="wb-btn-ghost wb-btn-sm gap-2" @click="openEditModal(tag)">
                     <i class="i-[mdi--pencil]" aria-hidden="true"></i>

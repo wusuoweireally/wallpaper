@@ -6,7 +6,7 @@
       <div class="flex items-center gap-3">
         <button
           type="button"
-          class="wb-icon-btn lg:hidden"
+          class="wb-icon-btn xl:hidden"
           aria-label="打开侧边栏"
           @click="sidebarOpen = true"
         >
@@ -37,12 +37,12 @@
     <div class="flex">
       <div
         v-if="sidebarOpen"
-        class="fixed inset-0 z-30 bg-black/40 lg:hidden"
+        class="fixed inset-0 z-30 bg-black/40 xl:hidden"
         @click="sidebarOpen = false"
       ></div>
       <aside
-        class="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-[color:var(--wb-admin-sidebar)] pt-14 transition-transform lg:static lg:z-0 lg:min-h-[calc(100vh-3.5rem)] lg:translate-x-0 lg:pt-0"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        class="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-[color:var(--wb-admin-sidebar)] pt-14 transition-transform xl:static xl:z-0 xl:min-h-[calc(100vh-3.5rem)] xl:translate-x-0 xl:pt-0"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'"
       >
         <nav class="flex-1 space-y-0.5 p-3">
           <router-link
@@ -66,8 +66,20 @@
           <button type="button" class="wb-btn w-full" @click="logout">退出登录</button>
         </div>
       </aside>
-      <div class="min-w-0 flex-1 p-4 lg:p-6">
-        <RouterView />
+      <div class="min-w-0 flex-1 overflow-x-auto p-4 xl:p-6">
+        <RouterView v-slot="{ Component }">
+          <Suspense>
+            <component :is="Component" />
+            <template #fallback>
+              <div class="space-y-4" aria-busy="true" aria-label="后台加载中">
+                <div class="wb-skeleton h-8 w-40 rounded-md"></div>
+                <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  <div v-for="i in 4" :key="i" class="wb-skeleton h-24 rounded-lg"></div>
+                </div>
+              </div>
+            </template>
+          </Suspense>
+        </RouterView>
       </div>
     </div>
   </div>
