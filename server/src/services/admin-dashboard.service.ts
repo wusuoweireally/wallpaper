@@ -119,11 +119,21 @@ export class AdminDashboardService {
   }
 
   async getRecentActivity(limit = 8): Promise<RecentActivityItem[]> {
-    const reports = await this.reportRepository.find({
-      relations: ["user"],
-      order: { createdAt: "DESC" },
-      take: limit,
-    });
+    // 只取 username 一个用户列，避免 relations 把 users 全字段（含 passwordHash）拉进内存
+    const reports = await this.reportRepository
+      .createQueryBuilder("report")
+      .leftJoinAndSelect("report.user", "user")
+      .select([
+        "report.id",
+        "report.reason",
+        "report.status",
+        "report.createdAt",
+        "report.userId",
+        "user.username",
+      ])
+      .orderBy("report.createdAt", "DESC")
+      .take(limit)
+      .getMany();
 
     return reports.map((report) => ({
       id: report.id,

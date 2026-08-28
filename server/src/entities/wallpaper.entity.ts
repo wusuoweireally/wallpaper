@@ -20,6 +20,8 @@ export enum WallpaperStatus {
 }
 
 @Entity("wallpapers")
+// 列表主查询 WHERE status=? ORDER BY created_at DESC 的复合索引（覆盖原 idx_status）
+@Index("idx_status_created_at", ["status", "createdAt"])
 export class Wallpaper {
   @PrimaryGeneratedColumn({ type: "bigint", comment: "壁纸ID" })
   id: number;
@@ -122,7 +124,6 @@ export class Wallpaper {
     default: WallpaperStatus.PENDING,
     comment: "状态 0:草稿/未公开 1:已发布",
   })
-  @Index("idx_status")
   status: WallpaperStatus;
 
   @Column({

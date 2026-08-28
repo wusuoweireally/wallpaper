@@ -23,6 +23,7 @@ import { Post, PostStatus } from "../entities/post.entity";
 import { Comment } from "../entities/comment.entity";
 import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { User } from "../entities/user.entity";
+import { CommentService } from "./comment.service";
 import { normalizePagination } from "../common/pagination";
 
 // TypeORM 查询结果类型
@@ -83,6 +84,7 @@ export class ReportService {
     private postRepository: Repository<Post>,
     @InjectRepository(Comment)
     private commentRepository: Repository<Comment>,
+    private readonly commentService: CommentService,
     /** 壁纸举报快照用；可选注入，单测手装时可省 */
     @Optional()
     private readonly wallpaperRepository?: Repository<Wallpaper>,
@@ -364,11 +366,8 @@ export class ReportService {
           { status: PostStatus.HIDDEN },
         );
       } else {
-        // 评论软删除：置 deletedAt，保留原树结构与计数，不做硬删
-        await this.commentRepository.update(
-          { id: report.targetId },
-          { deletedAt: new Date() },
-        );
+        // 评论软删子树并同步计数（与用户删除同一口径）
+        await this.commentService.softDeleteSubtree(report.targetId);
       }
     }
 
@@ -399,17 +398,23 @@ export class ReportService {
     statsByReason: Array<{ reason: string; count: number }>;
     statsByType: Array<{ targetType: string; count: number }>;
   }> {
-    const [total, pending, reviewing, resolved, dismissed] = await Promise.all([
-      this.reportRepository.count(),
-      this.reportRepository.count({ where: { status: ReportStatus.PENDING } }),
-      this.reportRepository.count({
-        where: { status: ReportStatus.REVIEWING },
-      }),
-      this.reportRepository.count({ where: { status: ReportStatus.RESOLVED } }),
-      this.reportRepository.count({
-        where: { status: ReportStatus.DISMISSED },
-      }),
-    ]);
+    // 状态计数一条聚合拿全（此前 5 次 count 并发 5 条 SQL）
+    const statusRows = await this.reportRepository
+      .createQueryBuilder("report")
+      .select("report.status", "status")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("report.status")
+      .getRawMany<{ status: string; count: number }>();
+
+    const statusCount = new Map<string, number>();
+    for (const row of statusRows) {
+      statusCount.set(row.status, Number(row.count));
+    }
+    const total =
+      (statusCount.get(ReportStatus.PENDING) ?? 0) +
+      (statusCount.get(ReportStatus.REVIEWING) ?? 0) +
+      (statusCount.get(ReportStatus.RESOLVED) ?? 0) +
+      (statusCount.get(ReportStatus.DISMISSED) ?? 0);
 
     // 按原因统计
     const rawStatsByReason = await this.reportRepository
@@ -429,10 +434,10 @@ export class ReportService {
 
     return {
       totalReports: total,
-      pendingReports: pending,
-      processingReports: reviewing,
-      resolvedReports: resolved,
-      rejectedReports: dismissed,
+      pendingReports: statusCount.get(ReportStatus.PENDING) ?? 0,
+      processingReports: statusCount.get(ReportStatus.REVIEWING) ?? 0,
+      resolvedReports: statusCount.get(ReportStatus.RESOLVED) ?? 0,
+      rejectedReports: statusCount.get(ReportStatus.DISMISSED) ?? 0,
       statsByReason: rawStatsByReason.map(({ reason, count }) => ({
         reason,
         count: Number(count),

@@ -116,6 +116,7 @@ export class TagService {
 
     const [data, total] = await qb
       .orderBy(`tag.${orderField}`, orderDirection)
+      .addOrderBy("tag.id", orderDirection) // 平票次序键：同分页稳定不重复/漏页
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();

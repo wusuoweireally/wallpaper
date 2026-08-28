@@ -86,7 +86,7 @@ describe("ViewHistoryService recordView", () => {
 
     await expect(service.recordView(7, 98)).resolves.toBe(true);
     expect(query).toHaveBeenCalledWith(
-      "UPDATE wallpapers SET view_count = view_count + 1 WHERE id = ?",
+      "UPDATE wallpapers SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
       [98],
     );
   });
@@ -124,7 +124,7 @@ describe("ViewHistoryService recordView", () => {
 
     await expect(service.recordView(7, 98)).resolves.toBe(true);
     expect(query).toHaveBeenCalledWith(
-      "UPDATE wallpapers SET view_count = view_count + 1 WHERE id = ?",
+      "UPDATE wallpapers SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
       [98],
     );
   });
@@ -143,7 +143,7 @@ describe("ViewHistoryService recordView", () => {
 
     await expect(service.recordView(7, 98)).resolves.toBe(true);
     expect(query).toHaveBeenCalledWith(
-      "UPDATE wallpapers SET view_count = view_count + 1 WHERE id = ?",
+      "UPDATE wallpapers SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
       [98],
     );
   });

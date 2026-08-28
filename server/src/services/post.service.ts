@@ -219,9 +219,10 @@ export class PostService {
     if (sortField === "popular") {
       queryBuilder
         .orderBy("post.viewCount", "DESC")
-        .addOrderBy("post.likeCount", "DESC");
+        .addOrderBy("post.likeCount", "DESC")
+        .addOrderBy("post.id", "DESC"); // 平票次序键：同分页稳定不重复/漏页
     } else {
-      queryBuilder.orderBy(`post.${sortField}`, sortOrder);
+      queryBuilder.orderBy(`post.${sortField}`, sortOrder).addOrderBy("post.id", sortOrder);
     }
 
     // 执行分页查询

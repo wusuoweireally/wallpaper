@@ -9,6 +9,7 @@ import type { Report } from "../entities/report.entity";
 import { Post, PostStatus } from "../entities/post.entity";
 import type { Comment } from "../entities/comment.entity";
 import { ReportService } from "./report.service";
+import type { CommentService } from "./comment.service";
 
 describe("ReportService", () => {
   let reportRepository: {
@@ -61,6 +62,7 @@ describe("ReportService", () => {
       reportRepository as unknown as Repository<Report>,
       postRepository as unknown as Repository<Post>,
       commentRepository as unknown as Repository<Comment>,
+      { softDeleteSubtree: jest.fn() } as unknown as CommentService,
     );
   });
 

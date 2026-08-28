@@ -340,31 +340,84 @@ export class CommentService {
 
       const subtreeIds = await this.getCommentSubtreeIds(id, manager);
 
-      const result = await commentRepo.delete(id);
+      // 整批物理删除子树（只删根时子孙残留成指向已删父的孤儿）
+      const visibleCount = await commentRepo.count({
+        where: { id: In(subtreeIds), deletedAt: IsNull() },
+      });
+      const result = await commentRepo.delete(subtreeIds);
       if (result.affected === 0) {
         throw new NotFoundException(`评论 ID ${id} 删除失败`);
       }
 
-      if (comment.parentId) {
-        await commentRepo
-          .createQueryBuilder()
-          .update(Comment)
-          .set({ replyCount: () => "GREATEST(reply_count - 1, 0)" })
-          .where("id = :parentId", { parentId: comment.parentId })
-          .execute();
+      await this.applySubtreeRemoval(comment, visibleCount, post.id, manager);
+    });
+  }
+
+  /**
+   * 治理软删评论子树：整棵子树置 deletedAt 并递减计数器
+   * （与用户删除同一口径，避免帖子计数与可见评论数漂移；目标不存在时幂等返回）
+   */
+  async softDeleteSubtree(id: number): Promise<void> {
+    const comment = await this.commentRepository.findOne({ where: { id } });
+    if (!comment) {
+      return; // 已被物理删除，无需再隐藏
+    }
+    await this.dataSource.transaction(async (manager) => {
+      const commentRepo = manager.getRepository(Comment);
+      const postRepo = manager.getRepository(Post);
+
+      const post = await postRepo
+        .createQueryBuilder("post")
+        .setLock("pessimistic_write")
+        .where("post.id = :postId", { postId: comment.postId })
+        .getOne();
+      if (!post) {
+        throw new NotFoundException(`帖子 ID ${comment.postId} 不存在`);
       }
 
-      await manager.query(
-        `UPDATE posts
-         SET comment_count = GREATEST(comment_count - ?, 0),
-             last_comment_at = (
-               SELECT MAX(created_at) FROM comments
-               WHERE post_id = ? AND deleted_at IS NULL
-             )
-         WHERE id = ?`,
-        [subtreeIds.length, comment.postId, comment.postId],
-      );
+      const subtreeIds = await this.getCommentSubtreeIds(id, manager);
+      const visibleCount = await commentRepo.count({
+        where: { id: In(subtreeIds), deletedAt: IsNull() },
+      });
+      if (visibleCount === 0) {
+        return; // 子树已全部软删过，幂等
+      }
+
+      await commentRepo.update({ id: In(subtreeIds) }, { deletedAt: new Date() });
+      await this.applySubtreeRemoval(comment, visibleCount, post.id, manager);
     });
+  }
+
+  /** 移除子树后的计数器同步：父回复数 -1、帖子计数 -visibleCount 并重算最后评论时间 */
+  private async applySubtreeRemoval(
+    comment: Comment,
+    visibleCount: number,
+    postId: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    const commentRepo = manager.getRepository(Comment);
+
+    if (visibleCount === 0) return;
+
+    if (comment.parentId) {
+      await commentRepo
+        .createQueryBuilder()
+        .update(Comment)
+        .set({ replyCount: () => "GREATEST(reply_count - 1, 0)" })
+        .where("id = :parentId", { parentId: comment.parentId })
+        .execute();
+    }
+
+    await manager.query(
+      `UPDATE posts
+       SET comment_count = GREATEST(comment_count - ?, 0),
+           last_comment_at = (
+             SELECT MAX(created_at) FROM comments
+             WHERE post_id = ? AND deleted_at IS NULL
+           )
+       WHERE id = ?`,
+      [visibleCount, postId, postId],
+    );
   }
 
   private async getCommentSubtreeIds(
