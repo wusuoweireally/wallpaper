@@ -44,8 +44,6 @@
     /* 贴纸描边墨线 + 硬阴影（按钮/角标/卡片描边） */
     --wb-outline: rgb(46 42 79 / 0.85);
     --wb-shadow-pop: 0 3px 0 rgb(46 42 79 / 0.9);
-    --wb-admin-canvas: #eef1f4;
-    --wb-admin-sidebar: #e6eaee;
   }
 
   .dark {
@@ -74,14 +72,13 @@
     --wb-warning-subtle: rgb(232 137 12 / 0.15);
     --wb-outline: rgb(12 10 24 / 0.7);
     --wb-shadow-pop: 0 3px 0 rgb(12 10 24 / 0.65);
-    --wb-admin-canvas: #010409;
-    --wb-admin-sidebar: #0d1117;
   }
 
   /* 管理后台恒为深色（GitHub dark 风格），与站点主题解耦 */
   [data-shell="admin"] {
     color-scheme: dark;
-    --wb-canvas: var(--wb-admin-canvas);
+    --wb-canvas: #010409;
+    --wb-admin-sidebar: #0d1117;
     --wb-subtle: #161b22;
     --wb-surface: #161b22;
     --wb-inset: #010409;

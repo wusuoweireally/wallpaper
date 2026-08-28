@@ -16,29 +16,29 @@
       </p>
     </header>
 
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div class="wb-card p-4">
         <p class="text-xs text-muted">用户</p>
-        <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">{{ stats.totalUsers || 0 }}</p>
+        <p class="mt-2 text-3xl font-bold tabular-nums text-fg">{{ stats.totalUsers || 0 }}</p>
         <p class="mt-1 text-xs text-faint">
           活跃 {{ stats.activeUsers || 0 }} · {{ userPercentage }}%
         </p>
       </div>
       <div class="wb-card p-4">
         <p class="text-xs text-muted">壁纸</p>
-        <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">
+        <p class="mt-2 text-3xl font-bold tabular-nums text-fg">
           {{ stats.totalWallpapers || 0 }}
         </p>
         <p class="mt-1 text-xs text-faint">本月 +{{ stats.newWallpapersThisMonth || 0 }}</p>
       </div>
       <div class="wb-card p-4">
         <p class="text-xs text-muted">帖子</p>
-        <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">{{ stats.totalPosts || 0 }}</p>
+        <p class="mt-2 text-3xl font-bold tabular-nums text-fg">{{ stats.totalPosts || 0 }}</p>
         <p class="mt-1 text-xs text-faint">本月 +{{ stats.newPostsThisMonth || 0 }}</p>
       </div>
       <div class="wb-card p-4">
         <p class="text-xs text-muted">待处理举报</p>
-        <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">
+        <p class="mt-2 text-3xl font-bold tabular-nums text-fg">
           {{ stats.pendingReports || 0 }}
         </p>
         <p class="mt-1 text-xs text-faint">
@@ -47,16 +47,28 @@
       </div>
     </div>
 
-    <div class="grid gap-4 2xl:grid-cols-3">
+    <div class="grid gap-4 xl:grid-cols-3">
       <div class="wb-card xl:col-span-2">
-        <div class="border-b border-line px-4 py-3">
+        <div class="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 class="text-sm font-semibold text-fg">快速操作</h2>
         </div>
         <div class="grid grid-cols-2 gap-2 p-4">
-          <RouterLink to="/admin/users" class="wb-btn justify-start">用户管理</RouterLink>
-          <RouterLink to="/admin/wallpapers" class="wb-btn justify-start">壁纸管理</RouterLink>
-          <RouterLink to="/admin/reports" class="wb-btn justify-start">举报管理</RouterLink>
-          <RouterLink to="/wallpapers" class="wb-btn justify-start">浏览前台</RouterLink>
+          <RouterLink to="/admin/users" class="wb-btn justify-start">
+            <i class="i-[mdi--account-group-outline] text-primary" aria-hidden="true"></i>
+            用户管理
+          </RouterLink>
+          <RouterLink to="/admin/wallpapers" class="wb-btn justify-start">
+            <i class="i-[mdi--image-multiple-outline] text-primary" aria-hidden="true"></i>
+            壁纸管理
+          </RouterLink>
+          <RouterLink to="/admin/reports" class="wb-btn justify-start">
+            <i class="i-[mdi--flag-outline] text-primary" aria-hidden="true"></i>
+            举报管理
+          </RouterLink>
+          <RouterLink to="/wallpapers" class="wb-btn justify-start">
+            <i class="i-[mdi--compass-outline] text-primary" aria-hidden="true"></i>
+            浏览前台
+          </RouterLink>
         </div>
       </div>
 
@@ -69,9 +81,13 @@
           <div v-if="loading" class="flex justify-center py-8">
             <span class="wb-spinner text-muted"></span>
           </div>
-          <p v-else-if="recentReports.length === 0" class="py-8 text-center text-sm text-faint">
-            暂无最新活动
-          </p>
+          <div
+            v-else-if="recentReports.length === 0"
+            class="flex flex-col items-center gap-2 py-10 text-sm text-faint"
+          >
+            <i class="i-[mdi--inbox-outline] text-2xl" aria-hidden="true"></i>
+            <span>暂无最新活动</span>
+          </div>
           <ul v-else class="space-y-3">
             <li v-for="report in recentReports" :key="report.id" class="text-sm">
               <p class="font-medium text-fg">{{ getReasonText(report.reason) }}</p>
@@ -84,10 +100,9 @@
       </div>
     </div>
 
-    <div class="wb-card p-4">
-      <p class="text-xs text-muted">
-        本月新增壁纸占比 {{ wallpaperPercentage }}% · 本月新增帖子占比 {{ postPercentage }}%
-      </p>
+    <div class="flex flex-wrap gap-2 text-xs text-muted">
+      <span class="wb-chip">本月新增壁纸占比 {{ wallpaperPercentage }}%</span>
+      <span class="wb-chip">本月新增帖子占比 {{ postPercentage }}%</span>
     </div>
   </div>
 </template>
