@@ -25,37 +25,17 @@ export const normalizeClientIp = (ip: string): string => {
   return isIP(value) ? value : "";
 };
 
-/** 回环 / 私网：trust proxy hops 不准时 request.ip 常落在这些地址上 */
-const isUnreliableIp = (ip: string): boolean => {
-  if (!ip) {
-    return true;
-  }
-  if (ip === "127.0.0.1" || ip === "0.0.0.0" || ip === "::1" || ip === "::") {
-    return true;
-  }
-  if (ip.startsWith("10.") || ip.startsWith("192.168.")) {
-    return true;
-  }
-  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) {
-    return true;
-  }
-  if (ip.startsWith("fe80:") || ip.startsWith("fc") || ip.startsWith("fd")) {
-    return true;
-  }
-  return false;
-};
-
 /**
  * 游客去重用的客户端 IP。
  * 生产链路：Cloudflare → 宿主机 Nginx → web Nginx → server。
- * Express request.ip 依赖 trust proxy hops；hops 不准时会落到某一跳代理
- * （含 Cloudflare 边缘 IP，同会话可能变化），内存去重随之失效。
+ * trust proxy hops 不准时 request.ip 会落在 Cloudflare 边缘（公网且会抖动）
+ * 或 Docker 私网地址上，内存 Map 去重随之失效。
  *
  * 优先级：
- * 1. CF-Connecting-IP（Cloudflare 原始客户端）
- * 2. 可靠的 request.ip（非空且非私网/回环）
- * 3. X-Forwarded-For 最左侧客户端 IP
- * 4. 退化到 request.ip（可能为空）
+ * 1. CF-Connecting-IP（Cloudflare 覆盖写入，访客真实 IP）
+ * 2. True-Client-IP（CF Enterprise）
+ * 3. X-Forwarded-For 最左侧（比边缘 IP 稳定）
+ * 4. request.ip
  */
 export const getClientIp = (request: Request): string => {
   const cf = normalizeClientIp(
@@ -64,18 +44,17 @@ export const getClientIp = (request: Request): string => {
   if (cf) {
     return cf;
   }
-
-  const reqIp = normalizeClientIp(request.ip ?? "");
-  if (reqIp && !isUnreliableIp(reqIp)) {
-    return reqIp;
+  const trueClient = normalizeClientIp(
+    firstHeaderValue(request.headers["true-client-ip"]),
+  );
+  if (trueClient) {
+    return trueClient;
   }
-
   const xff = normalizeClientIp(
     firstHeaderValue(request.headers["x-forwarded-for"]),
   );
   if (xff) {
     return xff;
   }
-
-  return reqIp;
+  return normalizeClientIp(request.ip ?? "");
 };

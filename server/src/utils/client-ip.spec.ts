@@ -22,7 +22,7 @@ describe("normalizeClientIp", () => {
 });
 
 describe("getClientIp", () => {
-  it("prefers CF-Connecting-IP over req.ip (Cloudflare edge)", () => {
+  it("prefers CF-Connecting-IP over a public Cloudflare edge req.ip", () => {
     expect(
       getClientIp(
         asRequest({
@@ -44,20 +44,31 @@ describe("getClientIp", () => {
     ).toBe("203.0.113.10");
   });
 
-  it("falls back to leftmost X-Forwarded-For when req.ip is empty", () => {
+  it("falls back to True-Client-IP then X-Forwarded-For then req.ip", () => {
     expect(
       getClientIp(
         asRequest({
-          ip: "",
+          ip: "104.16.1.1",
+          headers: { "true-client-ip": "203.0.113.99" },
+        }),
+      ),
+    ).toBe("203.0.113.99");
+  });
+
+  it("uses leftmost X-Forwarded-For over a public edge req.ip", () => {
+    expect(
+      getClientIp(
+        asRequest({
+          ip: "104.16.1.1",
           headers: {
-            "x-forwarded-for": "203.0.113.99, 10.0.0.8, 172.18.0.1",
+            "x-forwarded-for": "203.0.113.99, 104.16.1.1, 172.18.0.1",
           },
         }),
       ),
     ).toBe("203.0.113.99");
   });
 
-  it("falls back to leftmost X-Forwarded-For when req.ip is private", () => {
+  it("uses leftmost X-Forwarded-For when req.ip is private", () => {
     expect(
       getClientIp(
         asRequest({
@@ -74,12 +85,15 @@ describe("getClientIp", () => {
     );
   });
 
-  it("ignores an empty CF header and uses req.ip", () => {
+  it("ignores an empty CF header and does not stick to the edge IP", () => {
     expect(
       getClientIp(
         asRequest({
-          ip: "198.51.100.2",
-          headers: { "cf-connecting-ip": "" },
+          ip: "104.16.1.1",
+          headers: {
+            "cf-connecting-ip": "",
+            "x-forwarded-for": "198.51.100.2, 104.16.1.1",
+          },
         }),
       ),
     ).toBe("198.51.100.2");
