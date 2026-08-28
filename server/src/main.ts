@@ -26,9 +26,10 @@ async function bootstrap() {
     app.use(cookieParser());
 
     // 全局验证管道
-    // 信任反向代理的 X-Forwarded-For 头（Docker Compose 架构: 宿主机 Nginx → web 容器 Nginx → server）
-    // 不设置会导致全局限流器所有用户共享同一个 IP，限流失效
-    app.set("trust proxy", 2);
+    // 信任反向代理的 X-Forwarded-For 头。
+    // 生产 hops：Cloudflare → 宿主机 Nginx → web 容器 Nginx → server（3 跳）。
+    // 少一跳时 req.ip 会落在 Cloudflare 边缘 IP 上，游客浏览去重与限流都会按边缘节点抖动。
+    app.set("trust proxy", 3);
 
     app.useGlobalPipes(
       new ValidationPipe({

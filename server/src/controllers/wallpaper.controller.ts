@@ -38,6 +38,7 @@ import { ViewHistoryService } from "../services/view-history.service";
 import { sanitizeUser } from "../utils/sanitize";
 import { resolveAvatarUrl } from "../utils/avatar";
 import { buildPaginationMeta } from "../common/pagination";
+import { getClientIp } from "../utils/client-ip";
 
 interface CreateWallpaperData extends CreateWallpaperDto {
   fileUrl: string;
@@ -288,22 +289,27 @@ export class WallpaperController {
     );
 
     let isFavorited = false;
+    let counted = false;
 
     if (wallpaper.status === WallpaperStatus.APPROVED) {
       if (authUser?.userId) {
-        await this.viewHistoryService.recordView(authUser.userId, wallpaperId);
+        counted = await this.viewHistoryService.recordView(
+          authUser.userId,
+          wallpaperId,
+        );
+        isFavorited = await this.wallpaperService.getUserFavoriteStatus(
+          wallpaperId,
+          authUser.userId,
+        );
       } else if (
-        this.viewHistoryService.recordGuestView(request.ip ?? "", wallpaperId)
+        this.viewHistoryService.recordGuestView(
+          getClientIp(request),
+          wallpaperId,
+        )
       ) {
         await this.wallpaperService.incrementViewCount(wallpaperId);
+        counted = true;
       }
-    }
-
-    if (wallpaper.status === WallpaperStatus.APPROVED && authUser?.userId) {
-      isFavorited = await this.wallpaperService.getUserFavoriteStatus(
-        wallpaperId,
-        authUser.userId,
-      );
     }
 
     // 头像：COS 完整 URL，否则用默认头像
@@ -314,6 +320,7 @@ export class WallpaperController {
       success: true,
       data: {
         ...wallpaper,
+        viewCount: displayedViewCount(wallpaper.viewCount, counted),
         isFavorited,
         uploaderName: wallpaper.uploader?.username || "未知用户",
         uploader: sanitizeUser({
@@ -435,4 +442,11 @@ export class WallpaperController {
     );
     return { success: true, message: "已取消收藏", data: result };
   }
+}
+
+function displayedViewCount(raw: unknown, counted: boolean): number {
+  const current = Number(raw);
+  const base =
+    Number.isFinite(current) && current >= 0 ? Math.trunc(current) : 0;
+  return counted ? base + 1 : base;
 }

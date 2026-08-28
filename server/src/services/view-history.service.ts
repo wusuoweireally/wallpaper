@@ -24,6 +24,7 @@ export class ViewHistoryService {
    * 游客浏览计数判定（内存版，重启清零可接受）：
    * 同 IP+壁纸在窗口内只返回 true 一次，调用方据此决定是否累加 viewCount。
    * 服务端权威判定，不依赖前端上报的 trackView 标记。
+   * 调用方应传入 getClientIp(request)（优先 CF-Connecting-IP），不要用未规范化的 req.ip。
    */
   recordGuestView(ip: string, wallpaperId: number): boolean {
     const now = Date.now();
@@ -57,8 +58,9 @@ export class ViewHistoryService {
    * - 1 小时内重复浏览：带窗口条件的 UPDATE 影响 0 行 → 不计数
    * - 超 1 小时：UPDATE 影响 1 行 → 计数
    * INSERT 唯一键冲突会阻塞到另一事务提交，并发重复请求只有一个能计数。
+   * @returns 本次是否真正累加了 wallpapers.view_count
    */
-  async recordView(userId: number, wallpaperId: number): Promise<void> {
+  async recordView(userId: number, wallpaperId: number): Promise<boolean> {
     const qr =
       this.viewHistoryRepository.manager.connection.createQueryRunner();
     try {
@@ -69,17 +71,19 @@ export class ViewHistoryService {
           [userId, wallpaperId],
         );
         await this.countView(qr, wallpaperId); // 首次浏览
+        return true;
       } catch (err) {
         if ((err as { code?: string }).code !== "ER_DUP_ENTRY") throw err;
         const res = await qr.query(
           "UPDATE view_history SET viewed_at = NOW() WHERE user_id = ? AND wallpaper_id = ? AND viewed_at < NOW() - INTERVAL 1 HOUR",
           [userId, wallpaperId],
         );
-        const affected =
-          (res as { affectedRows?: number } | undefined)?.affectedRows ?? 0;
+        const affected = mysqlAffectedRows(res);
         if (affected > 0) {
           await this.countView(qr, wallpaperId); // 超窗：重新计数
+          return true;
         }
+        return false;
       }
     } finally {
       await qr.release();
@@ -148,4 +152,15 @@ export class ViewHistoryService {
       viewedAt: LessThan(thirtyDaysAgo),
     });
   }
+}
+
+function mysqlAffectedRows(res: unknown): number {
+  if (Array.isArray(res)) {
+    return mysqlAffectedRows(res[0]);
+  }
+  if (res && typeof res === "object" && "affectedRows" in res) {
+    const n = Number((res as { affectedRows?: unknown }).affectedRows);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
 }
