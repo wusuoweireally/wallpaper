@@ -28,6 +28,22 @@
 - **生产配置唯一来源是 `server/.env.production`**：它既是 compose 插值环境（`--env-file`）也是 server 容器 `env_file`。禁止在仓库根另放 `.env` / `.env.prod` 等散装副本——脱节后极易被误用作 `--env-file` 导致插值缺变量或密码不匹配（2026-08-28 部署踩过）。
 - 部署等价手动命令：`docker compose --env-file server/.env.production --profile app up -d --build`（即根 `pnpm deploy`）。
 
+### 生产部署（ssh server；勿在本机执行 `pnpm deploy`）
+
+- 本机 `~/.ssh/config` 已有主机别名 `server`（root@101.36.112.86，密钥登录）；服务器项目在 `/root/code/wallpaper`，生产配置 `server/.env.production` 只存在于服务器（git 忽略，`git pull` 不会覆盖）。
+- 标准流程：改动进入 `origin/main` 后，一条命令完成拉取 + 构建启动 + 状态确认：
+
+```bash
+git push origin main
+ssh server 'cd ~/code/wallpaper && git pull --ff-only && pnpm deploy \
+  && docker compose --env-file server/.env.production --profile app ps'
+```
+
+- 验收：mysql/server/web 三容器均 `Up (healthy)`；`ssh server 'curl -fsS http://127.0.0.1:3001 >/dev/null && echo ok'` 能通；日志用 `ssh server 'cd ~/code/wallpaper && docker compose --env-file server/.env.production --profile app logs --tail=100'`（`pnpm deploy:logs` 带 `-f` 跟随不退出，远程执行慎用）。
+- `up -d --build` 只重建有变化的镜像，mysql 一般不重启、数据卷保留；迁移随 server 启动自动执行（`TYPEORM_MIGRATIONS_RUN=true`），不要手动跑迁移。
+- 回滚：`ssh server 'cd ~/code/wallpaper && git checkout <commit> && pnpm deploy'`。
+- 停止用 `pnpm deploy:down`（默认保留卷）；**严禁带 `-v`**（删生产数据）。备份在服务器仓库目录跑 `pnpm backup`。
+
 根脚本：`pnpm install --frozen-lockfile`（经 `prepare` 自动启用 `.githooks/`）、`dev`、`build`、`lint`、`type-check`、`test`、`db:up`/`db:down`/`db:reset`（删卷重建本地库，慎用）、`backup`、`deploy`/`deploy:logs`/`deploy:down`。
 子包：`pnpm -C server|web dev|build|format`、`pnpm -C server typeorm:run|typeorm:revert|test -- <pattern>`。
 细节与端口见 `README.md`。
