@@ -23,10 +23,10 @@
 - Node `>=20.19`（推荐 22，见 `.nvmrc`），pnpm `>=10`。
 - **TypeScript 6.0.2 单版本**（server/web 直接依赖一致，无兼容钩子）。
 - **仅根目录** `pnpm-lock.yaml`，禁止子包再生成锁文件。
-- 本地：Docker 只起 MySQL（`pnpm db:up` → `127.0.0.1:3306`），`DB_HOST=127.0.0.1`；生产全栈 `pnpm deploy`，容器内 `DB_HOST=mysql`（compose 写死）。
+- 本地：Docker 只起 MySQL（`pnpm db:up` → `127.0.0.1:3306`），`DB_HOST=127.0.0.1`；生产全栈 `pnpm run deploy`，容器内 `DB_HOST=mysql`（compose 写死）。
 - 环境模板：`server/.env.*.example`；真实 `.env` 禁止提交。仅 **一份** `docker-compose.yml`，无 prod override。
 - **生产配置唯一来源是 `server/.env.production`**：它既是 compose 插值环境（`--env-file`）也是 server 容器 `env_file`。禁止在仓库根另放 `.env` / `.env.prod` 等散装副本——脱节后极易被误用作 `--env-file` 导致插值缺变量或密码不匹配（2026-08-28 部署踩过）。
-- 部署等价手动命令：`docker compose --env-file server/.env.production --profile app up -d --build`（即根 `pnpm deploy`）。
+- 部署脚本必须写成 **`pnpm run deploy`**：裸 `pnpm deploy` 会被 pnpm 拦截为内置 workspace deploy 命令，报 `ERR_PNPM_NOTHING_TO_DEPLOY`（2026-09-01 部署踩过）。等价手动命令：`docker compose --env-file server/.env.production --profile app up -d --build`。
 
 ### 生产部署（ssh server；勿在本机执行 `pnpm deploy`）
 
@@ -35,14 +35,14 @@
 
 ```bash
 git push origin main
-ssh server 'cd ~/code/wallpaper && git pull --ff-only && pnpm deploy \
+ssh server 'cd ~/code/wallpaper && git pull --ff-only && pnpm run deploy \
   && docker compose --env-file server/.env.production --profile app ps'
 ```
 
-- 验收：mysql/server/web 三容器均 `Up (healthy)`；`ssh server 'curl -fsS http://127.0.0.1:3001 >/dev/null && echo ok'` 能通；日志用 `ssh server 'cd ~/code/wallpaper && docker compose --env-file server/.env.production --profile app logs --tail=100'`（`pnpm deploy:logs` 带 `-f` 跟随不退出，远程执行慎用）。
+- 验收：mysql/server/web 三容器均 `Up (healthy)`；`ssh server 'curl -fsS http://127.0.0.1:3001 >/dev/null && echo ok'` 能通；日志用 `ssh server 'cd ~/code/wallpaper && docker compose --env-file server/.env.production --profile app logs --tail=100'`（`pnpm run deploy:logs` 带 `-f` 跟随不退出，远程执行慎用）。
 - `up -d --build` 只重建有变化的镜像，mysql 一般不重启、数据卷保留；迁移随 server 启动自动执行（`TYPEORM_MIGRATIONS_RUN=true`），不要手动跑迁移。
-- 回滚：`ssh server 'cd ~/code/wallpaper && git checkout <commit> && pnpm deploy'`。
-- 停止用 `pnpm deploy:down`（默认保留卷）；**严禁带 `-v`**（删生产数据）。备份在服务器仓库目录跑 `pnpm backup`。
+- 回滚：`ssh server 'cd ~/code/wallpaper && git checkout <commit> && pnpm run deploy'`。
+- 停止用 `pnpm run deploy:down`（默认保留卷）；**严禁带 `-v`**（删生产数据）。备份在服务器仓库目录跑 `pnpm run backup`。
 
 根脚本：`pnpm install --frozen-lockfile`（经 `prepare` 自动启用 `.githooks/`）、`dev`、`build`、`lint`、`type-check`、`test`、`db:up`/`db:down`/`db:reset`（删卷重建本地库，慎用）、`backup`、`deploy`/`deploy:logs`/`deploy:down`。
 子包：`pnpm -C server|web dev|build|format`、`pnpm -C server typeorm:run|typeorm:revert|test -- <pattern>`。
