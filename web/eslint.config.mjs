@@ -43,6 +43,7 @@ export default tseslint.config(
         parser: tseslint.parser,
         extraFileExtensions: [".vue"],
         sourceType: "module",
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {

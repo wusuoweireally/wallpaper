@@ -20,4 +20,3 @@ assert.ok(
   !/favorite-action\s*\{[^}]*position:\s*absolute/.test(src),
   "favorite must sit in the overlay row, not absolute-stack on views",
 )
-console.log("wallpaperCard.overlay.test.ts: all passed")

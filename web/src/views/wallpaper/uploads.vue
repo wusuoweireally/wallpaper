@@ -509,10 +509,12 @@
                       "
                       @mousedown.prevent="pickTagSuggestion(s.name)"
                     >
+                      <!-- eslint-disable vue/no-v-html -->
                       <span
                         class="font-medium"
                         v-html="highlightTagMatch(s.name, tagSearch)"
                       ></span>
+                      <!-- eslint-enable vue/no-v-html -->
                       <span class="text-[11px] tabular-nums text-faint">{{
                         s.usageCount ?? 0
                       }}</span>

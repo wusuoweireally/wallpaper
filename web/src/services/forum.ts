@@ -84,7 +84,7 @@ export const forumService = {
   // ========== 帖子 ==========
 
   async getPosts(params: PostsQueryParams = {}) {
-    const payload: any = await api.get("/posts", {
+    const payload = await api.get<Post[]>("/posts", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
@@ -100,18 +100,18 @@ export const forumService = {
   },
 
   async getPost(id: number): Promise<Post> {
-    const payload: any = await api.get(`/posts/${id}`)
-    return payload.data
+    const payload = await api.get<Post>(`/posts/${id}`)
+    return payload.data as Post
   },
 
   async createPost(postData: CreatePostDto): Promise<Post> {
-    const payload: any = await api.post("/posts", postData)
-    return payload.data
+    const payload = await api.post<Post>("/posts", postData)
+    return payload.data as Post
   },
 
   async updatePost(id: number, postData: UpdatePostDto): Promise<Post> {
-    const payload: any = await api.put(`/posts/${id}`, postData)
-    return payload.data
+    const payload = await api.put<Post>(`/posts/${id}`, postData)
+    return payload.data as Post
   },
 
   async deletePost(id: number): Promise<void> {
@@ -119,17 +119,20 @@ export const forumService = {
   },
 
   async likePost(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
-    const payload: any = await api.post(`/posts/${id}/like`, undefined, {
-      skipGlobalErrorToast: true,
-    })
-    return payload.data
+    const payload = await api.post<{ isLiked: boolean; likeCount: number }>(
+      `/posts/${id}/like`,
+      undefined,
+      { skipGlobalErrorToast: true },
+    )
+    return payload.data as { isLiked: boolean; likeCount: number }
   },
 
   async unlikePost(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
-    const payload: any = await api.delete(`/posts/${id}/like`, {
-      skipGlobalErrorToast: true,
-    })
-    return payload.data
+    const payload = await api.delete<{ isLiked: boolean; likeCount: number }>(
+      `/posts/${id}/like`,
+      { skipGlobalErrorToast: true },
+    )
+    return payload.data as { isLiked: boolean; likeCount: number }
   },
 
   async sharePost(id: number): Promise<void> {
@@ -152,19 +155,19 @@ export const forumService = {
    * 当前用户收藏的帖子分页列表（输出塑形与 getPosts 一致，PostCard 可直接复用）
    */
   async listMyBookmarks(params: { page?: number; limit?: number } = {}) {
-    const payload: any = await api.get("/users/bookmarks", {
+    const payload = await api.get<Post[]>("/users/bookmarks", {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
       },
     })
-    return { data: (payload.data as Post[]) || [], pagination: toPagination(payload.pagination) }
+    return { data: payload.data || [], pagination: toPagination(payload.pagination) }
   },
 
   // ========== 评论 ==========
 
   async getPostComments(postId: number, params: CommentsQueryParams = {}) {
-    const payload: any = await api.get(`/comments/post/${postId}`, {
+    const payload = await api.get<Comment[]>(`/comments/post/${postId}`, {
       params: {
         page: params.page || 1,
         limit: params.limit || 20,
@@ -177,13 +180,13 @@ export const forumService = {
   },
 
   async createComment(commentData: CreateCommentDto): Promise<Comment> {
-    const payload: any = await api.post("/comments", commentData)
-    return payload.data
+    const payload = await api.post<Comment>("/comments", commentData)
+    return payload.data as Comment
   },
 
   async updateComment(id: number, commentData: UpdateCommentDto): Promise<Comment> {
-    const payload: any = await api.put(`/comments/${id}`, commentData)
-    return payload.data
+    const payload = await api.put<Comment>(`/comments/${id}`, commentData)
+    return payload.data as Comment
   },
 
   async deleteComment(id: number): Promise<void> {
@@ -191,9 +194,11 @@ export const forumService = {
   },
 
   async toggleCommentLike(id: number): Promise<{ isLiked: boolean; likeCount: number }> {
-    const payload: any = await api.post(`/comments/${id}/like`, undefined, {
-      skipGlobalErrorToast: true,
-    })
-    return payload.data
+    const payload = await api.post<{ isLiked: boolean; likeCount: number }>(
+      `/comments/${id}/like`,
+      undefined,
+      { skipGlobalErrorToast: true },
+    )
+    return payload.data as { isLiked: boolean; likeCount: number }
   },
 }

@@ -203,12 +203,13 @@
                 <p class="line-clamp-2 min-h-[3.5rem] text-lg font-bold text-fg">
                   {{ formData.title || "请输入标题" }}
                 </p>
-                <!-- eslint-disable-next-line vue/no-v-html -->
+                <!-- eslint-disable vue/no-v-html -->
                 <p
                   class="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-muted"
                   v-if="formData.summary || formData.content"
                   v-html="sanitizeHtml(formData.summary || formData.content)"
                 ></p>
+                <!-- eslint-enable vue/no-v-html -->
                 <div class="mt-3 flex flex-wrap gap-1.5">
                   <span v-for="tag in tagList" :key="tag" class="wb-chip text-xs">
                     #{{ tag }}
@@ -234,11 +235,12 @@
           <div class="wb-chip mb-4">
             {{ postCategoryLabel(formData.category) }}
           </div>
-          <!-- eslint-disable-next-line vue/no-v-html -->
+          <!-- eslint-disable vue/no-v-html -->
           <div
             class="prose mb-4 max-w-none"
             v-html="sanitizeHtml(formData.content) || '<p>无内容</p>'"
           ></div>
+          <!-- eslint-enable vue/no-v-html -->
           <p v-if="formData.summary" class="italic text-faint">
             {{ formData.summary }}
           </p>

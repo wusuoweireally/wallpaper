@@ -160,12 +160,13 @@
                   {{ postCategoryLabel(formData.category) }}
                 </span>
               </div>
-              <!-- eslint-disable-next-line vue/no-v-html -->
+              <!-- eslint-disable vue/no-v-html -->
               <div
                 class="mt-3 line-clamp-3 text-sm text-muted"
                 v-if="formData.content"
                 v-html="sanitizeHtml(formData.content)"
               ></div>
+              <!-- eslint-enable vue/no-v-html -->
               <div class="mt-3 text-xs text-faint" v-else>预览内容将在这里显示</div>
             </div>
           </div>

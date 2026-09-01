@@ -32,11 +32,12 @@
         </div>
 
         <!-- 评论内容 -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
+        <!-- eslint-disable vue/no-v-html -->
         <div
           class="mb-2 whitespace-pre-wrap break-words text-sm text-fg"
           v-html="formatContent(comment.content)"
         ></div>
+        <!-- eslint-enable vue/no-v-html -->
 
         <!-- 评论操作 -->
         <div class="flex items-center gap-3 text-xs">
