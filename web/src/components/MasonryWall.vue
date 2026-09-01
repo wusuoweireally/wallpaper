@@ -1,14 +1,24 @@
 <template>
-  <div class="wb-masonry" data-gallery="masonry" :style="wallStyle">
-    <div v-for="(col, i) in columns" :key="i" class="wb-masonry-col">
-      <slot :items="col" :tail-cut="tailCuts[i]" />
+  <div ref="wallEl" class="wb-masonry" data-gallery="masonry" :style="wallStyle">
+    <div
+      v-for="(col, i) in columns"
+      :key="i"
+      class="wb-masonry-col"
+      :style="colStyle(i)"
+    >
+      <slot :items="col" />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup generic="T">
-import { computed, onMounted, onUnmounted, ref } from "vue"
-import { masonryColumnCount, splitMasonryColumns } from "@/utils/wallpaperLayout"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
+import {
+  masonryColumnCount,
+  masonryColumnFlexGrow,
+  masonryColumnHeights,
+  splitMasonryColumns,
+} from "@/utils/wallpaperLayout"
 
 const props = defineProps<{
   items: T[]
@@ -16,9 +26,18 @@ const props = defineProps<{
 }>()
 
 const viewportWidth = ref(typeof window === "undefined" ? 1200 : window.innerWidth)
+const wallEl = ref<HTMLElement | null>(null)
+/** 墙体实际宽度与列间 gap（px）：变宽列求解需要与渲染同单位的无量纲间隙比 */
+const wallWidth = ref(0)
+const columnGapPx = ref(16)
 
 const updateWidth = () => {
   viewportWidth.value = window.innerWidth
+  if (wallEl.value) {
+    wallWidth.value = wallEl.value.clientWidth
+    const parsed = Number.parseFloat(getComputedStyle(wallEl.value).columnGap)
+    if (Number.isFinite(parsed) && parsed >= 0) columnGapPx.value = parsed
+  }
 }
 
 onMounted(() => {
@@ -36,29 +55,37 @@ const columns = computed(() =>
   splitMasonryColumns(props.items, columnCount.value, props.itemHeight),
 )
 
-/** 剩余尾差小于一张卡片 10% 高时视为已齐平，放弃裁切 */
-const CUT_TOLERANCE = 0.1
+// 数据量变化会切换“图少于列数”的限宽（wallStyle），墙宽随之变化，需在渲染后重测
+watch(
+  () => [columns.value.length, props.items.length],
+  async () => {
+    await nextTick()
+    updateWidth()
+  },
+)
 
 /**
- * 尾部裁切线（相对列宽的比例）：以最矮列为基准，更高的列把最后一张裁到基准线。
- * 高度 ≤ 基准（该列即最矮或尾差过小）时为 undefined，卡片按原比例完整展示。
- * 返回数组与 columns 一一对应，供卡片换算 max-height。
+ * 变宽列：列宽按 (H − (张数−1)·ρ)/S_j 分配（S_j 为列高宽比总和，ρ 为间隙占自由宽比），
+ * 所有列渲染高度（卡片和 + 列内间隙）恒等，底缘严格平齐且铺满容器，卡片保持原图比例。
+ * 未提供 itemHeight（骨架屏）或尚未量到墙宽时不接管，回落 CSS 等宽。
  */
-const tailCuts = computed<(number | undefined)[]>(() => {
+const flexGrow = computed<number[] | undefined>(() => {
+  if (!props.itemHeight) return undefined
+  const width = wallWidth.value
+  if (!width) return undefined
   const cols = columns.value
-  if (cols.length < 2 || !props.itemHeight) return cols.map(() => undefined)
-  const heights = cols.map((col) => col.reduce((s, it) => s + props.itemHeight!(it), 0))
-  const base = Math.min(...heights)
-  return cols.map((col, i) => {
-    const over = heights[i] - base
-    if (over <= CUT_TOLERANCE) return undefined
-    const last = col[col.length - 1]
-    const cutRatio = props.itemHeight!(last) - over
-    // 裁切后不足半张高失去可读性，不裁（保留尾差）
-    if (cutRatio < 0.5) return undefined
-    return Math.min(cutRatio, props.itemHeight!(last))
-  })
+  const n = cols.length
+  const free = width - (n - 1) * columnGapPx.value
+  if (free <= 0) return undefined
+  return masonryColumnFlexGrow(
+    masonryColumnHeights(cols, props.itemHeight),
+    cols.map((c) => c.length),
+    columnGapPx.value / free,
+  )
 })
+
+const colStyle = (i: number) =>
+  flexGrow.value ? { flex: `${flexGrow.value[i]} 1 0` } : undefined
 
 /** 与 .wb-masonry 的 gap 一致（rem） */
 const GAP_REM = 1

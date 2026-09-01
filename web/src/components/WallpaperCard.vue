@@ -3,7 +3,7 @@
     <div
       class="relative overflow-hidden rounded-tile bg-inset transition-transform duration-200 ease-out group-hover:-translate-y-1"
       :class="{ 'aspect-[16/10]': !masonry }"
-      :style="masonry ? { aspectRatio: displayAspect } : undefined"
+      :style="masonry ? { aspectRatio: aspect } : undefined"
     >
       <RouterLink
         :to="`/wallpaper/${wallpaper.id}`"
@@ -94,10 +94,8 @@ const props = withDefaults(
     wallpaper: Wallpaper
     showActions?: boolean
     masonry?: boolean
-    /** 瀑布流尾部裁切：裁切后的 aspectRatio 上限（h/w），用于底部对齐 */
-    tailCut?: number
   }>(),
-  { showActions: true, masonry: true, tailCut: undefined },
+  { showActions: true, masonry: true },
 )
 
 const router = useRouter()
@@ -118,14 +116,6 @@ const displayTitle = computed(() =>
 const quality = computed(() => qualityLabel(props.wallpaper.width, props.wallpaper.height))
 
 const aspect = computed(() => masonryAspectRatio(props.wallpaper.width, props.wallpaper.height))
-
-/** 尾部裁切：原始比例与裁切上限取更矮者（h/w 越小越矮） */
-const displayAspect = computed(() => {
-  if (props.tailCut == null) return aspect.value
-  const [w, h] = aspect.value.split("/").map(Number)
-  if (!w || !h) return aspect.value
-  return h / w <= props.tailCut ? aspect.value : `1/${props.tailCut}`
-})
 
 watch(
   () => props.wallpaper,

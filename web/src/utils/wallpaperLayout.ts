@@ -130,7 +130,7 @@ function swapTails<T>(cols: T[][], heights: number[], weight: (item: T) => numbe
   }
 }
 
-/** 瀑布流列的最大累计权重；用于尾部裁切线的计算 */
+/** 瀑布流列的最大累计权重；用于变宽列求解 */
 export function masonryColumnHeights<T>(
   columns: T[][],
   itemHeight: (item: T) => number,
@@ -141,6 +141,42 @@ export function masonryColumnHeights<T>(
       return sum + (Number.isFinite(h) && h > 0 ? h : 1)
     }, 0),
   )
+}
+
+/**
+ * 变宽列求解：列高 = 列宽×S_j + (张数−1)×间隙（S_j 为该列高宽比总和）。
+ * 取列宽 ∝ (H − (张数−1)·ρ) / S_j（ρ 为单个间隙占自由宽的无量纲比），
+ * 可解出唯一的 H 使所有列渲染高度相等且铺满容器，底缘严格平齐。
+ * gapRatio 缺省按 0 处理（退化为宽度 ∝ 1/S_j）。
+ * 返回归一化 flex-grow（均值 ≈ 1）；输入为空或含非法值时回退等宽（全 1）。
+ */
+export function masonryColumnFlexGrow(
+  columnHeights: number[],
+  cardCounts?: number[],
+  gapRatio = 0,
+): number[] {
+  const n = Array.isArray(columnHeights) ? columnHeights.length : 0
+  if (n === 0 || !columnHeights.every((h) => Number.isFinite(h) && h > 0)) {
+    return Array.from({ length: n }, () => 1)
+  }
+  const counts =
+    Array.isArray(cardCounts) &&
+    cardCounts.length === n &&
+    cardCounts.every((c) => Number.isFinite(c) && c >= 1)
+      ? cardCounts
+      : Array.from({ length: n }, () => 1)
+  const inv = columnHeights.map((h) => 1 / h)
+  const invSum = inv.reduce((sum, v) => sum + v, 0)
+  const rho = Number.isFinite(gapRatio) && gapRatio > 0 ? gapRatio : 0
+  if (rho === 0) {
+    return inv.map((v) => (v / invSum) * n)
+  }
+  // W_free 归一为 1：Σ宽 = 1 且各列等高 H ⇒ H = (1 + ρ·Σ((张数−1)/S_j)) / Σ(1/S_j)
+  const corr = columnHeights.reduce((sum, s, j) => sum + (counts[j] - 1) / s, 0)
+  const H = (1 + rho * corr) / invSum
+  const x = columnHeights.map((s, j) => Math.max((H - rho * (counts[j] - 1)) / s, 1e-4))
+  const xSum = x.reduce((sum, v) => sum + v, 0)
+  return x.map((v) => (v / xSum) * n)
 }
 
 /** 相对高度：高/宽，非法回退 0.625（16:10） */

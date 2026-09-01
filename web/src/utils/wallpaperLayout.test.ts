@@ -3,6 +3,7 @@ import {
   HOME_FOLD_SIZE,
   masonryAspectRatio,
   masonryColumnCount,
+  masonryColumnFlexGrow,
   masonryColumnHeights,
   masonryItemWeight,
   mergeUniqueById,
@@ -118,9 +119,53 @@ function testMasonryColumnHeights() {
   assert.deepEqual(masonryColumnHeights([[]], () => 1), [0])
 }
 
+function testMasonryColumnFlexGrow() {
+  // 非法输入回退等宽
+  assert.deepEqual(masonryColumnFlexGrow([]), [])
+  assert.deepEqual(masonryColumnFlexGrow([0, 2]), [1, 1])
+  assert.deepEqual(masonryColumnFlexGrow([Number.NaN, 1]), [1, 1])
+
+  // 等高列 → 等宽（归一化后均值 ≈ 1）
+  assert.deepEqual(masonryColumnFlexGrow([2, 2, 2]), [1, 1, 1])
+
+  // 核心数学：列宽 = 自由宽 × grow_j / Σgrow 时，渲染列高 列宽×S_j 严格恒等
+  const heights = [3.2, 1.4, 2.6, 0.9]
+  const grow = masonryColumnFlexGrow(heights)
+  const FREE_WIDTH = 1000
+  const totalGrow = grow.reduce((a, b) => a + b, 0)
+  const widths = grow.map((g) => (FREE_WIDTH * g) / totalGrow)
+  const rendered = heights.map((s, i) => widths[i] * s)
+  const spread = Math.max(...rendered) - Math.min(...rendered)
+  assert.ok(spread < 1e-9, `底缘应严格平齐（极差 ${spread}）`)
+
+  // 真实数据全链路：随机比例 24 张 → 5 列 → 底缘平齐
+  const items = Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    h: [0.5625, 0.75, 1.3333, 0.625, 1.7778][i % 5],
+  }))
+  const cols = splitMasonryColumns(items, 5, (x) => x.h)
+  const grow2 = masonryColumnFlexGrow(masonryColumnHeights(cols, (x) => x.h))
+  const widths2 = grow2.map((g) => (FREE_WIDTH * g) / grow2.reduce((a, b) => a + b, 0))
+  const rendered2 = cols.map((col, j) => col.reduce((s, x) => s + x.h, 0) * widths2[j])
+  const spread2 = Math.max(...rendered2) - Math.min(...rendered2)
+  assert.ok(spread2 < 1e-9, `真实分栏底缘应平齐（极差 ${spread2}）`)
+
+  // 列内垂直间隙补偿：张数不同也要等高（列高 = 列宽×S_j + (张数−1)×ρ）
+  const gapHeights = [2.55, 2.55, 2.42, 2.68, 2.49]
+  const counts = [23, 23, 21, 25, 22]
+  const RHO = 0.01
+  const grow3 = masonryColumnFlexGrow(gapHeights, counts, RHO)
+  const sum3 = grow3.reduce((a, b) => a + b, 0)
+  const widths3 = grow3.map((g) => g / sum3) // 自由宽归一为 1
+  const rendered3 = gapHeights.map((s, j) => widths3[j] * s + (counts[j] - 1) * RHO)
+  const spread3 = Math.max(...rendered3) - Math.min(...rendered3)
+  assert.ok(spread3 < 1e-9, `含间隙底缘应平齐（极差 ${spread3}）`)
+}
+
 testQualityLabel()
 testDisplayTitle()
 testMasonryAspect()
 testMergeUniqueById()
 testMasonryColumns()
 testMasonryColumnHeights()
+testMasonryColumnFlexGrow()

@@ -28,8 +28,8 @@
       v-else
       class="wb-container-gallery flex flex-col gap-8 py-7 lg:flex-row lg:flex-wrap lg:gap-6"
     >
-      <!-- 主观图区：环境光晕包裹 + 预览→原图淡入 -->
-      <main class="relative min-w-0 flex-1">
+      <!-- 主观图区：环境光晕包裹 + 预览→原图淡入（App 已有 <main>，此处用 div 避免嵌套 main） -->
+      <div class="relative min-w-0 flex-1">
         <!-- 环境光晕：与画框同位、放大糊化后向四周溢出，把观图区裹进图片自身色调，消除"装在盒子里"的割裂感 -->
         <div
           v-if="ambientSrc"
@@ -91,7 +91,7 @@
             <span class="wb-spinner wb-spinner-lg text-faint"></span>
           </div>
         </div>
-      </main>
+      </div>
 
       <!-- 右侧信息栏：无壳透明堆叠（贴画布）；桌面 360 固定宽，移动端在图下方 -->
       <aside class="w-full shrink-0 lg:w-[360px]">

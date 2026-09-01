@@ -128,7 +128,7 @@ interface ApiWallpaperResponse {
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(false)
+const loading = ref(true)
 const wallpapers = ref<Wallpaper[]>([])
 const currentPage = ref(1)
 const pageSize = 20
