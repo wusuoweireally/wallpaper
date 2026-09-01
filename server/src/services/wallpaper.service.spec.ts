@@ -250,8 +250,10 @@ describe("WallpaperService status transitions (update status)", () => {
       id,
       expect.objectContaining({ status: 1 }),
     );
+    // expect.any 返回 any,断言为函数类型消除 unsafe-assignment
+    const anyCountFn = expect.any(Function) as () => unknown;
     expect(tagUpdate.set).toHaveBeenCalledWith(
-      expect.objectContaining({ usageCount: expect.any(Function) }),
+      expect.objectContaining({ usageCount: anyCountFn }),
     );
   });
 

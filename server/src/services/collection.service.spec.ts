@@ -177,12 +177,14 @@ describe("CollectionService", () => {
       items: [],
     });
 
+    // expect.any 返回 any,断言为 Date 消除 unsafe-assignment
+    const anyUpdatedAt = expect.any(Date) as Date;
     const added = await service.addWallpaper(userId, 1, 42);
     expect(added.wallpaperId).toBe(42);
     expect(items).toHaveLength(1);
     // 实际增删会刷新合集 updatedAt（列表按 updatedAt DESC 排序）
     expect(collectionUpdate).toHaveBeenCalledWith(Collection, 1, {
-      updatedAt: expect.any(Date),
+      updatedAt: anyUpdatedAt,
     });
     collectionUpdate.mockClear();
 
@@ -195,7 +197,7 @@ describe("CollectionService", () => {
     await service.removeWallpaper(userId, 1, 42);
     expect(items).toHaveLength(0);
     expect(collectionUpdate).toHaveBeenCalledWith(Collection, 1, {
-      updatedAt: expect.any(Date),
+      updatedAt: anyUpdatedAt,
     });
     collectionUpdate.mockClear();
 

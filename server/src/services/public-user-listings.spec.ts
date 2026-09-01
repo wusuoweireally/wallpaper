@@ -31,7 +31,8 @@ describe("WallpaperService public user listings", () => {
         sql: string;
         params?: Record<string, unknown>;
       }> = [];
-      const qb = {
+      // 显式注解:andWhere 回调里引用 qb 自身,无注解会被 TS 循环推断成 any
+      const qb: Record<string, jest.Mock> = {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn((sql: string, params?: Record<string, unknown>) => {
           andWheres.push({ sql, params });

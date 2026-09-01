@@ -52,6 +52,8 @@ export async function applyReaction(
   if (!parent) {
     throw new NotFoundException(config.notFoundMessage);
   }
+  // ObjectLiteral 索引签名为 any,主键统一收敛为 number
+  const parentId = Number(parent.id);
 
   const existing = await relationRepo.findOne({
     where: config.relationWhere,
@@ -72,7 +74,7 @@ export async function applyReaction(
       .set({
         [config.countField]: () => `GREATEST(${config.countColumn} - 1, 0)`,
       })
-      .where("id = :id", { id: parent.id })
+      .where("id = :id", { id: parentId })
       .execute();
     return {
       active: false,
@@ -81,6 +83,6 @@ export async function applyReaction(
   }
 
   await relationRepo.save(relationRepo.create(config.relationWhere));
-  await parentRepo.increment({ id: parent.id }, config.countField, 1);
+  await parentRepo.increment({ id: parentId }, config.countField, 1);
   return { active: true, count: Number(parent[config.countField]) + 1 };
 }

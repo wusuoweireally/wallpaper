@@ -74,7 +74,7 @@ export class ViewHistoryService {
         return true;
       } catch (err) {
         if ((err as { code?: string }).code !== "ER_DUP_ENTRY") throw err;
-        const res = await qr.query(
+        const res: unknown = await qr.query(
           "UPDATE view_history SET viewed_at = NOW() WHERE user_id = ? AND wallpaper_id = ? AND viewed_at < NOW() - INTERVAL 1 HOUR",
           [userId, wallpaperId],
         );

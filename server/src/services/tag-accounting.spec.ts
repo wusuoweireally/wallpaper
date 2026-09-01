@@ -65,7 +65,8 @@ describe("WallpaperService publishDrafts tag accounting", () => {
         if (expr) applyUsageDelta(scope.whereIds, expr);
         return Promise.resolve();
       });
-      const qb = {
+      // 显式注解:where/set 回调里引用 qb 自身,无注解会被 TS 循环推断成 any
+      const qb: Record<string, jest.Mock> = {
         setLock: jest.fn(),
         orderBy: jest.fn(),
         update: jest.fn(),

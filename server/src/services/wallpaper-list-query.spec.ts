@@ -39,7 +39,8 @@ describe("WallpaperService.findAll filter application", () => {
     filterFn: (rows: Wallpaper[]) => Wallpaper[],
   ) => {
     const andWheres: Array<{ sql: string; params?: object }> = [];
-    const qb = {
+    // 显式注解:属性回调里引用 qb 自身,无注解会被 TS 循环推断成 any
+    const qb: Record<string, jest.Mock> = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn((sql: string, params?: object) => {
         andWheres.push({ sql, params });

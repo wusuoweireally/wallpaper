@@ -383,7 +383,10 @@ export class CommentService {
         return; // 子树已全部软删过，幂等
       }
 
-      await commentRepo.update({ id: In(subtreeIds) }, { deletedAt: new Date() });
+      await commentRepo.update(
+        { id: In(subtreeIds) },
+        { deletedAt: new Date() },
+      );
       await this.applySubtreeRemoval(comment, visibleCount, post.id, manager);
     });
   }

@@ -18,6 +18,8 @@ export class AddWallpaperStatusCreatedAtIndex1760000000000 implements MigrationI
     await queryRunner.query(
       "CREATE INDEX `idx_status` ON `wallpapers` (`status`)",
     );
-    await queryRunner.query("DROP INDEX `idx_status_created_at` ON `wallpapers`");
+    await queryRunner.query(
+      "DROP INDEX `idx_status_created_at` ON `wallpapers`",
+    );
   }
 }

@@ -46,7 +46,7 @@ const TOP_RANGE_MS: Record<string, number> = {
 };
 
 export function isValidTopRange(value?: string): value is string {
-  return !!value && Object.prototype.hasOwnProperty.call(TOP_RANGE_MS, value);
+  return !!value && Object.hasOwn(TOP_RANGE_MS, value);
 }
 
 /** 将 topRange 转为 since 时间点；无效返回 undefined */
