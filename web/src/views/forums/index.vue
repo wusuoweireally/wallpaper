@@ -34,16 +34,12 @@
                   @input="handleSearch"
                 />
               </form>
-              <select
+              <DropdownSelect
                 v-model="forumStore.filters.sortBy"
-                class="wb-input h-8 w-auto py-0 text-xs"
+                :options="SORT_OPTIONS"
+                aria-label="排序方式"
                 @change="handleSortChange"
-              >
-                <option value="createdAt">最新</option>
-                <option value="viewCount">最热</option>
-                <option value="likeCount">点赞</option>
-                <option value="commentCount">评论</option>
-              </select>
+              />
             </div>
           </div>
 
@@ -203,11 +199,19 @@ import { useUserStore } from "@/stores/user"
 import { forumService } from "@/services/forum"
 import PostCard from "@/components/PostCard.vue"
 import Pagination from "@/components/Pagination.vue"
+import DropdownSelect from "@/components/DropdownSelect.vue"
 import type { Post, PostCategory } from "@/stores/forum"
 import { formatNumber } from "@/utils/format"
 import { createFetchGeneration } from "@/utils/fetchGeneration"
 
 defineOptions({ name: "ForumIndex" })
+
+const SORT_OPTIONS = [
+  { label: "最新", value: "createdAt" },
+  { label: "最热", value: "viewCount" },
+  { label: "点赞", value: "likeCount" },
+  { label: "评论", value: "commentCount" },
+]
 
 const router = useRouter()
 const forumStore = useForumStore()
