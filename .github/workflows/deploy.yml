@@ -40,7 +40,10 @@ jobs:
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            # 有命令失败立即退出，否则 action 恒显示成功（假绿）
+            set -e
             cd ~/code/wallpaper
             git pull --ff-only
-            pnpm deploy
+            # 必须用 run：裸 pnpm deploy 会命中 pnpm 内置 deploy 命令
+            pnpm run deploy
             docker compose --env-file server/.env.production --profile app ps
