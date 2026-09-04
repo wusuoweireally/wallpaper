@@ -149,7 +149,7 @@ api.interceptors.response.use(
     // 处理取消请求 - 静默处理，不显示错误信息
     if (axios.isCancel(error)) {
       // 对于取消的请求，返回一个特殊的错误对象，让上层可以识别
-      const cancelError = new Error("REQUEST_CANCELLED")
+      const cancelError = new Error("REQUEST_CANCELLED") as Error & { isCancelled: boolean }
       cancelError.name = "REQUEST_CANCELLED"
       cancelError.isCancelled = true
       return Promise.reject(cancelError)

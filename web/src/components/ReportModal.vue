@@ -193,9 +193,15 @@ const resetForm = () => {
 }
 
 watch(
-  () => [props.targetType, props.targetId],
-  ([targetType, targetId]) => {
+  () => props.targetType,
+  (targetType) => {
     formData.targetType = targetType
+  },
+)
+
+watch(
+  () => props.targetId,
+  (targetId) => {
     formData.targetId = targetId
   },
 )

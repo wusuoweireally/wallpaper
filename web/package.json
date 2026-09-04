@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --fix",
-    "type-check": "node ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit",
+    "type-check": "node ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit -p tsconfig.app.json && node ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit -p tsconfig.node.json",
     "test": "node --experimental-strip-types src/utils/fetchGeneration.test.ts && node --experimental-strip-types src/utils/wallpaperBrowse.test.ts && node --experimental-strip-types src/utils/queryParams.test.ts && node --experimental-strip-types src/utils/safeRedirect.test.ts && node --experimental-strip-types src/utils/wallpaperLayout.test.ts && node --experimental-strip-types src/utils/wallpaperCard.overlay.test.ts",
     "format": "prettier --write ."
   },

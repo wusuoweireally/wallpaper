@@ -9,7 +9,10 @@ import userService, {
 } from "@/services/user"
 import { resolveAvatarUrl } from "@/utils/avatar"
 
-type ServiceError = Error & { response?: { data?: { message?: string } }; message?: string }
+type ServiceError = Error & {
+  response?: { status?: number; data?: { message?: string } }
+  message?: string
+}
 
 // ==================== localStorage 工具函数 ====================
 // 注意：认证 token 通过 HttpOnly Cookie 自动处理，前端只需保存用户信息

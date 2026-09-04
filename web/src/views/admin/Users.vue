@@ -800,7 +800,8 @@ const editUser = async (user: AdminUser) => {
 
   const role = window.prompt("角色：user 或 admin", user.role)
   if (role === null) return
-  if (![UserRole.USER, UserRole.ADMIN].includes(role as UserRole)) {
+  const allowedRoles: UserRole[] = [UserRole.USER, UserRole.ADMIN]
+  if (!allowedRoles.includes(role as UserRole)) {
     showToast("角色只能设置为 user 或 admin", "error")
     return
   }

@@ -3,8 +3,16 @@ import api, { type ApiResponse } from "@/config/api"
 export interface CreateReportDto {
   targetType: "post" | "comment" | "wallpaper"
   targetId: number
+  // "" 表示表单未选择的初始态，提交前由校验拦截
   reason:
-    "spam" | "inappropriate" | "harassment" | "violence" | "copyright" | "misinformation" | "other"
+    | "spam"
+    | "inappropriate"
+    | "harassment"
+    | "violence"
+    | "copyright"
+    | "misinformation"
+    | "other"
+    | ""
   description?: string
 }
 

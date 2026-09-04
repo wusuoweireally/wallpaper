@@ -11,7 +11,7 @@ on:
 
 jobs:
   ci:
-    name: 门禁（type-check + lint）
+    name: 门禁（type-check + lint + test + build）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +27,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-check
       - run: pnpm lint
+      # web 测试脚本依赖 --experimental-strip-types（Node >= 22.6），CI 固定 Node 22 满足
+      - run: pnpm test
+      - run: pnpm build
 
   deploy:
     name: 部署生产

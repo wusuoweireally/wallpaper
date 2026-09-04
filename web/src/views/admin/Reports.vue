@@ -343,13 +343,16 @@ import adminService, {
 import Pagination from "@/components/Pagination.vue"
 import { formatDateTime as formatDate } from "@/utils/format"
 
-// 后端 SafeReport 附带创建举报时的内容快照（含 postId），admin.ts 类型暂未收录，先在本地扩展
+// 后端 SafeReport 附带创建举报时的内容快照（含 postId），admin.ts 类型暂未收录，先在本地扩展。
+// 字段按目标类型二选一（壁纸快照带缩略图/上传者，帖子/评论快照带正文与原帖链接），模板按存在性渲染
 interface ReportDetail extends Report {
   target?: {
-    type: "post" | "comment"
-    title: string | null
-    content: string
-    postId: number
+    type: "post" | "comment" | "wallpaper"
+    title?: string | null
+    content?: string
+    postId?: number
+    thumbnailUrl?: string
+    uploaderName?: string
   } | null
 }
 const loading = ref(true)
@@ -358,7 +361,11 @@ const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
 const reportModal = ref<HTMLDialogElement | null>(null)
 const selectedReport = ref<ReportDetail | null>(null)
 
-const filters = reactive({
+const filters = reactive<{
+  status: ReportStatusValue | ""
+  reason: ReportReasonValue | ""
+  keyword: string
+}>({
   status: "",
   reason: "",
   keyword: "",

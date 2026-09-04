@@ -470,7 +470,7 @@ if (typeof window !== "undefined") {
       }
     }
   }
-  if ("requestIdleCallback" in window) {
+  if (typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(() => prefetchRoutes(), { timeout: 3000 })
   } else {
     window.setTimeout(prefetchRoutes, 2000)
