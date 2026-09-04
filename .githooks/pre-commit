@@ -34,4 +34,8 @@ if [ -n "$secret_hit" ]; then
   exit 1
 fi
 
+# 3) lint-staged：对暂存文件跑对应子包的 eslint --fix（配置见根 lint-staged.config.mjs）
+# 失败必须中止提交，不能落到 exit 0 假绿
+pnpm exec lint-staged || exit 1
+
 exit 0
