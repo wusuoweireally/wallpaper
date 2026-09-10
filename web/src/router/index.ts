@@ -180,6 +180,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "posts",
+        name: "UserPosts",
+        component: () => import("@/views/user/components/UserPosts.vue"),
+        meta: {
+          title: "我的帖子",
+          requiresAuth: true,
+          showNavBar: true,
+        },
+      },
+      {
         path: "history",
         name: "UserHistory",
         component: () => import("@/views/user/components/UserViewHistory.vue"),

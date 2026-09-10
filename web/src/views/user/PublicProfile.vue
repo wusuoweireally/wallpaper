@@ -65,6 +65,39 @@
             {{ loadingMore ? "加载中…" : "加载更多" }}
           </button>
         </div>
+
+        <!-- TA 的帖子：独立分页，与上方壁纸互不影响 -->
+        <section class="mt-10">
+          <h2 class="mb-3 text-sm font-medium text-muted">TA 的帖子</h2>
+
+          <div v-if="postsError" class="wb-alert px-3 py-2.5 text-sm">
+            {{ postsError }}
+          </div>
+
+          <div v-else-if="postsLoading" class="flex justify-center py-12">
+            <span class="wb-spinner text-muted"></span>
+          </div>
+
+          <div v-else-if="posts.length > 0" class="space-y-4">
+            <PostCard v-for="post in posts" :key="post.id" :post="post" @like="() => {}" />
+          </div>
+
+          <div v-else class="wb-empty">
+            <p class="text-base font-medium text-fg">TA 还没有发过帖子</p>
+            <router-link to="/forums" class="wb-btn mt-5">去逛论坛</router-link>
+          </div>
+
+          <div
+            v-if="!postsLoading && posts.length > 0 && postsPagination.totalPages > 1"
+            class="mt-6 flex justify-center"
+          >
+            <Pagination
+              :current-page="postsPagination.currentPage"
+              :total-pages="postsPagination.totalPages"
+              @change="handlePostsPageChange"
+            />
+          </div>
+        </section>
       </template>
       <div v-else class="py-20 text-center text-muted">用户不存在</div>
     </div>
@@ -75,7 +108,12 @@
 import { ref, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { wallpaperService, type Wallpaper } from "@/services/wallpaper"
+import { forumService } from "@/services/forum"
+import type { Post } from "@/stores/forum"
 import WallpaperGrid from "@/components/WallpaperGrid.vue"
+import PostCard from "@/components/PostCard.vue"
+import Pagination from "@/components/Pagination.vue"
+import { usePaginatedList } from "@/composables/usePaginatedList"
 import { handleAvatarError } from "@/utils/avatar"
 
 const route = useRoute()
@@ -98,6 +136,24 @@ const items = ref<Wallpaper[]>([])
 const page = ref(1)
 const pageSize = 24
 const hasMore = ref(false)
+
+/**
+ * TA 的帖子：独立分页，与服务端 authorId 筛选直连。
+ * fetcher 内读 userId() 而非闭包捕获，路由切人后自动指向新用户；
+ * 过期响应由 composable 的代数守卫丢弃。
+ */
+const {
+  items: posts,
+  loading: postsLoading,
+  error: postsError,
+  pagination: postsPagination,
+  fetchData: fetchPosts,
+  handlePageChange: handlePostsPageChange,
+} = usePaginatedList<Post>(
+  (page, pageSize) =>
+    forumService.getPosts({ authorId: userId(), page, limit: pageSize }),
+  { errorMessage: "获取 TA 的帖子失败" },
+)
 
 const loadProfile = async () => {
   const requestedId = userId()
@@ -179,6 +235,7 @@ watch(
     appendError.value = ""
     void loadProfile()
     void loadList()
+    void fetchPosts(1)
   },
 )
 </script>

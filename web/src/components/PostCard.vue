@@ -53,9 +53,12 @@
               @error="handleAvatarError"
             />
             <div class="leading-tight">
-              <p class="text-sm font-medium text-fg">
+              <router-link
+                :to="`/u/${post.authorId}`"
+                class="text-sm font-medium text-fg transition-colors hover:text-primary"
+              >
                 {{ post.author?.username || "匿名用户" }}
-              </p>
+              </router-link>
               <p v-if="post.lastCommentAt" class="flex items-center gap-1 text-[11px] text-faint">
                 <i class="i-[mdi--clock-outline] text-xs"></i>
                 最后回复 {{ formatTime(post.lastCommentAt) }}
