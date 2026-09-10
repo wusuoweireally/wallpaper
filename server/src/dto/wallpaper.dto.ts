@@ -6,7 +6,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
-  IsNumberString,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -176,25 +176,35 @@ export class WallpaperQueryDto {
   @IsOptional()
   tags?: string[];
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  minWidth?: string;
+  minWidth?: number;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  maxWidth?: string;
+  maxWidth?: number;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  minHeight?: string;
+  minHeight?: number;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  maxHeight?: string;
+  maxHeight?: number;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   @IsOptional()
-  aspectRatio?: string;
+  aspectRatio?: number;
 
   @IsString()
   @IsOptional()
@@ -212,13 +222,17 @@ export class WallpaperQueryDto {
   @IsOptional()
   format?: string;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @IsOptional()
-  minFileSize?: string;
+  minFileSize?: number;
 
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @IsOptional()
-  maxFileSize?: string;
+  maxFileSize?: number;
 
   /** toplist 时间窗：1d/3d/1w/1M/3M/6M/1y */
   @IsIn(["1d", "3d", "1w", "1M", "3M", "6M", "1y"])

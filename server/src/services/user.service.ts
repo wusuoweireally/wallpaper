@@ -441,8 +441,9 @@ export class UserService {
 
   async adminQueryUsers(
     query: AdminUserQueryDto,
-  ): Promise<{ data: User[]; total: number }> {
-    const { page = 1, limit = 20, keyword, status, role } = query;
+  ): Promise<PaginatedResult<User>> {
+    const { keyword, status, role } = query;
+    const { page, limit } = normalizePagination(query.page, query.limit);
     const qb = this.userRepository
       .createQueryBuilder("user")
       .where("user.deletedAt IS NULL");
@@ -467,7 +468,7 @@ export class UserService {
       .take(limit)
       .getManyAndCount();
 
-    return { data, total };
+    return { data, total, page, limit };
   }
 
   async adminUpdateUser(

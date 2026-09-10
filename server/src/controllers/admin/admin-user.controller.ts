@@ -24,6 +24,7 @@ import { RolesGuard } from "../../guards/roles.guard";
 import { CurrentUser } from "../../decorators/current-user.decorator";
 import type { CurrentUserType } from "../../decorators/current-user.decorator";
 import { buildPaginationMeta } from "../../common/pagination";
+import { omitPasswordHash } from "../../utils/sanitize";
 
 @Controller("admin/users")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,28 +34,21 @@ export class AdminUserController {
 
   @Get()
   async list(@Query() query: AdminUserQueryDto) {
-    const { page = 1, limit = 20 } = query;
     const result = await this.userService.adminQueryUsers(query);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const users = result.data.map(({ passwordHash, ...rest }) => rest);
+    const users = result.data.map(omitPasswordHash);
 
     return {
       success: true,
       data: users,
-      pagination: buildPaginationMeta({
-        ...result,
-        page: Number(page),
-        limit: Number(limit),
-      }),
+      pagination: buildPaginationMeta(result),
     };
   }
 
   @Get(":id")
   async detail(@Param("id", ParseIntPipe) id: number) {
     const user = await this.userService.findById(id);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...rest } = user;
+    const rest = omitPasswordHash(user);
     return {
       success: true,
       data: rest,
@@ -71,8 +65,7 @@ export class AdminUserController {
       dto.role ?? UserRole.USER,
       actor,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...rest } = user;
+    const rest = omitPasswordHash(user);
     return {
       success: true,
       message: "创建用户成功",
@@ -87,8 +80,7 @@ export class AdminUserController {
     @CurrentUser() actor: CurrentUserType,
   ) {
     const user = await this.userService.adminUpdateUser(id, dto, actor);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...rest } = user;
+    const rest = omitPasswordHash(user);
     return {
       success: true,
       message: "更新用户信息成功",
@@ -103,8 +95,7 @@ export class AdminUserController {
     @CurrentUser() actor: CurrentUserType,
   ) {
     const user = await this.userService.setStatus(id, dto.status, actor);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...rest } = user;
+    const rest = omitPasswordHash(user);
     return {
       success: true,
       message: dto.status === 1 ? "用户已启用" : "用户已禁用",

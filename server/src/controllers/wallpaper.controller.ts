@@ -145,65 +145,18 @@ export class WallpaperController {
     @Query() query: WallpaperQueryDto,
     @Req() request: Request,
   ) {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = "createdAt",
-      sortOrder = "DESC",
-      tags,
-      minWidth,
-      maxWidth,
-      minHeight,
-      maxHeight,
-      aspectRatio,
-      orientation,
-      category,
-      subCategory,
-      format,
-      minFileSize,
-      maxFileSize,
-      topRange,
-      color,
-      resolutions,
-      search,
-      seed,
-    } = query;
-
     const viewer = request.user as CurrentUserType | undefined;
-
+    // DTO 与 WallpaperListQuery 同构（数字字段已由 @Type(() => Number) 转换），
+    // 只需补服务端视角，不再逐字段搬运
     const result = await this.wallpaperService.findAll({
-      page: Number(page),
-      limit: Number(limit),
-      sortBy,
-      sortOrder,
-      tags,
-      minWidth: minWidth ? Number(minWidth) : undefined,
-      maxWidth: maxWidth ? Number(maxWidth) : undefined,
-      minHeight: minHeight ? Number(minHeight) : undefined,
-      maxHeight: maxHeight ? Number(maxHeight) : undefined,
-      aspectRatio: aspectRatio ? Number(aspectRatio) : undefined,
-      orientation,
-      category,
-      subCategory,
-      format,
-      minFileSize: minFileSize ? Number(minFileSize) : undefined,
-      maxFileSize: maxFileSize ? Number(maxFileSize) : undefined,
+      ...query,
       viewerId: viewer?.userId,
-      topRange,
-      color,
-      resolutions,
-      search,
-      seed,
     });
 
     return {
       success: true,
       data: result.data,
-      pagination: buildPaginationMeta({
-        ...result,
-        page: Number(page),
-        limit: Number(limit),
-      }),
+      pagination: buildPaginationMeta(result),
     };
   }
 

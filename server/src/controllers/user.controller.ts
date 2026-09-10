@@ -42,6 +42,7 @@ import { User } from "../entities/user.entity";
 import { isAdminRole } from "../entities/user.entity";
 import { getAuthCookieOptions } from "../utils/cookie";
 import { resolveAvatarUrl } from "../utils/avatar";
+import { omitPasswordHash } from "../utils/sanitize";
 import { getJwtCookieMaxAge } from "../utils/duration";
 import { buildPaginationMeta, normalizePagination } from "../common/pagination";
 
@@ -63,8 +64,7 @@ export class UserController {
   async register(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
+    const result = omitPasswordHash(user);
 
     return {
       success: true,
@@ -185,8 +185,7 @@ export class UserController {
     }
 
     const user = await this.userService.findById(userId);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
+    const result = omitPasswordHash(user);
 
     // 头像：COS 完整 URL，否则用默认头像
     const avatarUrl = resolveAvatarUrl(result.avatarUrl);
@@ -239,8 +238,7 @@ export class UserController {
       updateUserDto,
       currentUser,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
+    const result = omitPasswordHash(user);
     return {
       success: true,
       message: "更新成功",
@@ -325,8 +323,7 @@ export class UserController {
 
     await this.uploadService.deleteAvatar(previousAvatar);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = updatedUser;
+    const result = omitPasswordHash(updatedUser);
 
     return {
       success: true,
@@ -466,8 +463,7 @@ export class UserController {
     }
 
     const user = await this.userService.findById(userId);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
+    const result = omitPasswordHash(user);
 
     const canViewPrivate =
       !!currentUser &&

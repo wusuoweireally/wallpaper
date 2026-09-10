@@ -40,11 +40,9 @@ export class AdminWallpaperController {
 
   @Get()
   async list(@Query() query: AdminWallpaperQueryDto) {
-    const page = Number(query.page || 1);
-    const limit = Number(query.limit || 20);
-    const { data, total } = await this.wallpaperService.adminQueryWallpapers(
-      page,
-      limit,
+    const result = await this.wallpaperService.adminQueryWallpapers(
+      Number(query.page || 1),
+      Number(query.limit || 20),
       {
         search: query.search,
         category: query.category,
@@ -56,8 +54,8 @@ export class AdminWallpaperController {
 
     return {
       success: true,
-      data,
-      pagination: buildPaginationMeta({ data, total, page, limit }),
+      data: result.data,
+      pagination: buildPaginationMeta(result),
     };
   }
 

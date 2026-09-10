@@ -6,7 +6,7 @@ import {
   Optional,
 } from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
-import { Repository, DataSource, EntityManager } from "typeorm";
+import { Repository, DataSource, EntityManager, In } from "typeorm";
 import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { UserFavorite } from "../entities/user-favorite.entity";
@@ -16,6 +16,7 @@ import { UploadService } from "./upload.service";
 import { Tag } from "../entities/tag.entity";
 import { sanitizeUser } from "../utils/sanitize";
 import { normalizeLimit, normalizePagination } from "../common/pagination";
+import type { PaginatedResult } from "../common/pagination";
 import { applyReaction } from "../common/reaction";
 import { isAdminRole, UserRole } from "../entities/user.entity";
 import {
@@ -228,10 +229,9 @@ export class WallpaperService {
   /**
    * 分页查询壁纸列表（支持搜索和多种筛选）
    */
-  async findAll(q: WallpaperListQuery = {}): Promise<{
-    data: Array<Wallpaper & { isFavorited: boolean }>;
-    total: number;
-  }> {
+  async findAll(
+    q: WallpaperListQuery = {},
+  ): Promise<PaginatedResult<Wallpaper & { isFavorited: boolean }>> {
     let page = q.page ?? 1;
     let limit = q.limit ?? 20;
     const sortBy = q.sortBy ?? "createdAt";
@@ -418,7 +418,7 @@ export class WallpaperService {
 
     const sanitized = this.sanitizeWallpaperUser(wallpapersWithRelations);
     const data = await this.attachInteractionStatus(sanitized, q.viewerId);
-    return { data, total };
+    return { data, total, page, limit };
   }
 
   /** 某用户公开（已审核）上传列表 */
@@ -426,10 +426,7 @@ export class WallpaperService {
     uploaderId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{
-    data: Array<Wallpaper & { isFavorited: boolean }>;
-    total: number;
-  }> {
+  ): Promise<PaginatedResult<Wallpaper & { isFavorited: boolean }>> {
     return this.findAll({ page, limit, uploaderId, sortBy: "createdAt" });
   }
 
@@ -608,7 +605,9 @@ export class WallpaperService {
 
   /**
    * 批量删除壁纸
-   * @param ids - 壁纸ID数组
+   * 先一次性取回待删对象的存储路径（只取三列，不加载 uploader/tags 关联），
+   * 再逐张走 delete 的事务——原先每张都要 findById 一轮全量加载，查询量翻倍。
+   * @param ids - 壁纸ID数组（DTO 已限 100 条且去重）
    * @returns 删除结果统计
    */
   async batchDelete(ids: number[]): Promise<{
@@ -628,25 +627,31 @@ export class WallpaperService {
       previewUrl?: string;
     }> = [];
 
-    // 批量处理（分批执行避免一次性处理太多）
-    const batchSize = 50;
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const batch = ids.slice(i, i + batchSize);
+    const rows = ids.length
+      ? await this.wallpaperRepository.find({
+          where: { id: In(ids) },
+          select: ["id", "fileUrl", "thumbnailUrl", "previewUrl"],
+        })
+      : [];
+    const filesById = new Map(rows.map((row) => [Number(row.id), row]));
 
-      for (const id of batch) {
-        try {
-          const wallpaper = await this.findById(id);
-          await this.delete(id);
-          deletedCount++;
-          deletedFiles.push({
-            fileUrl: wallpaper.fileUrl,
-            thumbnailUrl: wallpaper.thumbnailUrl,
-            previewUrl: wallpaper.previewUrl,
-          });
-        } catch (error) {
-          console.error(`删除壁纸 ID ${id} 失败:`, error);
-          failedIds.push(id);
-        }
+    for (const id of ids) {
+      const files = filesById.get(id);
+      if (!files) {
+        failedIds.push(id);
+        continue;
+      }
+      try {
+        await this.delete(id);
+        deletedCount++;
+        deletedFiles.push({
+          fileUrl: files.fileUrl,
+          thumbnailUrl: files.thumbnailUrl,
+          previewUrl: files.previewUrl,
+        });
+      } catch (error) {
+        console.error(`删除壁纸 ID ${id} 失败:`, error);
+        failedIds.push(id);
       }
     }
 
@@ -726,7 +731,7 @@ export class WallpaperService {
     uploaderId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ data: Wallpaper[]; total: number }> {
+  ): Promise<PaginatedResult<Wallpaper>> {
     if (!uploaderId || isNaN(uploaderId) || uploaderId <= 0) {
       throw new NotFoundException("上传者ID无效");
     }
@@ -740,7 +745,7 @@ export class WallpaperService {
       take: limit,
     });
 
-    return { data: this.sanitizeWallpaperUser(data), total };
+    return { data: this.sanitizeWallpaperUser(data), total, page, limit };
   }
 
   async getUploaderStats(uploaderId: number): Promise<{ uploads: number }> {
@@ -764,7 +769,7 @@ export class WallpaperService {
       uploaderId?: number;
       category?: "general" | "anime" | "people";
     } = {},
-  ): Promise<{ data: Wallpaper[]; total: number }> {
+  ): Promise<PaginatedResult<Wallpaper>> {
     ({ page, limit } = normalizePagination(page, limit));
     const qb = this.wallpaperRepository
       .createQueryBuilder("wallpaper")
@@ -808,7 +813,7 @@ export class WallpaperService {
       .take(limit)
       .getManyAndCount();
 
-    return { data: this.sanitizeWallpaperUser(data), total };
+    return { data: this.sanitizeWallpaperUser(data), total, page, limit };
   }
 
   async getAdminStats(): Promise<{
