@@ -1,5 +1,6 @@
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
+import type { PaginationData } from "@/utils/pagination"
 
 // 论坛数据类型定义
 export interface Post {
@@ -68,13 +69,6 @@ export const POST_CATEGORY_LABELS: Record<string, string> = {
 /** 取分类展示名，未知或空分类回退「未分类」 */
 export const postCategoryLabel = (category: string): string =>
   POST_CATEGORY_LABELS[category] || "未分类"
-
-export interface PaginationData {
-  currentPage: number
-  totalPages: number
-  totalCount: number
-  pageSize: number
-}
 
 /**
  * 论坛状态管理

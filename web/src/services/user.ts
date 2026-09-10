@@ -1,6 +1,7 @@
 import api from "@/config/api"
 import type { ApiResponse } from "@/config/api"
 import type { Wallpaper } from "@/services/wallpaper"
+import { toPagination, type PaginationData } from "@/utils/pagination"
 
 /**
  * 用户角色枚举
@@ -241,15 +242,20 @@ class UserService {
 
   /**
    * 获取当前用户浏览记录（近 30 天，分页）
+   * 分页在 service 层归一化，组件直接用统一模型
    */
   async getViewHistory(
     page: number = 1,
     limit: number = 20,
-  ): Promise<ApiResponse<ViewHistoryItem[]>> {
+  ): Promise<{ data: ViewHistoryItem[]; pagination: PaginationData }> {
     try {
-      return (await api.get<ViewHistoryItem[]>("/users/view-history", {
+      const payload = await api.get<ViewHistoryItem[]>("/users/view-history", {
         params: { page, limit },
-      })) as ApiResponse<ViewHistoryItem[]>
+      })
+      return {
+        data: payload.data || [],
+        pagination: toPagination(payload.pagination),
+      }
     } catch (error) {
       console.error("获取浏览记录失败:", error)
       throw error

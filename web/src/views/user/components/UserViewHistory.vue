@@ -4,7 +4,7 @@
     <div>
       <h2 class="wb-page-title">浏览记录</h2>
       <p class="mt-1 text-sm text-muted">
-        共 <span class="font-semibold text-fg">{{ pagination.total }}</span> 条 · 保留近 30 天
+        共 <span class="font-semibold text-fg">{{ pagination.totalCount }}</span> 条 · 保留近 30 天
       </p>
     </div>
 
@@ -114,12 +114,12 @@
 
     <!-- 分页 -->
     <div
-      v-if="!loading && items.length > 0 && pagination.pages > 1"
+      v-if="!loading && items.length > 0 && pagination.totalPages > 1"
       class="flex justify-center pt-2"
     >
       <Pagination
-        :current-page="pagination.page"
-        :total-pages="pagination.pages || 1"
+        :current-page="pagination.currentPage"
+        :total-pages="pagination.totalPages || 1"
         @change="handlePageChange"
       />
     </div>
@@ -127,7 +127,6 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { userService, type ViewHistoryItem } from "@/services/user"
 import type { Wallpaper } from "@/services/wallpaper"
@@ -135,48 +134,22 @@ import Pagination from "@/components/Pagination.vue"
 import MasonryWall from "@/components/MasonryWall.vue"
 import { formatTime } from "@/utils/format"
 import { masonryItemWeight } from "@/utils/wallpaperLayout"
+import { usePaginatedList } from "@/composables/usePaginatedList"
 
 const router = useRouter()
 
-const items = ref<ViewHistoryItem[]>([])
-const loading = ref(false)
-const error = ref("")
-const pagination = ref({ page: 1, limit: 20, total: 0, pages: 0 })
+const { items, loading, error, pagination, fetchData, handlePageChange } =
+  usePaginatedList<ViewHistoryItem>(
+    (page, pageSize) => userService.getViewHistory(page, pageSize),
+    { errorMessage: "获取数据失败" },
+  )
 
 /** 相对时间：刚刚 / N 分钟前 / N 小时前 / 日期 */
 const formatViewedAt = (iso?: string) => (iso ? formatTime(iso) : "")
 const historyWeight = (item: ViewHistoryItem) =>
   masonryItemWeight(item.wallpaper.width, item.wallpaper.height)
 
-const fetchData = async (page: number = 1) => {
-  loading.value = true
-  error.value = ""
-  try {
-    const result = await userService.getViewHistory(page, pagination.value.limit)
-    items.value = result?.data || []
-    pagination.value = result?.pagination || {
-      page,
-      limit: pagination.value.limit,
-      total: 0,
-      pages: 0,
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : "获取数据失败"
-  } finally {
-    loading.value = false
-  }
-}
-
-const handlePageChange = (page: number) => {
-  if (page < 1 || page > pagination.value.pages) return
-  fetchData(page)
-}
-
 const goToWallpaper = (wallpaper: Wallpaper) => {
   router.push(`/wallpaper/${wallpaper.id}`)
 }
-
-onMounted(() => {
-  fetchData()
-})
 </script>

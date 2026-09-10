@@ -80,31 +80,25 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from "vue"
+import { ref } from "vue"
 import { useRouter } from "vue-router"
 import { forumService } from "@/services/forum"
-import type { Post, PaginationData } from "@/stores/forum"
+import type { Post } from "@/stores/forum"
 import PostCard from "@/components/PostCard.vue"
 import Pagination from "@/components/Pagination.vue"
 import { useGlobalToast } from "@/composables/useToast"
-import { createFetchGeneration } from "@/utils/fetchGeneration"
+import { usePaginatedList } from "@/composables/usePaginatedList"
 
 const router = useRouter()
 const toast = useGlobalToast()
 
-const items = ref<Post[]>([])
-const loading = ref(false)
-const error = ref("")
 const removingId = ref<number | null>(null)
-const pagination = ref<PaginationData>({
-  currentPage: 1,
-  totalPages: 0,
-  totalCount: 0,
-  pageSize: 20,
-})
 
-/** 列表请求代数：翻页/移除触发的新请求会丢弃过期响应 */
-const fetchGeneration = createFetchGeneration()
+const { items, loading, error, pagination, fetchData, handlePageChange } =
+  usePaginatedList<Post>(
+    (page, pageSize) => forumService.listMyBookmarks({ page, limit: pageSize }),
+    { errorMessage: "获取收藏帖子失败，请稍后重试" },
+  )
 
 /**
  * 本地移除帖子并收缩分页：当前页被删空且不在首页时，
@@ -124,31 +118,6 @@ const removeLocal = (postId: number): number | null => {
     return pagination.value.currentPage
   }
   return null
-}
-
-const fetchData = async (page: number = pagination.value.currentPage) => {
-  const gen = fetchGeneration.next()
-  loading.value = true
-  error.value = ""
-  try {
-    const result = await forumService.listMyBookmarks({ page })
-    if (!fetchGeneration.isCurrent(gen)) return
-    items.value = result.data
-    pagination.value = result.pagination
-  } catch (err) {
-    if (!fetchGeneration.isCurrent(gen)) return
-    console.error("获取收藏帖子失败:", err)
-    error.value = "获取收藏帖子失败，请稍后重试"
-  } finally {
-    if (fetchGeneration.isCurrent(gen)) {
-      loading.value = false
-    }
-  }
-}
-
-const handlePageChange = (page: number) => {
-  if (page < 1 || (pagination.value.totalPages > 0 && page > pagination.value.totalPages)) return
-  fetchData(page)
 }
 
 /** 取消收藏：原地移除；删空当前页时回退末页重拉 */
@@ -172,8 +141,4 @@ const handleDelete = (post: Post) => {
   const targetPage = removeLocal(post.id)
   if (targetPage !== null) void fetchData(targetPage)
 }
-
-onMounted(() => {
-  void fetchData()
-})
 </script>

@@ -1,5 +1,5 @@
 import api from "@/config/api"
-import type { Post, Comment, PaginationData } from "@/stores/forum"
+import type { Post, Comment } from "@/stores/forum"
 
 /**
  * 帖子创建和更新DTO
@@ -60,18 +60,7 @@ export interface CommentsQueryParams {
   parentId?: number
 }
 
-/** 将后端分页格式转为前端 PaginationData */
-const toPagination = (p?: {
-  page?: number
-  limit?: number
-  total?: number
-  pages?: number
-}): PaginationData => ({
-  currentPage: p?.page || 1,
-  totalPages: p?.pages || 0,
-  totalCount: p?.total || 0,
-  pageSize: p?.limit || 20,
-})
+import { toPagination } from "@/utils/pagination"
 
 /**
  * 论坛API服务
