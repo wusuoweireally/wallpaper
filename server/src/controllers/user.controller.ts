@@ -43,7 +43,7 @@ import { isAdminRole } from "../entities/user.entity";
 import { getAuthCookieOptions } from "../utils/cookie";
 import { resolveAvatarUrl } from "../utils/avatar";
 import { getJwtCookieMaxAge } from "../utils/duration";
-import { buildPaginationMeta } from "../common/pagination";
+import { buildPaginationMeta, normalizePagination } from "../common/pagination";
 
 @Controller("users")
 export class UserController {
@@ -492,12 +492,20 @@ export class UserController {
     };
   }
 
-  /** 构建统一分页响应：数据兜底后复用 buildPaginationMeta */
+  /**
+   * 构建统一分页响应：数据兜底后复用 buildPaginationMeta。
+   * 入参来自 query string（可能 NaN/0/负数），先归一化再透传——service 查询用的是
+   * 归一化后的值，meta 不归一化会出现 page=null 或与数据实际页不一致。
+   */
   private buildPaginatedResponse(
     result: { data: unknown[]; total: number },
     page: number,
     limit: number = 20,
   ) {
+    const { page: safePage, limit: safeLimit } = normalizePagination(
+      page,
+      limit,
+    );
     const totalCount = typeof result.total === "number" ? result.total : 0;
     const safeData = Array.isArray(result.data) ? result.data : [];
     return {
@@ -506,8 +514,8 @@ export class UserController {
       pagination: buildPaginationMeta({
         data: safeData,
         total: totalCount,
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
       }),
     };
   }
