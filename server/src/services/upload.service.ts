@@ -11,6 +11,7 @@ import { createHash, randomBytes } from "crypto";
 import { CosService, type AuditResult } from "./cos.service";
 import { hexToColorBucket } from "./wallpaper-filters";
 import { samplePaletteFromImage } from "./color-palette";
+import { isDefaultAvatar } from "../utils/avatar";
 import { Wallpaper } from "../entities/wallpaper.entity";
 import {
   resolutionRequirementMessage,
@@ -323,13 +324,13 @@ export class UploadService {
   }
 
   /**
-   * 删除头像（按完整 URL）；默认头像/GitHub URL/空值跳过
+   * 删除头像（按完整 URL）；默认头像/GitHub URL/空值跳过——
+   * 只有桶内的 http(s) 直链才归本服务管
    */
   async deleteAvatar(avatarUrl?: string | null): Promise<void> {
     if (
       !avatarUrl ||
-      avatarUrl === "defaultAvatar.png" ||
-      avatarUrl === "defaultAvatar.webp" ||
+      isDefaultAvatar(avatarUrl) ||
       !avatarUrl.startsWith("http")
     ) {
       return;

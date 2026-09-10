@@ -9,6 +9,7 @@ import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { User, UserRole } from "../entities/user.entity";
 import { GitHubProfile } from "../dto/github.dto";
+import { isDefaultAvatar } from "../utils/avatar";
 
 /**
  * GitHub 认证服务
@@ -175,8 +176,9 @@ export class GitHubAuthService {
     user.githubAvatarUrl = githubProfile.avatar_url;
     user.githubBio = githubProfile.bio || "";
 
-    // 如果用户没有头像，使用 GitHub 头像
-    if (!user.avatarUrl || user.avatarUrl === "defaultAvatar.png") {
+    // 如果用户没有头像或仍是默认头像，使用 GitHub 头像
+    // （默认头像有带/不带前导斜杠两种历史写法，统一走 isDefaultAvatar）
+    if (!user.avatarUrl || isDefaultAvatar(user.avatarUrl)) {
       user.avatarUrl = githubProfile.avatar_url;
     }
 

@@ -179,22 +179,27 @@ export class CollectionService {
     return { data, total, collection };
   }
 
-  /** 该用户哪些合集已包含某壁纸（详情页下拉勾选态用） */
+  /**
+   * 该用户哪些合集已包含某壁纸（详情页下拉勾选态用）。
+   * 所有权在 SQL 侧经 join 下推——原先拉出该壁纸的全部归属行再在内存里
+   * 与"用户全部合集"取交集，热度高的壁纸会退化成全表扫描。
+   */
   async findIdsContaining(
     userId: number,
     wallpaperId: number,
   ): Promise<number[]> {
-    const rows = await this.itemRepo.find({
-      where: { wallpaperId },
-      select: ["collectionId"],
-    });
-    if (rows.length === 0) return [];
-    const owned = await this.collectionRepo.find({
-      where: { userId },
-      select: ["id"],
-    });
-    const ownedIds = new Set(owned.map((c) => c.id));
-    return rows.map((r) => r.collectionId).filter((id) => ownedIds.has(id));
+    const rows = await this.itemRepo
+      .createQueryBuilder("item")
+      .innerJoin(
+        "item.collection",
+        "collection",
+        "collection.userId = :userId",
+        { userId },
+      )
+      .select("item.collectionId", "collectionId")
+      .where("item.wallpaperId = :wallpaperId", { wallpaperId })
+      .getRawMany<{ collectionId: string | number }>();
+    return rows.map((row) => Number(row.collectionId));
   }
 
   private async requireOwned(
