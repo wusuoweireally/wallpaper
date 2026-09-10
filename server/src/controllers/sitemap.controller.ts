@@ -11,12 +11,19 @@ import { Wallpaper, WallpaperStatus } from "../entities/wallpaper.entity";
 const MAX_URLS = 45000;
 const BATCH_SIZE = 5000;
 
+/** 缓存时长：爬虫对时效不敏感，5 分钟足够新；用于挡住高频抓取反复做全表游标扫描 */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 // 静态可收录页（与 web/src/router/index.ts 的公开路由逐条核对所得）
 const STATIC_PATHS = ["/", "/wallpapers", "/tags", "/forums"];
 
 @Controller()
 export class SitemapController {
   private readonly logger = new Logger(SitemapController.name);
+
+  /** 进程内缓存：单实例部署，多实例各存一份也无害（只读内容） */
+  private cachedXml: string | null = null;
+  private cachedAt = 0;
 
   constructor(
     private readonly configService: ConfigService,
@@ -29,12 +36,26 @@ export class SitemapController {
   /**
    * 公开无鉴权。服务端挂 /sitemap.xml，对外经网关暴露为
    * ${FRONTEND_URL}/api/sitemap.xml（Nginx 剥掉 /api 前缀转发）。
+   * 豁免全局限流面向爬虫友好，代价是请求不可计数——故必须走缓存，
+   * 否则每次抓取都会把三张表各扫一遍游标分页。
    */
   @Get("sitemap.xml")
-  // 公开只读端点且面向爬虫，豁免全局限流避免搜索引擎校验时段吃 429
   @SkipThrottle()
   @Header("Content-Type", "application/xml")
   async sitemap(): Promise<string> {
+    const now = Date.now();
+    if (this.cachedXml && now - this.cachedAt < CACHE_TTL_MS) {
+      return this.cachedXml;
+    }
+
+    // 构建抛错时不写缓存，下次请求重试而不是缓存半成品
+    const xml = await this.buildSitemap();
+    this.cachedXml = xml;
+    this.cachedAt = now;
+    return xml;
+  }
+
+  private async buildSitemap(): Promise<string> {
     const paths = [...STATIC_PATHS];
     let exceeded = false;
     const addAll = (batch: string[]) => {
