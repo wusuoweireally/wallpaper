@@ -10,8 +10,6 @@ const MIN_DIST = 52;
 /** 次要色至少占采样像素的比例，过滤噪点 */
 const MIN_SHARE = 0.02;
 
-const HEX_RE = /^#[0-9a-f]{6}$/i;
-
 /** 直方图量化 + 贪心去重，按像素占比降序取出主色 */
 export function extractColorPalette(
   rgb: Uint8Array,
@@ -83,12 +81,4 @@ export async function samplePaletteFromImage(
     .raw()
     .toBuffer();
   return extractColorPalette(raw);
-}
-
-export function isHexPalette(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((c) => typeof c === "string" && HEX_RE.test(c))
-  );
 }

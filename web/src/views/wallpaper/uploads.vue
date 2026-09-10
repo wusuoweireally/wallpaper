@@ -740,93 +740,6 @@ const previewDraft = computed(() => {
   return list[i] ?? null
 })
 
-/** 文件头解析宽高（不解码整图） */
-const readImageSizeFromHeader = async (file: File): Promise<{ width: number; height: number }> => {
-  const buf = await file.slice(0, 256 * 1024).arrayBuffer()
-  const view = new DataView(buf)
-  const u8 = new Uint8Array(buf)
-
-  if (u8.length >= 24 && u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47) {
-    return { width: view.getUint32(16), height: view.getUint32(20) }
-  }
-
-  if (u8.length > 4 && u8[0] === 0xff && u8[1] === 0xd8) {
-    let offset = 2
-    while (offset + 9 < u8.length) {
-      if (u8[offset] !== 0xff) {
-        offset++
-        continue
-      }
-      const marker = u8[offset + 1]
-      if (marker === 0xff) {
-        offset++
-        continue
-      }
-      const isSof =
-        (marker >= 0xc0 && marker <= 0xc3) ||
-        (marker >= 0xc5 && marker <= 0xc7) ||
-        (marker >= 0xc9 && marker <= 0xcb) ||
-        (marker >= 0xcd && marker <= 0xcf)
-      if (isSof && offset + 8 < u8.length) {
-        return {
-          height: view.getUint16(offset + 5),
-          width: view.getUint16(offset + 7),
-        }
-      }
-      if (marker === 0xda || marker === 0xd9) break
-      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd9)) {
-        offset += 2
-        continue
-      }
-      if (offset + 3 >= u8.length) break
-      const segLen = view.getUint16(offset + 2)
-      if (segLen < 2) break
-      offset += 2 + segLen
-    }
-  }
-
-  if (
-    u8.length >= 30 &&
-    u8[0] === 0x52 &&
-    u8[1] === 0x49 &&
-    u8[2] === 0x46 &&
-    u8[3] === 0x46 &&
-    u8[8] === 0x57 &&
-    u8[9] === 0x45 &&
-    u8[10] === 0x42 &&
-    u8[11] === 0x50
-  ) {
-    let offset = 12
-    while (offset + 8 <= u8.length) {
-      const fourcc = String.fromCharCode(u8[offset], u8[offset + 1], u8[offset + 2], u8[offset + 3])
-      const chunkSize = view.getUint32(offset + 4, true)
-      const dataStart = offset + 8
-      if (fourcc === "VP8X" && dataStart + 10 <= u8.length) {
-        const w = 1 + (u8[dataStart + 4] | (u8[dataStart + 5] << 8) | (u8[dataStart + 6] << 16))
-        const h = 1 + (u8[dataStart + 7] | (u8[dataStart + 8] << 8) | (u8[dataStart + 9] << 16))
-        return { width: w, height: h }
-      }
-      if (fourcc === "VP8 " && dataStart + 10 <= u8.length) {
-        const w = view.getUint16(dataStart + 6, true) & 0x3fff
-        const h = view.getUint16(dataStart + 8, true) & 0x3fff
-        if (w > 0 && h > 0) return { width: w, height: h }
-      }
-      if (fourcc === "VP8L" && dataStart + 5 <= u8.length && u8[dataStart] === 0x2f) {
-        const b1 = u8[dataStart + 1]
-        const b2 = u8[dataStart + 2]
-        const b3 = u8[dataStart + 3]
-        const b4 = u8[dataStart + 4]
-        const w = 1 + (((b2 & 0x3f) << 8) | b1)
-        const h = 1 + (((b4 & 0x0f) << 10) | (b3 << 2) | ((b2 & 0xc0) >> 6))
-        return { width: w, height: h }
-      }
-      offset = dataStart + chunkSize + (chunkSize & 1)
-    }
-  }
-
-  throw new Error("无法解析图片尺寸")
-}
-
 /** 始终改数组里的响应式对象，避免 push 后改原 plain object UI 不更新 */
 const patchPending = (id: string, patch: Partial<PendingFile>) => {
   const row = pendingFiles.value.find((f) => f.id === id)
@@ -854,28 +767,12 @@ const validatePendingFile = async (id: string, file: File) => {
       return
     }
 
-    let width = 0
-    let height = 0
-    try {
-      const size = await readImageSizeFromHeader(file)
-      width = size.width
-      height = size.height
-    } catch {
-      // 头解析失败再 fallback（少数奇怪编码）
-      const bmp = await createImageBitmap(file)
-      width = bmp.width
-      height = bmp.height
-      bmp.close()
-    }
-
-    if (!width || !height) {
-      patchPending(id, {
-        validationError: "无法读取图片尺寸",
-        status: "error",
-        validating: false,
-      })
-      return
-    }
+    // 直接解码取尺寸：createImageBitmap 在浏览器内异步解码，不阻塞主线程；
+    // 读不到尺寸会抛错，由外层 catch 统一兜底为"文件损坏"
+    const bmp = await createImageBitmap(file)
+    const width = bmp.width
+    const height = bmp.height
+    bmp.close()
 
     if (width < MIN_WIDTH || height < MIN_HEIGHT) {
       patchPending(id, {

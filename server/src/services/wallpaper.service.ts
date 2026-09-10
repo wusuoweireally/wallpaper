@@ -493,14 +493,6 @@ export class WallpaperService {
     return await this.findById(id);
   }
 
-  /** 状态切换（0=下架草稿 1=公开）：与 publish/delete 同一套 usageCount 记账 */
-  async setStatus(id: number, status: WallpaperStatus): Promise<void> {
-    const transition = await this.dataSource.transaction((manager) =>
-      this.setStatusWithManager(manager, id, status),
-    );
-    await this.applyVisibilityOnTransition(transition);
-  }
-
   /**
    * 状态切换核心：事务内加锁校验并记账。
    * 返回 null 表示状态未变化；否则携带行快照与方向，
