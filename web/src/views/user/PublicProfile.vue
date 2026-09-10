@@ -9,7 +9,7 @@
           class="wb-page-head mb-5 flex flex-wrap items-center gap-4 border-b border-line pb-4"
         >
           <img
-            :src="profile.avatarUrl || '/defaultAvatar.png'"
+            :src="resolveAvatarUrl(profile.avatarUrl)"
             class="h-12 w-12 rounded-full object-cover ring-1 ring-line"
             alt=""
             @error="handleAvatarError"
@@ -114,7 +114,7 @@ import WallpaperGrid from "@/components/WallpaperGrid.vue"
 import PostCard from "@/components/PostCard.vue"
 import Pagination from "@/components/Pagination.vue"
 import { usePaginatedList } from "@/composables/usePaginatedList"
-import { handleAvatarError } from "@/utils/avatar"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 
 const route = useRoute()
 const userId = () => Number(route.params.id)

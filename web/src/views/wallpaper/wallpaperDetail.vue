@@ -99,7 +99,7 @@
         <div class="mb-5 flex items-center gap-3">
           <router-link :to="`/u/${wallpaper.uploader.id}`" class="shrink-0">
             <img
-              :src="wallpaper.uploader.avatar || '/defaultAvatar.png'"
+              :src="resolveAvatarUrl(wallpaper.uploader.avatar)"
               :alt="wallpaper.uploader.name || '上传者'"
               class="h-9 w-9 rounded-full object-cover ring-1 ring-line"
               @error="handleAvatarError"
@@ -459,6 +459,7 @@ import { useGlobalToast } from "@/composables/useToast"
 import CropScaleDownload from "@/components/CropScaleDownload.vue"
 import ReportModal from "@/components/ReportModal.vue"
 import { createFetchGeneration } from "@/utils/fetchGeneration"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 import { wallpaperDisplayTitle } from "@/utils/wallpaperLayout"
 
 interface WallpaperDetail {
@@ -787,12 +788,6 @@ const handleFavorite = async () => {
   } finally {
     favoriting.value = false
   }
-}
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = "/defaultAvatar.png"
-  img.onerror = null
 }
 
 /* ---------- Lightbox：缩放 + 拖拽 ---------- */

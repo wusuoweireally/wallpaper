@@ -26,7 +26,7 @@
       <div class="flex items-center gap-2">
         <router-link to="/" class="wb-btn-ghost text-sm">回站点</router-link>
         <img
-          :src="userAvatar"
+          :src="userStore.userAvatar"
           alt="管理员"
           class="h-8 w-8 rounded-full object-cover ring-1 ring-line"
           @error="handleAvatarError"
@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue"
+import { onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useUserStore } from "@/stores/user"
 import adminService from "@/services/admin"
@@ -134,13 +134,6 @@ watch(
     }
   },
 )
-
-const userAvatar = computed(() => {
-  if (!userStore.user?.avatarUrl || userStore.user?.avatarUrl === "defaultAvatar.png") {
-    return "/defaultAvatar.png"
-  }
-  return userStore.user.avatarUrl
-})
 
 const logout = async () => {
   const ok = await confirmAction({

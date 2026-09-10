@@ -620,7 +620,7 @@
             >
               <div class="h-10 w-10 overflow-hidden rounded-full ring-1 ring-line">
                 <img
-                  :src="getUploaderAvatar(previewWallpaper.uploader.avatarUrl)"
+                  :src="resolveAvatarUrl(previewWallpaper.uploader.avatarUrl)"
                   :alt="previewWallpaper.uploader.username"
                   class="h-full w-full object-cover"
                   @error="handleAvatarError"
@@ -668,6 +668,7 @@ import { confirmAction } from "@/composables/useConfirm"
 import type { ApiResponse } from "@/config/api"
 import Pagination from "@/components/Pagination.vue"
 import { formatFileSize, formatDateTime } from "@/utils/format"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 
 interface PaginationMeta {
   page: number
@@ -729,7 +730,6 @@ type WallpaperTagLike = string | AdminWallpaperTag
 
 // 占位图走本地静态资源，避免外链不可达/CSP 不合规
 const DEFAULT_WALLPAPER_PLACEHOLDER = "/defaultWallpaper.svg"
-const DEFAULT_AVATAR_PLACEHOLDER = "/defaultAvatar.png"
 
 let notificationTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -749,12 +749,6 @@ const getWallpaperImage = (url?: string | null) => {
   if (/^(https?:)?\/\//.test(url) || url.startsWith("data:")) return url
   if (url.startsWith("/")) return url
   return `/api/uploads/wallpapers/${url}`
-}
-
-const getUploaderAvatar = (url?: string | null) => {
-  // COS 完整 URL 或绝对路径直返；其余（旧式文件名等）视为默认头像
-  if (!url || !/^(https?:)?\//.test(url)) return DEFAULT_AVATAR_PLACEHOLDER
-  return url
 }
 
 const formatStatus = (status?: number) => {
@@ -1085,13 +1079,6 @@ const handleImageError = (event: Event) => {
   if (img.dataset.imageFallback === "1") return
   img.dataset.imageFallback = "1"
   img.src = DEFAULT_WALLPAPER_PLACEHOLDER
-}
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  if (img.dataset.avatarFallback === "1") return
-  img.dataset.avatarFallback = "1"
-  img.src = DEFAULT_AVATAR_PLACEHOLDER
 }
 
 // 批量选择

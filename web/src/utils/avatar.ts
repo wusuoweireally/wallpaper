@@ -9,12 +9,10 @@ export const resolveAvatarUrl = (raw?: string | null): string => {
     return DEFAULT_AVATAR
   }
 
-  // 完整 HTTP(S) URL（COS）或绝对路径直接返回，其余相对文件名兜底
-  if (HTTP_PROTOCOL.test(raw) || raw.startsWith("/")) {
-    return raw
-  }
+  // 完整 HTTP(S) URL（COS）或绝对路径直接用，其余相对文件名兜底
+  if (HTTP_PROTOCOL.test(raw) || raw.startsWith("/")) return raw
 
-  return raw
+  return DEFAULT_AVATAR
 }
 
 /**

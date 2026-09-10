@@ -257,11 +257,11 @@
                 <td class="whitespace-nowrap px-6 py-5">
                   <div class="h-12 w-12 overflow-hidden rounded-control ring-1 ring-line">
                     <img
-                      v-if="user.avatarUrl && user.avatarUrl !== 'defaultAvatar.png'"
-                      :src="getAvatarUrl(user.avatarUrl)"
+                      v-if="user.avatarUrl"
+                      :src="resolveAvatarUrl(user.avatarUrl)"
                       :alt="user.username"
                       class="h-full w-full object-cover"
-                      @error="handleImageError"
+                      @error="handleAvatarError"
                     />
                     <div v-else class="flex h-full w-full items-center justify-center bg-subtle">
                       <i class="i-[mdi--account] text-xl text-faint" aria-hidden="true"></i>
@@ -508,6 +508,7 @@ import { UserRole } from "@/services/user"
 import { confirmAction } from "@/composables/useConfirm"
 import Pagination from "@/components/Pagination.vue"
 import { formatDateTime as formatDate } from "@/utils/format"
+import { resolveAvatarUrl, handleAvatarError } from "@/utils/avatar"
 
 interface PaginationMeta {
   page: number
@@ -554,20 +555,6 @@ const roleOptions = [
 const toast = ref<{ text: string; type: "success" | "error" } | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
-
-const getAvatarUrl = (avatarUrl: string) => {
-  // COS 完整 URL 或绝对路径直返；旧式相对文件名视为默认头像
-  if (avatarUrl.startsWith("http") || avatarUrl.startsWith("/")) return avatarUrl
-  return "/defaultAvatar.png"
-}
-
-const handleImageError = (event: Event) => {
-  // 本地默认头像兜底且只回退一次，避免坏地址反复触发 error
-  const img = event.target as HTMLImageElement
-  if (img.dataset.avatarFallback === "1") return
-  img.dataset.avatarFallback = "1"
-  img.src = "/defaultAvatar.png"
-}
 
 const totalUsers = computed(() => pagination.value.total || 0)
 const activeUsers = computed(() => users.value.filter((user) => user.status === 1).length)
