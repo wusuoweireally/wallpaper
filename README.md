@@ -24,7 +24,7 @@ cp server/.env.development.example server/.env.development
 # 填 DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥16)；上传需 COS_*
 
 pnpm db:up          # 起 MySQL → 127.0.0.1:3306
-pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api、/uploads）
+pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api）
                     # 迁移自动跑（TYPEORM_MIGRATIONS_RUN=true）；手动：pnpm -C server typeorm:run
 ```
 
@@ -42,8 +42,8 @@ pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api、/uploads�
 cp server/.env.production.example server/.env.production
 # 必填：DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥32)、COS_*、
 # FRONTEND_URL(https)、COOKIE_SECURE=true；OAuth 按需。
-# ADMIN_* 建议配置：未配置则启动后没有超级管理员（环境校验不会拦截），
-# 需事后补配并重启容器完成创建。
+# ADMIN_* 选填：整组一起填，只填其中一项会直接启动失败（校验按成对处理）；
+# 全不填则全站没有超级管理员，可事后补齐并重启容器完成创建。
 
 pnpm deploy         # 构建并后台启动 mysql + server + web
 pnpm deploy:logs    # 看日志

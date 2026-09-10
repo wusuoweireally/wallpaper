@@ -78,7 +78,6 @@ Desktop.ini
 .idea/
 *.swp
 *.swo
-*~
 .project
 .classpath
 .c9/
@@ -163,9 +162,6 @@ ses_*.md
 
 # 输出目录
 *.tgz
-
-# Yarn
-.yarn-integrity
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
