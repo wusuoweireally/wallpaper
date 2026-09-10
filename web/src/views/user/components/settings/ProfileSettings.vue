@@ -31,7 +31,12 @@
                 class="absolute inset-0 flex h-28 w-28 cursor-pointer items-center justify-center rounded-full bg-black/50 opacity-0 transition group-hover:opacity-100"
               >
                 <i class="i-[mdi--camera] text-3xl text-white"></i>
-                <input type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  @change="handleAvatarChange"
+                  class="hidden"
+                />
               </label>
             </div>
 
@@ -203,10 +208,10 @@ const handleAvatarChange = (event: Event) => {
   const file = input.files?.[0]
 
   if (file) {
-    // 验证文件类型和大小
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    // 与后端 processAvatarUpload 的白名单保持一致（后端不收 GIF，前端放行只会在预览后被打回）
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
     if (!allowedTypes.includes(file.type)) {
-      error.value = "请选择有效的图片文件 (JPEG, PNG, GIF, WebP)"
+      error.value = "请选择有效的图片文件 (JPEG, PNG, WebP)"
       input.value = ""
       return
     }
