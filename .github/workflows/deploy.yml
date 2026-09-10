@@ -21,13 +21,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-check
       - run: pnpm lint
-      # web 测试脚本依赖 --experimental-strip-types（Node >= 22.6），CI 固定 Node 22 满足
+      # 与 .nvmrc / Dockerfile 统一在 Node 24；web 测试脚本的 --experimental-strip-types 仍适用
       - run: pnpm test
       - run: pnpm build
 
