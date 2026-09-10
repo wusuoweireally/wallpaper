@@ -94,14 +94,12 @@ export const useForumStore = defineStore("forum", () => {
     pageSize: 20,
   })
 
-  // 筛选和搜索状态
+  // 筛选和搜索状态（分类/搜索均由服务端筛选，前端不再二次过滤）
   const filters = ref({
     category: "" as PostCategory["value"] | "",
     sortBy: "createdAt", // createdAt, viewCount, likeCount, popular
     sortOrder: "DESC" as "ASC" | "DESC",
     search: "",
-    authorId: null as number | null,
-    tags: [] as string[],
   })
 
   // 帖子分类配置
@@ -112,43 +110,11 @@ export const useForumStore = defineStore("forum", () => {
     { value: "resource_sharing", label: POST_CATEGORY_LABELS.resource_sharing, color: "purple" },
   ])
 
-  // 计算属性
-  const filteredPosts = computed(() => {
-    return posts.value.filter((post) => {
-      let matches = true
-
-      // 分类筛选
-      if (filters.value.category && post.category !== filters.value.category) {
-        matches = false
-      }
-
-      // 搜索筛选
-      if (filters.value.search) {
-        const searchLower = filters.value.search.toLowerCase()
-        matches =
-          matches &&
-          (post.title.toLowerCase().includes(searchLower) ||
-            post.content.toLowerCase().includes(searchLower) ||
-            (post.summary && post.summary.toLowerCase().includes(searchLower)))
-      }
-
-      // 标签筛选
-      if (filters.value.tags.length > 0 && post.tags) {
-        const postTags = post.tags.split(",").map((tag) => tag.trim())
-        matches =
-          matches &&
-          filters.value.tags.some((tag) =>
-            postTags.some((postTag) => postTag.toLowerCase().includes(tag.toLowerCase())),
-          )
-      }
-
-      return matches
-    })
-  })
-
-  const popularPosts = computed(() => {
-    return [...posts.value].sort((a, b) => b.viewCount - a.viewCount).slice(0, 10)
-  })
+  /**
+   * 全站热门榜：按 popular（浏览 + 点赞加权）单独拉取。
+   * 曾用 `[...posts]` 在前端重排，那只是"当前这一页的热门"，翻页就变。
+   */
+  const popularPosts = ref<Post[]>([])
 
   const categoryLabel = computed(() => (categoryValue: string) => {
     const category = postCategories.value.find((cat) => cat.value === categoryValue)
@@ -182,10 +148,12 @@ export const useForumStore = defineStore("forum", () => {
       sortBy: "createdAt",
       sortOrder: "DESC",
       search: "",
-      authorId: null,
-      tags: [],
     }
     postsPagination.value.currentPage = 1
+  }
+
+  const setPopularPosts = (list: Post[]) => {
+    popularPosts.value = list
   }
 
   /**
@@ -202,7 +170,7 @@ export const useForumStore = defineStore("forum", () => {
     )
     postsPagination.value.totalPages = remainingTotalPages
 
-    if (filteredPosts.value.length === 0 && postsPagination.value.currentPage > 1) {
+    if (posts.value.length === 0 && postsPagination.value.currentPage > 1) {
       const targetPage = Math.min(postsPagination.value.currentPage - 1, remainingTotalPages)
       postsPagination.value.currentPage = targetPage
       return targetPage
@@ -228,7 +196,6 @@ export const useForumStore = defineStore("forum", () => {
     postCategories,
 
     // 计算属性
-    filteredPosts,
     popularPosts,
     categoryLabel,
 
@@ -237,6 +204,7 @@ export const useForumStore = defineStore("forum", () => {
     setError,
     setPosts,
     setPostsPagination,
+    setPopularPosts,
     updateFilters,
     resetFilters,
     removePost,

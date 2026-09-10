@@ -89,7 +89,7 @@
 
           <div v-else class="space-y-4">
             <PostCard
-              v-for="post in forumStore.filteredPosts"
+              v-for="post in forumStore.posts"
               :key="post.id"
               :post="post"
               @like="handleLike"
@@ -99,7 +99,7 @@
               @share="handleShare"
             />
 
-            <div v-if="forumStore.filteredPosts.length === 0" class="wb-empty">
+            <div v-if="forumStore.posts.length === 0" class="wb-empty">
               <p class="text-base font-semibold text-fg">
                 {{
                   forumStore.filters.search ? "没有找到相关帖子" : "暂时还没有帖子，来分享第一个吧"
@@ -124,7 +124,7 @@
 
           <!-- 分页 -->
           <div
-            v-if="forumStore.filteredPosts.length > 0 && forumStore.postsPagination.totalPages > 1"
+            v-if="forumStore.posts.length > 0 && forumStore.postsPagination.totalPages > 1"
             class="pt-2"
           >
             <Pagination
@@ -221,30 +221,31 @@ const searchQuery = ref("")
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 type CategoryFilter = PostCategory["value"] | ""
 
-const heroStats = computed(() => [
-  {
-    label: "帖子",
-    hint: "当前列表总数",
-    value: formatNumber(forumStore.postsPagination.totalCount || 0),
-  },
-  {
-    label: "热度",
-    hint: "热门帖浏览合计",
-    value: formatNumber(
-      forumStore.popularPosts.slice(0, 5).reduce((sum, item) => sum + (item.viewCount || 0), 0),
-    ),
-  },
-  {
-    label: "互动",
-    hint: "点赞 + 评论",
-    value: formatNumber(
-      forumStore.posts.reduce(
-        (sum, item) => sum + (item.likeCount || 0) + (item.commentCount || 0),
-        0,
+/** 热度/互动取热门榜前 5 聚合，与侧栏同源——三个数字口径一致，都描述全站 */
+const HERO_TOP_N = 5
+
+const heroStats = computed(() => {
+  const top = forumStore.popularPosts.slice(0, HERO_TOP_N)
+  return [
+    {
+      label: "帖子",
+      hint: "全站已发布",
+      value: formatNumber(forumStore.postsPagination.totalCount || 0),
+    },
+    {
+      label: "热度",
+      hint: "热门帖浏览合计",
+      value: formatNumber(top.reduce((sum, item) => sum + (item.viewCount || 0), 0)),
+    },
+    {
+      label: "互动",
+      hint: "热门帖点赞 + 评论",
+      value: formatNumber(
+        top.reduce((sum, item) => sum + (item.likeCount || 0) + (item.commentCount || 0), 0),
       ),
-    ),
-  },
-])
+    },
+  ]
+})
 
 // 列表请求代数：筛选/分类快速切换时丢弃过期响应
 const postsFetchGeneration = createFetchGeneration()
@@ -287,6 +288,20 @@ const fetchPosts = async (reset = false) => {
     if (isCurrent()) {
       forumStore.setLoading(false)
     }
+  }
+}
+
+/**
+ * 全站热门榜：与列表的分类/搜索/翻页无关，进页面拉一次即可。
+ * 必须单独请求——曾在前端对当前页重排，那得到的是"这一页的热门"。
+ */
+const fetchPopular = async () => {
+  try {
+    const { data } = await forumService.getPosts({ sortBy: "popular", limit: 10 })
+    forumStore.setPopularPosts(data)
+  } catch (error) {
+    console.error("获取热门帖失败:", error)
+    forumStore.setPopularPosts([])
   }
 }
 
@@ -423,6 +438,7 @@ onMounted(() => {
     forumStore.setPostsPagination({ currentPage: page })
   }
   fetchPosts()
+  void fetchPopular()
 })
 
 onUnmounted(() => {
