@@ -1,4 +1,10 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 必须全量编译：nest build 每次先清空 dist（deleteOutDir），而 incremental 的
+    // tsbuildinfo 落在 server 根目录、不在 dist 里，缓存会让第二次构建认为产物
+    // 已是最新而跳过 emit，dist 只剩 assets（dev 脚本里的 --incremental false 同理）
+    "incremental": false
+  },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
