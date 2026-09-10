@@ -50,12 +50,12 @@
             <div class="h-2 overflow-hidden rounded-full bg-inset">
               <div
                 class="h-full transition-all duration-300 ease-out"
-                :class="passwordStrengthClass"
-                :style="{ width: passwordStrengthPercent + '%' }"
+                :class="strengthMeter.bar"
+                :style="{ width: strengthMeter.percent + '%' }"
               ></div>
             </div>
             <p class="mt-2 text-xs text-faint">
-              密码强度：<span :class="passwordStrengthTextClass">{{ passwordStrengthLabel }}</span>
+              密码强度：<span :class="strengthMeter.text">{{ strengthMeter.label }}</span>
             </p>
           </div>
         </div>
@@ -238,12 +238,9 @@ onMounted(() => {
   isMounted.value = true
 })
 
-// 组件卸载时清理资源
+// 卸载后置 false，避免异步回包再写状态；其余 ref 随实例销毁，无需重置
 onUnmounted(() => {
   isMounted.value = false
-  loading.value = false
-  error.value = ""
-  success.value = ""
 })
 
 // 密码表单
@@ -263,57 +260,38 @@ const loading = ref(false)
 const error = ref("")
 const success = ref("")
 
-// 密码强度计算
-const passwordStrength = computed(() => {
-  const value = passwordForm.newPassword
-  if (!value) return 0
-
-  let score = 0
-  if (value.length >= 8) score += 1
-  if (/[A-Z]/.test(value)) score += 1
-  if (/[a-z]/.test(value)) score += 1
-  if (/\d/.test(value)) score += 1
-  if (/[^A-Za-z0-9]/.test(value)) score += 1
-  return score
-})
-
-const passwordStrengthPercent = computed(() => (passwordStrength.value / 5) * 100)
-
-const passwordStrengthLabel = computed(() => {
-  const score = passwordStrength.value
-  if (score <= 2) return "弱"
-  if (score === 3) return "中"
-  if (score === 4) return "强"
-  return "非常强"
-})
-
-const passwordStrengthClass = computed(() => {
-  const score = passwordStrength.value
-  if (score <= 2) return "bg-error"
-  if (score === 3) return "bg-warning"
-  if (score === 4) return "bg-success"
-  return "bg-success"
-})
-
-const passwordStrengthTextClass = computed(() => {
-  const score = passwordStrength.value
-  if (score <= 2) return "text-error"
-  if (score === 3) return "text-warning"
-  if (score === 4) return "text-success"
-  return "text-success"
-})
-
-// 密码验证检查项
+/** 密码规则命中情况；match 只服务提交校验，不计入强度 */
 const passwordChecks = computed(() => {
   const password = passwordForm.newPassword
   return {
-    length: password.length >= 8,
+    length: password.length >= PASSWORD_MIN_LENGTH,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /\d/.test(password),
     special: /[^A-Za-z0-9]/.test(password),
     match: password.length > 0 && password === passwordForm.confirmPassword,
   }
+})
+
+/**
+ * 强度 = 前五项命中数，展示属性由同一分数派生。
+ * 规则正则只在 passwordChecks 里写一次——此前 passwordStrength 又抄了一遍同样的五次判断。
+ */
+const strengthMeter = computed(() => {
+  const { match: _match, ...rules } = passwordChecks.value
+  const score = Object.values(rules).filter(Boolean).length
+
+  // Tailwind 靠字面量扫描，类名不能动态拼接
+  const tier =
+    score <= 2
+      ? { label: "弱", bar: "bg-error", text: "text-error" }
+      : score === 3
+        ? { label: "中", bar: "bg-warning", text: "text-warning" }
+        : score === 4
+          ? { label: "强", bar: "bg-success", text: "text-success" }
+          : { label: "非常强", bar: "bg-success", text: "text-success" }
+
+  return { percent: (score / 5) * 100, ...tier }
 })
 
 // 是否可以提交
