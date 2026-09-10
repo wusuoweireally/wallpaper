@@ -194,9 +194,15 @@ export class CosService {
     }
   }
 
-  /** 从完整公开 URL 提取 COS key */
+  /**
+   * 从完整公开 URL 提取 COS key。
+   * 不按 COS_PUBLIC_BASE 前缀匹配：桶域名变更后历史对象的 URL 仍指旧桶，
+   * 前缀失配会把整个 URL 当 key 传给 COS，转私有/删除随之静默失败
+   * （下架回收公读失效 = 已下架内容拿直链仍可访问）。
+   * 查询串一并剥掉：老数据无 previewUrl 时预览链是现场拼的 CI 参数。
+   */
   keyFromUrl(url: string): string {
-    return url.replace(new RegExp(`^${this.publicBase}/`), "");
+    return url.replace(/^https?:\/\/[^/]+\//, "").split(/[?#]/)[0];
   }
 
   publicUrl(key: string): string {
