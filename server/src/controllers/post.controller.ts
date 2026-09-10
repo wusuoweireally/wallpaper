@@ -15,6 +15,8 @@ import type { Request } from "express";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
 import { buildPaginationMeta } from "../common/pagination";
+import { displayedViewCount } from "../common/view-count";
+import { getClientIp } from "../utils/client-ip";
 import { CurrentUser } from "../decorators/current-user.decorator";
 import type { CurrentUserType } from "../decorators/current-user.decorator";
 import {
@@ -23,6 +25,7 @@ import {
   UpdatePostDto,
 } from "../dto/post.dto";
 import { PostService } from "../services/post.service";
+import { ViewHistoryService } from "../services/view-history.service";
 
 /**
  * 帖子控制器
@@ -33,7 +36,10 @@ import { PostService } from "../services/post.service";
  */
 @Controller("posts")
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly viewHistoryService: ViewHistoryService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -57,20 +63,47 @@ export class PostController {
     };
   }
 
+  /**
+   * 帖子详情
+   * 浏览计数与壁纸同口径：登录按用户+帖子 1 小时去重，游客按 IP+帖子去重，
+   * 服务端权威判定——viewCount 是 popular 排序的输入，不防匿名刷榜会被顶上去
+   */
   @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
   async getPost(@Param("id", ParseIntPipe) id: number, @Req() req: Request) {
-    const post = await this.postService.findById(id);
     const user = req.user as CurrentUserType | undefined;
+    // 计数在下方去重判定通过后手动累加，取详情本身不自动计数
+    const post = await this.postService.findById(id, false);
+
     let isLiked = false;
     let isBookmarked = false;
+    let counted = false;
+
     if (user?.userId) {
-      [isLiked, isBookmarked] = await Promise.all([
+      const [liked, bookmarked, viewCounted] = await Promise.all([
         this.postService.hasLiked(id, user.userId),
         this.postService.hasBookmarked(id, user.userId),
+        this.viewHistoryService.recordPostView(user.userId, id),
       ]);
+      isLiked = liked;
+      isBookmarked = bookmarked;
+      counted = viewCounted;
+    } else if (
+      this.viewHistoryService.recordGuestView(getClientIp(req), id, "post")
+    ) {
+      await this.postService.incrementViewCount(id);
+      counted = true;
     }
-    return { success: true, data: { ...post, isLiked, isBookmarked } };
+
+    return {
+      success: true,
+      data: {
+        ...post,
+        viewCount: displayedViewCount(post.viewCount, counted),
+        isLiked,
+        isBookmarked,
+      },
+    };
   }
 
   @Put(":id")
@@ -119,7 +152,12 @@ export class PostController {
     return { success: true, message: "已取消点赞", data: result };
   }
 
+  /**
+   * 分享计数：需登录。游客仍可正常分享（前端 navigator.share / 微博跳转不依赖本接口），
+   * 只是不计入 shareCount——否则匿名可无限刷高这个展示值。
+   */
   @Post(":id/share")
+  @UseGuards(JwtAuthGuard)
   async sharePost(@Param("id", ParseIntPipe) id: number) {
     await this.postService.incrementShareCount(id);
     return { success: true, message: "分享计数已更新" };

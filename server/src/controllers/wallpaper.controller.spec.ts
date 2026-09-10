@@ -140,7 +140,11 @@ describe("WallpaperController getWallpaper viewCount", () => {
       guestRequest({ "cf-connecting-ip": "203.0.113.10" }),
     );
 
-    expect(recordGuestView).toHaveBeenCalledWith("203.0.113.10", wallpaperId);
+    expect(recordGuestView).toHaveBeenCalledWith(
+      "203.0.113.10",
+      wallpaperId,
+      "wallpaper",
+    );
     expect(incrementViewCount).toHaveBeenCalledWith(wallpaperId);
     expect(recordView).not.toHaveBeenCalled();
     expect(result.data.viewCount).toBe(6);

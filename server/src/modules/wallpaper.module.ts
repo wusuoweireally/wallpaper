@@ -12,6 +12,7 @@ import { Wallpaper } from "../entities/wallpaper.entity";
 import { WallpaperTag } from "../entities/wallpaper-tag.entity";
 import { Tag } from "../entities/tag.entity";
 import { ViewHistory } from "../entities/view-history.entity";
+import { PostViewHistory } from "../entities/post-view-history.entity";
 import { UserFavorite } from "../entities/user-favorite.entity";
 import { User } from "../entities/user.entity";
 import { Collection } from "../entities/collection.entity";
@@ -28,6 +29,7 @@ import { PaletteBackfillService } from "../services/palette-backfill.service";
       WallpaperTag,
       Tag,
       ViewHistory,
+      PostViewHistory,
       UserFavorite,
       User,
       Collection,

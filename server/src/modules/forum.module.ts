@@ -15,6 +15,7 @@ import { PostService } from "../services/post.service";
 import { CommentService } from "../services/comment.service";
 import { ReportService } from "../services/report.service";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
+import { WallpaperModule } from "./wallpaper.module";
 
 /**
  * 论坛模块
@@ -36,6 +37,8 @@ import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
       Wallpaper, // 壁纸实体（举报快照用）
       User, // 用户实体（用于关联查询）
     ]),
+    // 帖子浏览去重复用 ViewHistoryService（游客 IP 去重与 1 小时窗口都在那边）
+    WallpaperModule,
   ],
   controllers: [
     PostController, // 帖子控制器

@@ -38,6 +38,7 @@ import { ViewHistoryService } from "../services/view-history.service";
 import { sanitizeUser } from "../utils/sanitize";
 import { resolveAvatarUrl } from "../utils/avatar";
 import { buildPaginationMeta } from "../common/pagination";
+import { displayedViewCount } from "../common/view-count";
 import { getClientIp } from "../utils/client-ip";
 
 interface CreateWallpaperData extends CreateWallpaperDto {
@@ -305,6 +306,7 @@ export class WallpaperController {
         this.viewHistoryService.recordGuestView(
           getClientIp(request),
           wallpaperId,
+          "wallpaper",
         )
       ) {
         await this.wallpaperService.incrementViewCount(wallpaperId);
@@ -442,11 +444,4 @@ export class WallpaperController {
     );
     return { success: true, message: "已取消收藏", data: result };
   }
-}
-
-function displayedViewCount(raw: unknown, counted: boolean): number {
-  const current = Number(raw);
-  const base =
-    Number.isFinite(current) && current >= 0 ? Math.trunc(current) : 0;
-  return counted ? base + 1 : base;
 }
