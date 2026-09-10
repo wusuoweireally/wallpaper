@@ -77,29 +77,24 @@ export function sanitizeHtml(html: string): string {
 }
 
 /**
- * 为所有链接添加安全属性
- * @param html - HTML 字符串
- * @returns 处理后的 HTML
+ * 为所有链接补上 target / rel 安全属性。
+ * 走 DOMParser 而非正则重建 `<a>` 标签：正则只捕获 href 之前的属性，
+ * 重建时会把 href 之后的属性（如 title/class）整段丢掉。
+ * 入参已过 DOMPurify，此处只加属性、其余原样保留。
  */
 function addLinkSecurityAttributes(html: string): string {
-  return html.replace(
-    /<a\s+(?:([^>]*?)href=["']([^"']+)["'][^>]*)>/gi,
-    (_match, beforeHref, href) => {
-      let attrs = beforeHref || ""
+  const doc = new DOMParser().parseFromString(html, "text/html")
 
-      // 添加 target="_blank" 如果没有
-      if (!attrs.includes("target=")) {
-        attrs += ' target="_blank"'
-      }
+  for (const anchor of doc.querySelectorAll("a[href]")) {
+    if (!anchor.hasAttribute("target")) {
+      anchor.setAttribute("target", "_blank")
+    }
+    if (!anchor.hasAttribute("rel")) {
+      anchor.setAttribute("rel", "noopener noreferrer")
+    }
+  }
 
-      // 添加 rel="noopener noreferrer" 如果没有
-      if (!attrs.includes("rel=")) {
-        attrs += ' rel="noopener noreferrer"'
-      }
-
-      return `<a ${attrs}href="${href}">`
-    },
-  )
+  return doc.body.innerHTML
 }
 
 /**
