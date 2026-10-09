@@ -46,7 +46,7 @@ FROM deps AS web-build
 
 COPY web/ ./web/
 ARG VITE_API_BASE_URL=/api
-# 留空或 / 时资源仍由 Nginx 提供。设成 CDN 地址后，构建结束会把 dist/assets 传到 COS。
+# 留空或 / 时资源仍由 Nginx 提供。设成 CDN 地址后，构建结束会把 dist 里除 index.html 外的文件传到 COS。
 # 密钥只存在于本构建阶段，最终镜像是 nginx，不带这些变量。
 ARG VITE_ASSET_BASE=/
 ARG COS_SECRET_ID

@@ -7,7 +7,7 @@ import { fileURLToPath, URL } from "node:url"
 // 例：https://cdn.example.com/web/ → index.html 里变成
 // https://cdn.example.com/web/assets/index-xxx.js
 // 必须以 / 结尾。index.html 本身仍由 Nginx 发，/api 才能同源。
-// Vite 会把 index.html 里以 / 开头的地址也加上 base，public 文件要改回站点根路径。
+// /icon.svg 这类 public 文件也会被改成桶地址，和 dist 里其它文件一起上传。
 function resolveAssetBase(): string {
   const raw = (process.env.VITE_ASSET_BASE || "/").trim()
   if (raw === "" || raw === "/") return "/"
@@ -18,31 +18,10 @@ function resolveAssetBase(): string {
   return raw.endsWith("/") ? raw : `${raw}/`
 }
 
-const assetBase = resolveAssetBase()
-
-// base 会把 /icon.svg 写成桶地址，但上传只覆盖 dist/assets。
-// 非 assets 的地址改回 /，继续由 Nginx 提供。
-function keepPublicOnSite() {
-  return {
-    name: "keep-public-on-site",
-    transformIndexHtml: {
-      order: "post" as const,
-      handler(html: string) {
-        if (!assetBase.startsWith("http")) return html
-        return html.replaceAll(assetBase, (match, offset) => {
-          const rest = html.slice(offset + match.length)
-          return rest.startsWith("assets/") ? match : "/"
-        })
-      },
-    },
-  }
-}
-
 // https://vite.dev/config/
 export default defineConfig({
-  base: assetBase,
+  base: resolveAssetBase(),
   plugins: [
-    keepPublicOnSite(),
     vue({
       template: {
         compilerOptions: {

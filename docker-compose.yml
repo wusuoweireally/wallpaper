@@ -86,7 +86,7 @@ services:
       dockerfile: Dockerfile
       target: web
       args:
-        # 留空则 js/css 仍由本容器 Nginx 提供。填 CDN 后，构建会上传 dist/assets。
+        # 留空则仍由本容器 Nginx 提供。填 CDN 后，构建会上传 dist 里除 index.html 外的文件。
         VITE_ASSET_BASE: ${VITE_ASSET_BASE:-/}
         COS_SECRET_ID: ${COS_SECRET_ID:-}
         COS_SECRET_KEY: ${COS_SECRET_KEY:-}
