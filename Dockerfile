@@ -46,13 +46,26 @@ FROM deps AS web-build
 
 COPY web/ ./web/
 ARG VITE_API_BASE_URL=/api
+# 留空或 / 时资源仍由 Nginx 提供。设成 CDN 地址后，构建结束会把 dist/assets 传到 COS。
+# 密钥只存在于本构建阶段，最终镜像是 nginx，不带这些变量。
+ARG VITE_ASSET_BASE=/
+ARG COS_SECRET_ID
+ARG COS_SECRET_KEY
+ARG COS_BUCKET
+ARG COS_REGION=ap-beijing
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-RUN pnpm --filter web build
+ENV VITE_ASSET_BASE=$VITE_ASSET_BASE
+ENV COS_SECRET_ID=$COS_SECRET_ID
+ENV COS_SECRET_KEY=$COS_SECRET_KEY
+ENV COS_BUCKET=$COS_BUCKET
+ENV COS_REGION=$COS_REGION
+RUN pnpm --filter web build && node web/scripts/upload-assets.mjs
 
 FROM nginx:1.27-alpine AS web
 
 COPY --from=web-build /app/web/dist /usr/share/nginx/html
-COPY web/nginx/default.conf /etc/nginx/conf.d/default.conf
+# 官方镜像启动时把模板里的 ${ASSET_CDN_ORIGIN} 换成环境变量，写到 conf.d
+COPY web/nginx/default.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

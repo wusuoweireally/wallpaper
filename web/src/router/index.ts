@@ -373,8 +373,16 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+// 生产构建的 BASE_URL 是 COS 绝对地址，只改写 js/css/字体。
+// 页面仍在站点根路径。vue-router 收到完整 URL 不会剥域名，
+// 站内链接会变成 /https://桶域名/...，所以绝对地址时 history 固定为 /。
+function resolveHistoryBase(assetBase: string): string {
+  if (/^https?:\/\//.test(assetBase)) return "/"
+  return assetBase || "/"
+}
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(resolveHistoryBase(import.meta.env.BASE_URL)),
   routes,
   // 路由滚动行为
   scrollBehavior(to, from, savedPosition) {

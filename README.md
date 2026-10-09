@@ -42,6 +42,7 @@ pnpm dev            # 前端 :1234  后端 :3000（Vite 代理 /api）
 cp server/.env.production.example server/.env.production
 # 必填：DB_PASSWORD、MYSQL_ROOT_PASSWORD、JWT_SECRET(≥32)、COS_*、
 # FRONTEND_URL(https)、COOKIE_SECURE=true；OAuth 按需。
+# 前端加速可选：VITE_ASSET_BASE 与 ASSET_CDN_ORIGIN 成对填写，留空则 js/css 仍由 Nginx 提供。
 # ADMIN_* 选填：整组一起填，只填其中一项会直接启动失败（校验按成对处理）；
 # 全不填则全站没有超级管理员，可事后补齐并重启容器完成创建。
 
